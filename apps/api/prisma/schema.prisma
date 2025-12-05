@@ -1,0 +1,103 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Product {
+    id        String   @id @default(uuid())
+    name      String
+    unit      String
+    price     Decimal  @db.Decimal(10, 2)
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    orderItems    OrderItem[]
+    ledgerEntries LedgerEntry[]
+
+    @@map("products")
+}
+
+model Customer {
+    id        String   @id @default(uuid())
+    name      String
+    contact   String?
+    createdAt DateTime @default(now()) @map("created_at")
+
+    orders Order[]
+
+    @@map("customers")
+}
+
+model Order {
+    id         String      @id @default(uuid())
+    customerId String?     @map("customer_id")
+    status     OrderStatus @default(DRAFT)
+    totalPrice Decimal     @map("total_price") @db.Decimal(10, 2)
+    createdAt  DateTime    @default(now()) @map("created_at")
+    updatedAt  DateTime    @updatedAt @map("updated_at")
+
+    customer      Customer?     @relation(fields: [customerId], references: [id])
+    items         OrderItem[]
+    ledgerEntries LedgerEntry[]
+    sale          Sale?
+
+    @@map("orders")
+}
+
+enum OrderStatus {
+    DRAFT
+    PENDING
+    READY
+    COMPLETED
+    CANCELLED
+}
+
+model OrderItem {
+    id        String  @id @default(uuid())
+    orderId   String  @map("order_id")
+    productId String  @map("product_id")
+    quantity  Int
+    unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+
+    order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    product Product @relation(fields: [productId], references: [id])
+
+    @@map("order_items")
+}
+
+model Sale {
+    id        String   @id @default(uuid())
+    orderId   String   @unique @map("order_id")
+    createdAt DateTime @default(now()) @map("created_at")
+
+    order Order @relation(fields: [orderId], references: [id])
+
+    @@map("sales")
+}
+
+model LedgerEntry {
+    id        String              @id @default(uuid())
+    productId String              @map("product_id")
+    quantity  Int
+    type      LedgerOperationType
+    orderId   String?             @map("order_id")
+    createdAt DateTime            @default(now()) @map("created_at")
+
+    product Product @relation(fields: [productId], references: [id])
+    order   Order?  @relation(fields: [orderId], references: [id])
+
+    @@map("ledger_entries")
+}
+
+enum LedgerOperationType {
+    STOCK_IN
+    STOCK_ADJUSTMENT
+    RESERVE
+    RELEASE
+    SALE
+    CORRECTION
+}
