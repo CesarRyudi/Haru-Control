@@ -19,6 +19,7 @@ export default function OrderBoard() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
 
   useEffect(() => {
     loadOrders();
@@ -89,23 +90,6 @@ export default function OrderBoard() {
     <div className="order-board">
       <header className="board-header">
         <h1>Pedidos</h1>
-        <div className="header-actions">
-          <button
-            onClick={() => navigate("/products")}
-            className="btn-secondary"
-          >
-            Produtos
-          </button>
-          <button onClick={() => navigate("/stock")} className="btn-secondary">
-            Estoque
-          </button>
-          <button
-            onClick={() => navigate("/orders/new")}
-            className="btn-primary"
-          >
-            + Novo Pedido
-          </button>
-        </div>
       </header>
 
       <div className="board-columns">
@@ -202,6 +186,51 @@ export default function OrderBoard() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Floating Action Button */}
+      <div className={`fab-container ${fabMenuOpen ? "fab-open" : ""}`}>
+        {fabMenuOpen && (
+          <div className="fab-menu">
+            <button
+              className="fab-menu-item"
+              onClick={() => {
+                navigate("/products");
+                setFabMenuOpen(false);
+              }}
+            >
+              <span className="fab-icon">📦</span>
+              <span className="fab-label">Produtos</span>
+            </button>
+            <button
+              className="fab-menu-item"
+              onClick={() => {
+                navigate("/stock");
+                setFabMenuOpen(false);
+              }}
+            >
+              <span className="fab-icon">📊</span>
+              <span className="fab-label">Estoque</span>
+            </button>
+            <button
+              className="fab-menu-item"
+              onClick={() => {
+                navigate("/orders/new");
+                setFabMenuOpen(false);
+              }}
+            >
+              <span className="fab-icon">➕</span>
+              <span className="fab-label">Novo Pedido</span>
+            </button>
+          </div>
+        )}
+        <button
+          className="fab-button"
+          onClick={() => setFabMenuOpen(!fabMenuOpen)}
+          aria-label="Menu de navegação"
+        >
+          {fabMenuOpen ? "✕" : "☰"}
+        </button>
+      </div>
     </div>
   );
 }
