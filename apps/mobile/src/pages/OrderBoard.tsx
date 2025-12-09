@@ -1,5 +1,5 @@
 import { Order, OrderStatus } from "@haru-control/types";
-import { Toast } from "@haru-control/ui";
+import { FloatingActionButton, Toast } from "@haru-control/ui";
 import {
   formatCurrency,
   formatDate,
@@ -19,7 +19,6 @@ export default function OrderBoard() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const boardColumnsRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef(0);
 
@@ -210,50 +209,25 @@ export default function OrderBoard() {
         />
       )}
 
-      {/* Floating Action Button */}
-      <div className={`fab-container ${fabMenuOpen ? "fab-open" : ""}`}>
-        {fabMenuOpen && (
-          <div className="fab-menu">
-            <button
-              className="fab-menu-item"
-              onClick={() => {
-                navigate("/products");
-                setFabMenuOpen(false);
-              }}
-            >
-              <span className="fab-icon">📦</span>
-              <span className="fab-label">Produtos</span>
-            </button>
-            <button
-              className="fab-menu-item"
-              onClick={() => {
-                navigate("/stock");
-                setFabMenuOpen(false);
-              }}
-            >
-              <span className="fab-icon">📊</span>
-              <span className="fab-label">Estoque</span>
-            </button>
-            <button
-              className="fab-menu-item"
-              onClick={() => {
-                navigate("/orders/new");
-                setFabMenuOpen(false);
-              }}
-            >
-              <span className="fab-icon">➕</span>
-              <span className="fab-label">Novo Pedido</span>
-            </button>
-          </div>
-        )}
-        <button
-          className="fab-button"
-          onClick={() => setFabMenuOpen(!fabMenuOpen)}
-          aria-label="Menu de navegação"
-        >
-          {fabMenuOpen ? "✕" : "☰"}
-        </button>
-      </div>
+      <FloatingActionButton
+        menuItems={[
+          {
+            icon: "📦",
+            label: "Produtos",
+            onClick: () => navigate("/products"),
+          },
+          {
+            icon: "📊",
+            label: "Estoque",
+            onClick: () => navigate("/stock"),
+          },
+          {
+            icon: "➕",
+            label: "Novo Pedido",
+            onClick: () => navigate("/orders/new"),
+          },
+        ]}
+      />
     </div>
   );
 }

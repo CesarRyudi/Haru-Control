@@ -1,4 +1,4 @@
-import { NumberInput } from "@haru-control/ui";
+import { FloatingActionButton, NumberInput } from "@haru-control/ui";
 import { formatCurrency } from "@haru-control/utils";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -87,13 +87,7 @@ export default function Products() {
   return (
     <div className="products-page">
       <header className="page-header">
-        <button onClick={() => navigate("/")} className="btn-back">
-          ← Voltar
-        </button>
         <h1>Produtos</h1>
-        <button onClick={() => handleOpenModal()} className="btn-primary">
-          + Novo Produto
-        </button>
       </header>
 
       <div className="products-list">
@@ -177,6 +171,26 @@ export default function Products() {
           </div>
         </div>
       )}
+
+      <FloatingActionButton
+        menuItems={[
+          {
+            icon: "📋",
+            label: "Pedidos",
+            onClick: () => navigate("/"),
+          },
+          {
+            icon: "📊",
+            label: "Estoque",
+            onClick: () => navigate("/stock"),
+          },
+          {
+            icon: "➕",
+            label: "Novo Produto",
+            onClick: () => handleOpenModal(),
+          },
+        ]}
+      />
     </div>
   );
 }

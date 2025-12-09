@@ -1,4 +1,4 @@
-import { NumberInput } from "@haru-control/ui";
+import { FloatingActionButton, NumberInput } from "@haru-control/ui";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -67,13 +67,7 @@ export default function Stock() {
   return (
     <div className="stock-page">
       <header className="page-header">
-        <button onClick={() => navigate("/")} className="btn-back">
-          ← Voltar
-        </button>
         <h1>Estoque</h1>
-        <button onClick={() => handleOpenModal("in")} className="btn-primary">
-          + Entrada de Estoque
-        </button>
       </header>
 
       <div className="stock-list">
@@ -158,6 +152,26 @@ export default function Stock() {
           </div>
         </div>
       )}
+
+      <FloatingActionButton
+        menuItems={[
+          {
+            icon: "📋",
+            label: "Pedidos",
+            onClick: () => navigate("/"),
+          },
+          {
+            icon: "📦",
+            label: "Produtos",
+            onClick: () => navigate("/products"),
+          },
+          {
+            icon: "➕",
+            label: "Entrada",
+            onClick: () => handleOpenModal("in"),
+          },
+        ]}
+      />
     </div>
   );
 }
