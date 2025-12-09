@@ -5,7 +5,7 @@ import {
   formatDate,
   getTodayString,
 } from "@haru-control/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./OrderBoard.css";
@@ -20,14 +20,26 @@ export default function OrderBoard() {
     type: "success" | "error";
   } | null>(null);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
+  const boardColumnsRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef(0);
 
   useEffect(() => {
     loadOrders();
   }, [completedDate]);
 
-  const loadOrders = async () => {
+  const loadOrders = async (preserveScroll = false) => {
     console.log("Loading orders...");
-    setLoading(true);
+
+    // Salvar posição de scroll se necessário
+    if (preserveScroll && boardColumnsRef.current) {
+      scrollPositionRef.current = boardColumnsRef.current.scrollLeft;
+    }
+
+    // Não mostrar loading quando estamos preservando o scroll (atualização em background)
+    if (!preserveScroll) {
+      setLoading(true);
+    }
+
     try {
       // Buscar todos os pedidos não concluídos
       const allOrdersRes = await api.get("/orders");
@@ -45,7 +57,18 @@ export default function OrderBoard() {
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);
     } finally {
-      setLoading(false);
+      if (!preserveScroll) {
+        setLoading(false);
+      }
+
+      // Restaurar posição de scroll
+      if (preserveScroll) {
+        setTimeout(() => {
+          if (boardColumnsRef.current) {
+            boardColumnsRef.current.scrollLeft = scrollPositionRef.current;
+          }
+        }, 0);
+      }
     }
   };
 
@@ -63,7 +86,7 @@ export default function OrderBoard() {
       } else {
         await api.patch(`/orders/${orderId}`, { status: newStatus });
       }
-      loadOrders();
+      loadOrders(true);
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
       alert("Erro ao atualizar status do pedido");
@@ -75,7 +98,7 @@ export default function OrderBoard() {
 
     try {
       await api.post(`/orders/${orderId}/cancel`);
-      loadOrders();
+      loadOrders(true);
     } catch (error) {
       console.error("Erro ao cancelar pedido:", error);
       alert("Erro ao cancelar pedido");
@@ -92,7 +115,7 @@ export default function OrderBoard() {
         <h1>Pedidos</h1>
       </header>
 
-      <div className="board-columns">
+      <div className="board-columns" ref={boardColumnsRef}>
         <div className="board-column">
           <h2>Rascunho</h2>
           <div className="orders-list">

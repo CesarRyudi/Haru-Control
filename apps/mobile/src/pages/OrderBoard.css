@@ -63,8 +63,9 @@
   overflow-x: auto;
   overflow-y: hidden;
   flex: 1;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scroll-behavior: smooth;
+  scroll-padding: 20px;
 }
 
 .board-columns::-webkit-scrollbar {
