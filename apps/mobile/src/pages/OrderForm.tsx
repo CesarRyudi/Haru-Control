@@ -1,9 +1,10 @@
-import { formatCurrency } from '@haru-control/utils';
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import api from '../services/api';
-import { useOrderDraft } from '../store/useOrderDraft';
-import './OrderForm.css';
+import { NumberInput } from "@haru-control/ui";
+import { formatCurrency } from "@haru-control/utils";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import api from "../services/api";
+import { useOrderDraft } from "../store/useOrderDraft";
+import "./OrderForm.css";
 
 interface Product {
   id: string;
@@ -16,12 +17,14 @@ export default function OrderForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
-  
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
-  
-  const { items, addItem, updateItem, removeItem, clear, getTotalPrice } = useOrderDraft();
+  const [deliveryFee, setDeliveryFee] = useState<number>(2);
+
+  const { items, addItem, updateItem, removeItem, clear, getTotalPrice } =
+    useOrderDraft();
 
   useEffect(() => {
     loadProducts();
@@ -32,10 +35,10 @@ export default function OrderForm() {
 
   const loadProducts = async () => {
     try {
-      const response = await api.get('/products');
+      const response = await api.get("/products");
       setProducts(response.data);
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
+      console.error("Erro ao carregar produtos:", error);
     }
   };
 
@@ -43,7 +46,9 @@ export default function OrderForm() {
     try {
       const response = await api.get(`/orders/${id}`);
       const order = response.data;
-      
+
+      setDeliveryFee(order.deliveryFee || 2);
+
       clear();
       order.items.forEach((item: any) => {
         addItem({
@@ -54,9 +59,9 @@ export default function OrderForm() {
         });
       });
     } catch (error) {
-      console.error('Erro ao carregar pedido:', error);
-      alert('Erro ao carregar pedido');
-      navigate('/');
+      console.error("Erro ao carregar pedido:", error);
+      alert("Erro ao carregar pedido");
+      navigate("/");
     }
   };
 
@@ -71,7 +76,7 @@ export default function OrderForm() {
 
   const handleSave = async () => {
     if (items.length === 0) {
-      alert('Adicione ao menos um produto ao pedido');
+      alert("Adicione ao menos um produto ao pedido");
       return;
     }
 
@@ -80,28 +85,29 @@ export default function OrderForm() {
 
     try {
       const payload = {
-        items: items.map(item => ({
+        items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
+        deliveryFee,
       };
 
       let response;
       if (isEdit) {
         response = await api.patch(`/orders/${id}`, payload);
       } else {
-        response = await api.post('/orders', payload);
+        response = await api.post("/orders", payload);
       }
 
       if (response.data.warnings && response.data.warnings.length > 0) {
         setWarnings(response.data.warnings);
       } else {
         clear();
-        navigate('/');
+        navigate("/");
       }
     } catch (error: any) {
-      console.error('Erro ao salvar pedido:', error);
-      alert(error.response?.data?.message || 'Erro ao salvar pedido');
+      console.error("Erro ao salvar pedido:", error);
+      alert(error.response?.data?.message || "Erro ao salvar pedido");
     } finally {
       setLoading(false);
     }
@@ -109,28 +115,30 @@ export default function OrderForm() {
 
   const handleContinueWithWarnings = () => {
     clear();
-    navigate('/');
+    navigate("/");
   };
 
   return (
     <div className="order-form">
       <header className="form-header">
-        <button onClick={() => navigate('/')} className="btn-back">
+        <button onClick={() => navigate("/")} className="btn-back">
           ← Voltar
         </button>
-        <h1>{isEdit ? 'Editar Pedido' : 'Novo Pedido'}</h1>
+        <h1>{isEdit ? "Editar Pedido" : "Novo Pedido"}</h1>
       </header>
 
       <div className="form-content">
         <section className="products-section">
           <h2>Produtos Disponíveis</h2>
           <div className="products-grid">
-            {products.map(product => (
+            {products.map((product) => (
               <div key={product.id} className="product-card">
                 <div className="product-info">
                   <h3>{product.name}</h3>
                   <p className="product-unit">{product.unit}</p>
-                  <p className="product-price">{formatCurrency(product.price)}</p>
+                  <p className="product-price">
+                    {formatCurrency(product.price)}
+                  </p>
                 </div>
                 <button
                   onClick={() => handleAddProduct(product)}
@@ -145,34 +153,53 @@ export default function OrderForm() {
 
         <section className="cart-section">
           <h2>Itens do Pedido</h2>
-          
+
           {items.length === 0 ? (
             <p className="empty-cart">Nenhum produto adicionado</p>
           ) : (
             <>
               <div className="cart-items">
-                {items.map(item => (
+                {items.map((item) => (
                   <div key={item.productId} className="cart-item">
                     <div className="item-info">
                       <h3>{item.productName}</h3>
-                      <p>{formatCurrency(item.unitPrice)}</p>
+                      <div className="item-pricing">
+                        <p className="unit-price">
+                          {formatCurrency(item.unitPrice)} un.
+                        </p>
+                        <p className="total-price">
+                          Total:{" "}
+                          {formatCurrency(item.unitPrice * item.quantity)}
+                        </p>
+                      </div>
                     </div>
                     <div className="item-controls">
                       <button
-                        onClick={() => updateItem(item.productId, Math.max(1, item.quantity - 1))}
+                        onClick={() =>
+                          updateItem(
+                            item.productId,
+                            Math.max(1, item.quantity - 1)
+                          )
+                        }
                         className="btn-qty"
                       >
                         -
                       </button>
-                      <input
-                        type="number"
+                      <NumberInput
                         value={item.quantity}
-                        onChange={(e) => updateItem(item.productId, parseInt(e.target.value) || 1)}
+                        onChange={(e) =>
+                          updateItem(
+                            item.productId,
+                            parseInt(e.target.value) || 1
+                          )
+                        }
                         className="qty-input"
                         min="1"
                       />
                       <button
-                        onClick={() => updateItem(item.productId, item.quantity + 1)}
+                        onClick={() =>
+                          updateItem(item.productId, item.quantity + 1)
+                        }
                         className="btn-qty"
                       >
                         +
@@ -188,22 +215,57 @@ export default function OrderForm() {
                 ))}
               </div>
 
+              <div className="delivery-fee-section">
+                <label htmlFor="deliveryFee">Taxa de Entrega:</label>
+                <NumberInput
+                  id="deliveryFee"
+                  step="0.5"
+                  min="0"
+                  value={deliveryFee}
+                  onChange={(e) =>
+                    setDeliveryFee(parseFloat(e.target.value) || 0)
+                  }
+                  showButtons
+                  className="delivery-fee-input"
+                />
+              </div>
+
               <div className="cart-total">
-                <span>Total:</span>
-                <strong>{formatCurrency(getTotalPrice())}</strong>
+                <div className="total-line">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(getTotalPrice())}</span>
+                </div>
+                <div className="total-line">
+                  <span>Taxa de Entrega:</span>
+                  <span>{formatCurrency(deliveryFee)}</span>
+                </div>
+                <div className="total-line total-final">
+                  <span>Total:</span>
+                  <strong>
+                    {formatCurrency(getTotalPrice() + deliveryFee)}
+                  </strong>
+                </div>
               </div>
 
               {warnings.length > 0 && (
                 <div className="warnings">
                   <h3>⚠️ Avisos</h3>
                   {warnings.map((warning, index) => (
-                    <p key={index} className="warning-message">{warning}</p>
+                    <p key={index} className="warning-message">
+                      {warning}
+                    </p>
                   ))}
                   <div className="warning-actions">
-                    <button onClick={() => setWarnings([])} className="btn-secondary">
+                    <button
+                      onClick={() => setWarnings([])}
+                      className="btn-secondary"
+                    >
                       Corrigir
                     </button>
-                    <button onClick={handleContinueWithWarnings} className="btn-primary">
+                    <button
+                      onClick={handleContinueWithWarnings}
+                      className="btn-primary"
+                    >
                       Continuar Mesmo Assim
                     </button>
                   </div>
@@ -215,7 +277,11 @@ export default function OrderForm() {
                 disabled={loading}
                 className="btn-save"
               >
-                {loading ? 'Salvando...' : isEdit ? 'Atualizar Pedido' : 'Criar Pedido'}
+                {loading
+                  ? "Salvando..."
+                  : isEdit
+                    ? "Atualizar Pedido"
+                    : "Criar Pedido"}
               </button>
             </>
           )}

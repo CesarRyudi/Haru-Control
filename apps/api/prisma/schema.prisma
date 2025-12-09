@@ -10,7 +10,7 @@ datasource db {
 model Product {
     id        String   @id @default(uuid())
     name      String
-    unit      String
+    unit      String   @default("Un")
     price     Decimal  @db.Decimal(10, 2)
     createdAt DateTime @default(now()) @map("created_at")
     updatedAt DateTime @updatedAt @map("updated_at")
@@ -33,12 +33,13 @@ model Customer {
 }
 
 model Order {
-    id         String      @id @default(uuid())
-    customerId String?     @map("customer_id")
-    status     OrderStatus @default(DRAFT)
-    totalPrice Decimal     @map("total_price") @db.Decimal(10, 2)
-    createdAt  DateTime    @default(now()) @map("created_at")
-    updatedAt  DateTime    @updatedAt @map("updated_at")
+    id          String      @id @default(uuid())
+    customerId  String?     @map("customer_id")
+    status      OrderStatus @default(DRAFT)
+    totalPrice  Decimal     @map("total_price") @db.Decimal(10, 2)
+    deliveryFee Decimal     @default(2.00) @map("delivery_fee") @db.Decimal(10, 2)
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
 
     customer      Customer?     @relation(fields: [customerId], references: [id])
     items         OrderItem[]

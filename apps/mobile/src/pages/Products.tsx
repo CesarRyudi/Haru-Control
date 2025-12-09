@@ -1,3 +1,4 @@
+import { NumberInput } from "@haru-control/ui";
 import { formatCurrency } from "@haru-control/utils";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +17,7 @@ export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({ name: "", unit: "", price: 0 });
+  const [formData, setFormData] = useState({ name: "", price: 0 });
 
   useEffect(() => {
     loadProducts();
@@ -38,12 +39,11 @@ export default function Products() {
       setEditingProduct(product);
       setFormData({
         name: product.name,
-        unit: product.unit,
         price: product.price,
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", unit: "", price: 0 });
+      setFormData({ name: "", price: 0 });
     }
     setIsModalOpen(true);
   };
@@ -51,17 +51,18 @@ export default function Products() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
-    setFormData({ name: "", unit: "", price: 0 });
+    setFormData({ name: "", price: 0 });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
+      const dataToSend = { ...formData, unit: "Un" };
       if (editingProduct) {
-        await api.patch(`/products/${editingProduct.id}`, formData);
+        await api.patch(`/products/${editingProduct.id}`, dataToSend);
       } else {
-        await api.post("/products", formData);
+        await api.post("/products", dataToSend);
       }
       loadProducts();
       handleCloseModal();
@@ -145,22 +146,10 @@ export default function Products() {
                 />
               </div>
               <div className="form-group">
-                <label>Unidade</label>
-                <input
-                  type="text"
-                  value={formData.unit}
-                  onChange={(e) =>
-                    setFormData({ ...formData, unit: e.target.value })
-                  }
-                  placeholder="Ex: kg, un, L"
-                  required
-                />
-              </div>
-              <div className="form-group">
                 <label>Preço</label>
-                <input
-                  type="number"
-                  step="0.01"
+                <NumberInput
+                  step="0.5"
+                  min="0"
                   value={formData.price}
                   onChange={(e) =>
                     setFormData({
@@ -168,6 +157,7 @@ export default function Products() {
                       price: parseFloat(e.target.value),
                     })
                   }
+                  showButtons
                   required
                 />
               </div>

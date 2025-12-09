@@ -43,4 +43,8 @@ export default defineConfig({
       ),
     },
   },
+
+  optimizeDeps: {
+    exclude: ["@prisma/client", ".prisma/client"],
+  },
 });

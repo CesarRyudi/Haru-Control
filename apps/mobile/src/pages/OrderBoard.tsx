@@ -1,9 +1,10 @@
+import { Order, OrderStatus } from "@haru-control/types";
+import { Toast } from "@haru-control/ui";
 import {
   formatCurrency,
   formatDate,
   getTodayString,
 } from "@haru-control/utils";
-import { Order, OrderStatus } from "@prisma/client";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -14,6 +15,10 @@ export default function OrderBoard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [completedDate, setCompletedDate] = useState(getTodayString());
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -117,6 +122,7 @@ export default function OrderBoard() {
                   onStatusChange={handleStatusChange}
                   onCancel={handleCancelOrder}
                   onEdit={() => navigate(`/orders/${order.id}/edit`)}
+                  showToast={setToast}
                 />
               ))
             )}
@@ -136,6 +142,7 @@ export default function OrderBoard() {
                   onStatusChange={handleStatusChange}
                   onCancel={handleCancelOrder}
                   onEdit={() => navigate(`/orders/${order.id}/edit`)}
+                  showToast={setToast}
                 />
               ))
             )}
@@ -155,6 +162,7 @@ export default function OrderBoard() {
                   onStatusChange={handleStatusChange}
                   onCancel={handleCancelOrder}
                   onEdit={() => navigate(`/orders/${order.id}/edit`)}
+                  showToast={setToast}
                 />
               ))
             )}
@@ -176,12 +184,24 @@ export default function OrderBoard() {
               <p className="empty-state">Nenhum pedido concluído</p>
             ) : (
               getOrdersByStatus(OrderStatus.COMPLETED).map((order) => (
-                <OrderCard key={order.id} order={order} readonly />
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  readonly
+                  showToast={setToast}
+                />
               ))
             )}
           </div>
         </div>
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
@@ -192,6 +212,9 @@ interface OrderCardProps {
   onCancel?: (id: string) => void;
   onEdit?: () => void;
   readonly?: boolean;
+  showToast?: (
+    toast: { message: string; type: "success" | "error" } | null
+  ) => void;
 }
 
 function OrderCard({
@@ -200,6 +223,7 @@ function OrderCard({
   onCancel,
   onEdit,
   readonly,
+  showToast,
 }: OrderCardProps) {
   const getNextStatus = () => {
     switch (order.status) {
@@ -214,34 +238,148 @@ function OrderCard({
     }
   };
 
+  const handleCopyOrder = () => {
+    if (!order.items || order.items.length === 0) {
+      showToast?.({ message: "Nenhum item no pedido", type: "error" });
+      return;
+    }
+
+    // Formatar itens do pedido
+    const itemsList = order.items
+      .map(
+        (item: any) =>
+          `${item.quantity}  ${item.product.name}(${formatCurrency(item.unitPrice)})`
+      )
+      .join("\n");
+
+    // Usar taxa de entrega do pedido
+    const deliveryFee = parseFloat(order.deliveryFee || 0);
+    const orderTotal = parseFloat(order.totalPrice);
+    const finalTotal = orderTotal + deliveryFee;
+
+    // Montar mensagem completa
+    const orderText = `Então são: 
+${itemsList}
+ 
+
+Valor do pedido: ${formatCurrency(orderTotal)} 
+Taxa de entrega: ${formatCurrency(deliveryFee)} 
+
+Valor total: ${formatCurrency(finalTotal)} 
+
+Certo?`;
+
+    // Tentar usar a API moderna do clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(orderText)
+        .then(() => {
+          showToast?.({ message: "Pedido copiado!", type: "success" });
+        })
+        .catch((error) => {
+          console.error("Erro ao copiar:", error);
+          // Fallback para o método antigo
+          copyToClipboardFallback(orderText);
+        });
+    } else {
+      // Fallback para navegadores antigos
+      copyToClipboardFallback(orderText);
+    }
+  };
+
+  const copyToClipboardFallback = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.select();
+
+    try {
+      document.execCommand("copy");
+      showToast?.({ message: "Pedido copiado!", type: "success" });
+    } catch (error) {
+      console.error("Erro ao copiar:", error);
+      showToast?.({ message: "Erro ao copiar pedido", type: "error" });
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  };
+
   const nextStatus = getNextStatus();
+
+  const getStatusLabel = () => {
+    switch (order.status) {
+      case OrderStatus.DRAFT:
+        return "Rascunho";
+      case OrderStatus.PENDING:
+        return "Pendente";
+      case OrderStatus.READY:
+        return "Pronto";
+      case OrderStatus.COMPLETED:
+        return "Concluído";
+      case OrderStatus.CANCELLED:
+        return "Cancelado";
+      default:
+        return order.status;
+    }
+  };
+
+  const totalWithDelivery =
+    parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0);
 
   return (
     <div className="order-card">
       <div className="order-header">
-        <span className="order-id">#{order.id.slice(0, 8)}</span>
+        <div className="order-header-left">
+          <span className="order-id">#{order.id.slice(0, 8)}</span>
+          <span className={`status-badge status-${order.status.toLowerCase()}`}>
+            {getStatusLabel()}
+          </span>
+        </div>
         <span className="order-time">{formatDate(order.createdAt)}</span>
       </div>
 
-      <div className="order-total">{formatCurrency(order.totalPrice)}</div>
+      <div className="order-total">{formatCurrency(totalWithDelivery)}</div>
+
+      {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
+        <div className="delivery-fee-info">
+          (Produtos: {formatCurrency(order.totalPrice)} + Entrega:{" "}
+          {formatCurrency(order.deliveryFee)})
+        </div>
+      )}
 
       {order.items && (
-        <div className="order-items">
-          {order.items.slice(0, 3).map((item: any) => (
-            <div key={item.id} className="order-item">
-              {item.quantity}x {item.product.name}
-            </div>
-          ))}
-          {order.items.length > 3 && (
-            <div className="order-item-more">
-              +{order.items.length - 3} mais
-            </div>
-          )}
+        <div className="order-items-container">
+          <div className="order-items">
+            {order.items.slice(0, 3).map((item: any) => (
+              <div key={item.id} className="order-item">
+                {item.quantity}x {item.product.name}
+              </div>
+            ))}
+            {order.items.length > 3 && (
+              <div className="order-item-more">
+                +{order.items.length - 3} mais
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleCopyOrder}
+            className="btn-copy"
+            title="Copiar pedido"
+          >
+            📋
+          </button>
         </div>
       )}
 
       {!readonly && (
         <div className="order-actions">
+          {onCancel && (
+            <button onClick={() => onCancel(order.id)} className="btn-cancel">
+              Cancelar
+            </button>
+          )}
           {onEdit && (
             <button onClick={onEdit} className="btn-edit">
               Editar
@@ -253,11 +391,6 @@ function OrderCard({
               className="btn-advance"
             >
               {nextStatus === OrderStatus.COMPLETED ? "Concluir" : "Avançar"}
-            </button>
-          )}
-          {onCancel && (
-            <button onClick={() => onCancel(order.id)} className="btn-cancel">
-              Cancelar
             </button>
           )}
         </div>

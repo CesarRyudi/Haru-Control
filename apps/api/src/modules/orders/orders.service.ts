@@ -64,6 +64,7 @@ export class OrdersService {
         customerId: createOrderDto.customerId,
         status: OrderStatus.DRAFT,
         totalPrice,
+        deliveryFee: createOrderDto.deliveryFee ?? 2,
         items: {
           create: itemsWithPrices.map((item) => ({
             productId: item.productId,
@@ -94,6 +95,7 @@ export class OrdersService {
       customerId: order.customerId,
       status: order.status,
       totalPrice: order.totalPrice,
+      deliveryFee: order.deliveryFee,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: order.items.map((item) => ({
@@ -156,6 +158,7 @@ export class OrdersService {
       customerId: order.customerId,
       status: order.status,
       totalPrice: order.totalPrice,
+      deliveryFee: order.deliveryFee,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: order.items.map((item) => ({
@@ -211,6 +214,7 @@ export class OrdersService {
       customerId: order.customerId,
       status: order.status,
       totalPrice: order.totalPrice,
+      deliveryFee: order.deliveryFee,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: order.items.map((item) => ({
@@ -341,11 +345,16 @@ export class OrdersService {
       });
     }
 
-    // Se atualizando status
-    if (updateOrderDto.status) {
+    // Se apenas atualizando status ou deliveryFee
+    if (updateOrderDto.status || updateOrderDto.deliveryFee !== undefined) {
+      const updateData: any = {};
+      if (updateOrderDto.status) updateData.status = updateOrderDto.status;
+      if (updateOrderDto.deliveryFee !== undefined)
+        updateData.deliveryFee = updateOrderDto.deliveryFee;
+
       await this.prisma.order.update({
         where: { id },
-        data: { status: updateOrderDto.status },
+        data: updateData,
       });
     }
 
@@ -406,6 +415,7 @@ export class OrdersService {
       customerId: completedOrder.customerId,
       status: completedOrder.status,
       totalPrice: completedOrder.totalPrice,
+      deliveryFee: completedOrder.deliveryFee,
       createdAt: completedOrder.createdAt,
       updatedAt: completedOrder.updatedAt,
       items: completedOrder.items.map((item) => ({
@@ -468,6 +478,7 @@ export class OrdersService {
       customerId: cancelledOrder.customerId,
       status: cancelledOrder.status,
       totalPrice: cancelledOrder.totalPrice,
+      deliveryFee: cancelledOrder.deliveryFee,
       createdAt: cancelledOrder.createdAt,
       updatedAt: cancelledOrder.updatedAt,
       items: cancelledOrder.items.map((item) => ({

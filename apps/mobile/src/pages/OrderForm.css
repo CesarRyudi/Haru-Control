@@ -36,14 +36,16 @@
   gap: 20px;
 }
 
-.products-section, .cart-section {
+.products-section,
+.cart-section {
   background: white;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.products-section h2, .cart-section h2 {
+.products-section h2,
+.cart-section h2 {
   font-size: 20px;
   color: #333;
   margin-bottom: 16px;
@@ -142,7 +144,24 @@
 .item-info h3 {
   font-size: 16px;
   color: #333;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.item-pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.unit-price {
+  font-size: 13px;
+  color: #999;
+}
+
+.total-price {
+  font-size: 15px;
+  color: #667eea;
+  font-weight: 700;
 }
 
 .item-info p {
@@ -198,18 +217,67 @@
   background: #c0392b;
 }
 
+.delivery-fee-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.delivery-fee-section label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.delivery-fee-section .number-input-container {
+  flex: 1;
+  max-width: 250px;
+}
+
+.delivery-fee-section .number-input-container input {
+  flex: 1;
+}
+
+.delivery-fee-input {
+  width: 120px;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 16px;
+  text-align: right;
+}
+
 .cart-total {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 24px;
+  flex-direction: column;
+  gap: 8px;
   padding: 20px;
   background: #f0f0f0;
   border-radius: 8px;
   margin-bottom: 20px;
 }
 
-.cart-total strong {
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  color: #666;
+}
+
+.total-final {
+  font-size: 24px;
+  color: #333;
+  padding-top: 12px;
+  border-top: 2px solid #ddd;
+  margin-top: 8px;
+}
+
+.total-final strong {
   color: #667eea;
 }
 
@@ -264,7 +332,7 @@
   .form-content {
     grid-template-columns: 1fr;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
@@ -274,12 +342,12 @@
   .order-form {
     padding: 16px;
   }
-  
+
   .cart-item {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .item-controls {
     width: 100%;
     justify-content: space-between;

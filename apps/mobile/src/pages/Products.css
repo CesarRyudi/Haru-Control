@@ -32,7 +32,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .product-item:hover {
@@ -141,6 +143,14 @@
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s;
+}
+
+.form-group .number-input-container {
+  width: 100%;
+}
+
+.form-group .number-input-container input {
+  flex: 1;
 }
 
 .form-group input:focus {
