@@ -1,0 +1,48 @@
+# Etapa de Build
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copia os arquivos de configuração de dependências
+COPY package*.json ./
+
+# Instala todas as dependências (necessárias para o build com Nx)
+RUN npm ci
+
+# Copia todo o código fonte
+COPY . .
+
+# Gera o client do Prisma
+RUN cd apps/api && npx prisma generate
+
+# Executa o build da API via Nx
+RUN npx nx build api --prod
+
+# Etapa de Produção
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copia o package.json
+COPY package*.json ./
+
+# Instala apenas as dependências de produção e o CLI do Prisma (necessário para as migrations)
+RUN npm ci --omit=dev && npm install prisma --no-save
+
+# Copia o build gerado
+COPY --from=builder /app/dist/apps/api ./dist/apps/api
+
+# Copia os arquivos do Prisma (schema e migrations)
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+
+# Copia o client gerado do Prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# Define variáveis de ambiente padrão
+ENV PORT=3000
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+# Executa as migrations e então inicia o servidor
+CMD npx prisma migrate deploy --schema=./apps/api/prisma/schema.prisma && node dist/apps/api/main.js
