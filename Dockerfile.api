@@ -6,7 +6,7 @@ WORKDIR /app
 # Copia os arquivos de configuração de dependências
 COPY package*.json ./
 
-# Instala todas as dependências limitando conexões simultâneas (evita picos excessivos de rede/RAM)
+# Instala todas as dependências limitando conexões simultâneas
 RUN npm ci --maxsockets 1
 
 # Copia todo o código fonte
@@ -18,9 +18,6 @@ RUN cd apps/api && npx prisma generate
 # Executa o build da API via Nx
 RUN npx nx build api --prod
 
-# Limpa dependências de desenvolvimento, mantendo apenas as de produção e o Prisma CLI
-RUN npm prune --omit=dev && npm install prisma --no-save --maxsockets 1
-
 # Etapa de Produção (usando 18.20-alpine para evitar o bug de substituição de string do Coolify)
 FROM node:18.20-alpine AS production
 
@@ -29,7 +26,7 @@ WORKDIR /app
 ENV PORT=3000
 ENV NODE_ENV=production
 
-# Copia o node_modules limpo e o package.json do builder (ZERO concorrência de npm install em paralelo)
+# Copia o node_modules completo do builder (evita recalcular árvore de pacotes com npm prune / install)
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 
