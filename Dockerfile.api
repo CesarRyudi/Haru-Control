@@ -45,4 +45,4 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 EXPOSE 3000
 
 # Executa as migrations e inicia o servidor
-CMD npx prisma migrate deploy --schema=./apps/api/prisma/schema.prisma && node dist/apps/api/main.js
+CMD npx prisma db push --schema=./apps/api/prisma/schema.prisma --accept-data-loss && node dist/apps/api/main.js
