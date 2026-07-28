@@ -3,10 +3,13 @@ FROM node:18.20-alpine AS builder
 
 WORKDIR /app
 
+# Instala openssl e libc6-compat necessários para o funcionamento dos motores nativos do Prisma no Alpine
+RUN apk add --no-cache openssl libc6-compat
+
 # Copia os arquivos de configuração de dependências
 COPY package*.json ./
 
-# Instala todas as dependências limitando conexões simultâneas
+# Instala todas as dependências limitando conexões simultâneas (evita picos excessivos de rede/RAM)
 RUN npm ci --maxsockets 1
 
 # Copia todo o código fonte
@@ -23,10 +26,13 @@ FROM node:18.20-alpine AS production
 
 WORKDIR /app
 
+# Instala openssl e libc6-compat em produção para permitir o npx prisma migrate deploy
+RUN apk add --no-cache openssl libc6-compat
+
 ENV PORT=3000
 ENV NODE_ENV=production
 
-# Copia o node_modules completo do builder (evita recalcular árvore de pacotes com npm prune / install)
+# Copia o node_modules limpo e o package.json do builder (ZERO concorrência de npm install em paralelo)
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 
