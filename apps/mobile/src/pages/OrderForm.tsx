@@ -11,7 +11,7 @@ interface Product {
   name: string;
   unit: string;
   price: number;
-  category?: { name: string };
+  category?: { name: string; price?: number };
 }
 
 export default function OrderForm() {
@@ -42,6 +42,13 @@ export default function OrderForm() {
     const sortedKeys = Object.keys(groups).sort((a, b) => {
       if (a === "Sem Categoria") return 1;
       if (b === "Sem Categoria") return -1;
+
+      const catA = groups[a][0]?.category;
+      const catB = groups[b][0]?.category;
+      const priceA = catA?.price || 0;
+      const priceB = catB?.price || 0;
+
+      if (priceA !== priceB) return priceA - priceB;
       return a.localeCompare(b);
     });
 

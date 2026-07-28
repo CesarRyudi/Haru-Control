@@ -43,8 +43,14 @@ export default function Products() {
         api.get("/products"),
         api.get("/categories")
       ]);
+      const sortedCategories = categoriesRes.data.sort((a: Category, b: Category) => {
+        const priceA = a.price || 0;
+        const priceB = b.price || 0;
+        if (priceA !== priceB) return priceA - priceB;
+        return a.name.localeCompare(b.name);
+      });
       setProducts(productsRes.data);
-      setCategories(categoriesRes.data);
+      setCategories(sortedCategories);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
@@ -156,6 +162,13 @@ export default function Products() {
     const sortedKeys = Object.keys(groups).sort((a, b) => {
       if (a === "Sem Categoria") return 1;
       if (b === "Sem Categoria") return -1;
+
+      const catA = groups[a][0]?.category;
+      const catB = groups[b][0]?.category;
+      const priceA = catA?.price || 0;
+      const priceB = catB?.price || 0;
+      
+      if (priceA !== priceB) return priceA - priceB;
       return a.localeCompare(b);
     });
 
