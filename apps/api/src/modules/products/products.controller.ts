@@ -21,6 +21,10 @@ export class CreateProductDto {
   @IsNumber()
   @Type(() => Number)
   price: number;
+
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
 }
 
 export class UpdateProductDto {
@@ -36,6 +40,10 @@ export class UpdateProductDto {
   @Type(() => Number)
   @IsOptional()
   price?: number;
+
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
 }
 
 @Controller("products")

@@ -1,6 +1,6 @@
 import { NumberInput } from "@haru-control/ui";
 import { formatCurrency } from "@haru-control/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useOrderDraft } from "../store/useOrderDraft";
@@ -11,6 +11,7 @@ interface Product {
   name: string;
   unit: string;
   price: number;
+  category?: { name: string };
 }
 
 export default function OrderForm() {
@@ -25,6 +26,27 @@ export default function OrderForm() {
 
   const { items, addItem, updateItem, removeItem, clear, getTotalPrice } =
     useOrderDraft();
+
+  const groupedProducts = useMemo(() => {
+    const groups: Record<string, Product[]> = {};
+    products.forEach(p => {
+      const catName = p.category?.name || "Sem Categoria";
+      if (!groups[catName]) groups[catName] = [];
+      groups[catName].push(p);
+    });
+    
+    Object.values(groups).forEach(group => {
+      group.sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      if (a === "Sem Categoria") return 1;
+      if (b === "Sem Categoria") return -1;
+      return a.localeCompare(b);
+    });
+
+    return sortedKeys.map(key => ({ name: key, products: groups[key] }));
+  }, [products]);
 
   useEffect(() => {
     loadProducts();
@@ -130,25 +152,32 @@ export default function OrderForm() {
       <div className="form-content">
         <section className="products-section">
           <h2>Produtos Disponíveis</h2>
-          <div className="products-grid">
-            {products.map((product) => (
-              <div key={product.id} className="product-card">
-                <div className="product-info">
-                  <h3>{product.name}</h3>
-                  <p className="product-unit">{product.unit}</p>
-                  <p className="product-price">
-                    {formatCurrency(product.price)}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleAddProduct(product)}
-                  className="btn-add"
-                >
-                  +
-                </button>
+          {groupedProducts.map(group => (
+            <div key={group.name} style={{ marginBottom: "20px" }}>
+              <h3 style={{ borderBottom: "1px solid #ddd", paddingBottom: "5px", marginBottom: "10px", color: "#666" }}>
+                {group.name}
+              </h3>
+              <div className="products-grid">
+                {group.products.map((product) => (
+                  <div key={product.id} className="product-card">
+                    <div className="product-info">
+                      <h3>{product.name}</h3>
+                      <p className="product-unit">{product.unit}</p>
+                      <p className="product-price">
+                        {formatCurrency(product.price)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleAddProduct(product)}
+                      className="btn-add"
+                    >
+                      +
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </section>
 
         <section className="cart-section">

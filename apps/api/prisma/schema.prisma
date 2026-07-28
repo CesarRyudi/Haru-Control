@@ -8,17 +8,32 @@ datasource db {
 }
 
 model Product {
-    id        String   @id @default(uuid())
-    name      String
-    unit      String   @default("Un")
-    price     Decimal  @db.Decimal(10, 2)
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
+    id         String   @id @default(uuid())
+    name       String
+    unit       String   @default("Un")
+    price      Decimal  @db.Decimal(10, 2)
+    categoryId String?  @map("category_id")
+    createdAt  DateTime @default(now()) @map("created_at")
+    updatedAt  DateTime @updatedAt @map("updated_at")
 
+    category      Category?     @relation(fields: [categoryId], references: [id])
     orderItems    OrderItem[]
     ledgerEntries LedgerEntry[]
 
     @@map("products")
+}
+
+model Category {
+    id          String   @id @default(uuid())
+    name        String
+    price       Decimal? @db.Decimal(10, 2)
+    observation String?
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    products Product[]
+
+    @@map("categories")
 }
 
 model Customer {
