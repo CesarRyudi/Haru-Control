@@ -45,8 +45,8 @@ export default function OrderForm() {
 
       const catA = groups[a][0]?.category;
       const catB = groups[b][0]?.category;
-      const priceA = catA?.price || 0;
-      const priceB = catB?.price || 0;
+      const priceA = catA?.price != null ? Number(catA.price) : Infinity;
+      const priceB = catB?.price != null ? Number(catB.price) : Infinity;
 
       if (priceA !== priceB) return priceA - priceB;
       return a.localeCompare(b);

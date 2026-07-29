@@ -44,8 +44,8 @@ export default function Products() {
         api.get("/categories")
       ]);
       const sortedCategories = categoriesRes.data.sort((a: Category, b: Category) => {
-        const priceA = a.price || 0;
-        const priceB = b.price || 0;
+        const priceA = a.price != null ? Number(a.price) : Infinity;
+        const priceB = b.price != null ? Number(b.price) : Infinity;
         if (priceA !== priceB) return priceA - priceB;
         return a.name.localeCompare(b.name);
       });
@@ -165,8 +165,8 @@ export default function Products() {
 
       const catA = groups[a][0]?.category;
       const catB = groups[b][0]?.category;
-      const priceA = catA?.price || 0;
-      const priceB = catB?.price || 0;
+      const priceA = catA?.price != null ? Number(catA.price) : Infinity;
+      const priceB = catB?.price != null ? Number(catB.price) : Infinity;
       
       if (priceA !== priceB) return priceA - priceB;
       return a.localeCompare(b);
