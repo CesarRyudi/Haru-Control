@@ -114,6 +114,7 @@ export default function Products() {
     try {
       await api.delete(`/products/${id}`);
       loadData();
+      handleCloseModal();
     } catch (error) {
       console.error("Erro ao excluir produto:", error);
       alert("Erro ao excluir produto");
@@ -190,23 +191,16 @@ export default function Products() {
           groupedProducts.map(group => (
             <div key={group.name} className="product-category-group">
               <h2 className="category-title">{group.name}</h2>
-              {group.products.map(product => (
-                <div key={product.id} className="product-item">
-                  <div className="product-details">
-                    <h3>{product.name}</h3>
-                    <p className="product-unit">{product.unit}</p>
-                    <p className="product-price">{formatCurrency(product.price)}</p>
+              <div className="products-grid">
+                {group.products.map(product => (
+                  <div key={product.id} className="product-card" onClick={() => handleOpenModal(product)} style={{ cursor: "pointer" }}>
+                    <div className="product-info">
+                      <h3>{product.name}</h3>
+                      <p className="product-price">{formatCurrency(product.price)}</p>
+                    </div>
                   </div>
-                  <div className="product-actions">
-                    <button onClick={() => handleOpenModal(product)} className="btn-edit">
-                      Editar
-                    </button>
-                    <button onClick={() => handleDelete(product.id)} className="btn-delete">
-                      Excluir
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ))
         )}
@@ -250,13 +244,20 @@ export default function Products() {
                   required
                 />
               </div>
-              <div className="modal-actions">
-                <button type="button" onClick={handleCloseModal} className="btn-secondary">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary">
-                  Salvar
-                </button>
+              <div className="modal-actions" style={{ justifyContent: editingProduct ? "space-between" : "flex-end", display: "flex", width: "100%" }}>
+                {editingProduct && (
+                  <button type="button" onClick={() => handleDelete(editingProduct.id)} className="btn-delete" style={{ marginRight: 'auto', background: "#e74c3c", color: "white", padding: "12px 24px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
+                    Excluir
+                  </button>
+                )}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button type="button" onClick={handleCloseModal} className="btn-secondary">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    Salvar
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -312,7 +313,7 @@ export default function Products() {
 
       <FloatingActionButton
         menuItems={[
-          { icon: "📋", label: "Pedidos", onClick: () => navigate("/") },
+          { icon: "📋", label: "Início", onClick: () => navigate("/") },
           { icon: "📊", label: "Estoque", onClick: () => navigate("/stock") },
           { icon: "➕", label: "Novo Produto", onClick: () => handleOpenModal() },
           { icon: "📁", label: "Nova Categoria", onClick: () => handleOpenCategoryModal() },

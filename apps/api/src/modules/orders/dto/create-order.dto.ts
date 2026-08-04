@@ -24,6 +24,10 @@ export class CreateOrderDto {
   customerId?: string;
 
   @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Type(() => Number)

@@ -24,7 +24,7 @@ export default function OrderForm() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [deliveryFee, setDeliveryFee] = useState<number>(2);
 
-  const { items, addItem, updateItem, removeItem, clear, getTotalPrice } =
+  const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress } =
     useOrderDraft();
 
   const groupedProducts = useMemo(() => {
@@ -77,6 +77,7 @@ export default function OrderForm() {
       const order = response.data;
 
       setDeliveryFee(order.deliveryFee || 2);
+      setAddress(order.address || "");
 
       clear();
       order.items.forEach((item: any) => {
@@ -119,6 +120,7 @@ export default function OrderForm() {
           quantity: item.quantity,
         })),
         deliveryFee,
+        address,
       };
 
       let response;
@@ -169,17 +171,58 @@ export default function OrderForm() {
                   <div key={product.id} className="product-card">
                     <div className="product-info">
                       <h3>{product.name}</h3>
-                      <p className="product-unit">{product.unit}</p>
                       <p className="product-price">
                         {formatCurrency(product.price)}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleAddProduct(product)}
-                      className="btn-add"
-                    >
-                      +
-                    </button>
+                    {(() => {
+                      const cartItem = items.find((i) => i.productId === product.id);
+                      if (cartItem) {
+                        return (
+                          <div className="item-controls" style={{ margin: "0", justifyContent: "center" }}>
+                            <button
+                              onClick={() => {
+                                if (cartItem.quantity <= 1) {
+                                  removeItem(product.id);
+                                } else {
+                                  updateItem(product.id, cartItem.quantity - 1);
+                                }
+                              }}
+                              className="btn-qty"
+                            >
+                              -
+                            </button>
+                            <NumberInput
+                              value={cartItem.quantity}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (val > 0) {
+                                  updateItem(product.id, val);
+                                } else {
+                                  removeItem(product.id);
+                                }
+                              }}
+                              className="qty-input"
+                              min="1"
+                            />
+                            <button
+                              onClick={() => updateItem(product.id, cartItem.quantity + 1)}
+                              className="btn-qty"
+                            >
+                              +
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={() => handleAddProduct(product)}
+                          className="btn-add-wide"
+                        >
+                          Adicionar
+                        </button>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
@@ -211,12 +254,13 @@ export default function OrderForm() {
                     </div>
                     <div className="item-controls">
                       <button
-                        onClick={() =>
-                          updateItem(
-                            item.productId,
-                            Math.max(1, item.quantity - 1)
-                          )
-                        }
+                        onClick={() => {
+                          if (item.quantity <= 1) {
+                            removeItem(item.productId);
+                          } else {
+                            updateItem(item.productId, item.quantity - 1);
+                          }
+                        }}
                         className="btn-qty"
                       >
                         -
@@ -263,6 +307,24 @@ export default function OrderForm() {
                   }
                   showButtons
                   className="delivery-fee-input"
+                />
+              </div>
+
+              <div className="address-section" style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "5px" }}>
+                <label htmlFor="address">Endereço de Entrega (Opcional):</label>
+                <textarea
+                  id="address"
+                  value={address || ""}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Rua, Número, Bairro, Referência..."
+                  style={{
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #ddd",
+                    minHeight: "60px",
+                    fontFamily: "inherit",
+                    resize: "vertical"
+                  }}
                 />
               </div>
 

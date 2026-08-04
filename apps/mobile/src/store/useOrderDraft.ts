@@ -10,10 +10,12 @@ interface OrderDraftItem {
 interface OrderDraftStore {
   items: OrderDraftItem[];
   customerId?: string;
+  address?: string;
   addItem: (item: OrderDraftItem) => void;
   updateItem: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   setCustomer: (customerId?: string) => void;
+  setAddress: (address?: string) => void;
   clear: () => void;
   getTotalPrice: () => number;
 }
@@ -21,6 +23,7 @@ interface OrderDraftStore {
 export const useOrderDraft = create<OrderDraftStore>((set, get) => ({
   items: [],
   customerId: undefined,
+  address: undefined,
   
   addItem: (item) =>
     set((state) => {
@@ -47,7 +50,9 @@ export const useOrderDraft = create<OrderDraftStore>((set, get) => ({
   
   setCustomer: (customerId) => set({ customerId }),
   
-  clear: () => set({ items: [], customerId: undefined }),
+  setAddress: (address) => set({ address }),
+  
+  clear: () => set({ items: [], customerId: undefined, address: undefined }),
   
   getTotalPrice: () => {
     const state = get();

@@ -22,8 +22,12 @@ export class OrdersController {
   }
 
   @Get()
-  findAll(@Query("status") status?: OrderStatus, @Query("date") date?: string) {
-    return this.ordersService.findAll(status, date);
+  findAll(
+    @Query("status") status?: OrderStatus,
+    @Query("date") date?: string,
+    @Query("excludeStatus") excludeStatus?: OrderStatus | OrderStatus[]
+  ) {
+    return this.ordersService.findAll(status, date, excludeStatus);
   }
 
   @Get("completed")

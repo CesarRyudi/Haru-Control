@@ -65,6 +65,7 @@ export class OrdersService {
         status: OrderStatus.DRAFT,
         totalPrice,
         deliveryFee: createOrderDto.deliveryFee ?? 2,
+        address: createOrderDto.address,
         items: {
           create: itemsWithPrices.map((item) => ({
             productId: item.productId,
@@ -96,6 +97,7 @@ export class OrdersService {
       status: order.status,
       totalPrice: order.totalPrice,
       deliveryFee: order.deliveryFee,
+      address: order.address,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: order.items.map((item) => ({
@@ -120,11 +122,20 @@ export class OrdersService {
     };
   }
 
-  async findAll(status?: OrderStatus, date?: string) {
+  async findAll(
+    status?: OrderStatus,
+    date?: string,
+    excludeStatus?: OrderStatus | OrderStatus[]
+  ) {
     const where: any = {};
 
     if (status) {
       where.status = status;
+    } else if (excludeStatus) {
+      const excluded = Array.isArray(excludeStatus)
+        ? excludeStatus
+        : [excludeStatus];
+      where.status = { notIn: excluded };
     }
 
     if (date) {
@@ -159,6 +170,7 @@ export class OrdersService {
       status: order.status,
       totalPrice: order.totalPrice,
       deliveryFee: order.deliveryFee,
+      address: order.address,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: order.items.map((item) => ({
@@ -215,6 +227,7 @@ export class OrdersService {
       status: order.status,
       totalPrice: order.totalPrice,
       deliveryFee: order.deliveryFee,
+      address: order.address,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: order.items.map((item) => ({
@@ -345,12 +358,13 @@ export class OrdersService {
       });
     }
 
-    // Se apenas atualizando status ou deliveryFee
-    if (updateOrderDto.status || updateOrderDto.deliveryFee !== undefined) {
+    // Se apenas atualizando status ou deliveryFee ou address
+    if (updateOrderDto.status || updateOrderDto.deliveryFee !== undefined || updateOrderDto.address !== undefined) {
       const updateData: any = {};
       if (updateOrderDto.status) updateData.status = updateOrderDto.status;
       if (updateOrderDto.deliveryFee !== undefined)
         updateData.deliveryFee = updateOrderDto.deliveryFee;
+      if (updateOrderDto.address !== undefined) updateData.address = updateOrderDto.address;
 
       await this.prisma.order.update({
         where: { id },

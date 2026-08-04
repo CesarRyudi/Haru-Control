@@ -29,6 +29,7 @@ export interface Order {
   status: OrderStatus;
   totalPrice: number;
   deliveryFee: number;
+  address: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,11 +78,13 @@ export interface CreateOrderItemDto {
 export interface CreateOrderDto {
   customerId?: string;
   items: CreateOrderItemDto[];
+  address?: string;
 }
 
 export interface UpdateOrderDto {
   items?: CreateOrderItemDto[];
   status?: "DRAFT" | "PENDING" | "READY" | "COMPLETED" | "CANCELLED";
+  address?: string;
 }
 
 export interface StockInDto {
@@ -108,6 +111,7 @@ export interface OrderResponse {
   status: string;
   totalPrice: number;
   items: OrderItemResponse[];
+  address?: string | null;
   createdAt: Date;
   updatedAt: Date;
   warnings?: string[];

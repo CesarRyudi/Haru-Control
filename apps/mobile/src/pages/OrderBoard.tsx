@@ -41,7 +41,11 @@ export default function OrderBoard() {
 
     try {
       // Buscar todos os pedidos não concluídos
-      const allOrdersRes = await api.get("/orders");
+      const allOrdersRes = await api.get("/orders", {
+        params: {
+          excludeStatus: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+        },
+      });
       console.log("All orders response:", allOrdersRes.data);
 
       // Buscar pedidos concluídos da data selecionada
@@ -50,7 +54,13 @@ export default function OrderBoard() {
       });
       console.log("Completed orders response:", completedRes.data);
 
-      const allOrders = [...allOrdersRes.data, ...completedRes.data];
+      // Prevenir duplicatas caso o backend retorne o mesmo pedido
+      const ordersMap = new Map();
+      [...allOrdersRes.data, ...completedRes.data].forEach((order: Order) => {
+        ordersMap.set(order.id, order);
+      });
+      
+      const allOrders = Array.from(ordersMap.values());
       console.log("Combined orders:", allOrders);
       setOrders(allOrders);
     } catch (error) {
@@ -293,7 +303,7 @@ Taxa de entrega: ${formatCurrency(deliveryFee)}
 
 Valor total: ${formatCurrency(finalTotal)} 
 
-Certo?`;
+${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ''}Certo?`;
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -372,6 +382,13 @@ Certo?`;
         <div className="delivery-fee-info">
           (Produtos: {formatCurrency(order.totalPrice)} + Entrega:{" "}
           {formatCurrency(order.deliveryFee)})
+        </div>
+      )}
+
+      {order.address && (
+        <div className="order-address" style={{ margin: "10px 0", padding: "10px", backgroundColor: "#fff9c4", borderRadius: "4px", fontSize: "14px", border: "1px solid #ffd54f", color: "#333", whiteSpace: "pre-line" }}>
+          <strong>📍 Endereço:</strong><br/>
+          {order.address}
         </div>
       )}
 

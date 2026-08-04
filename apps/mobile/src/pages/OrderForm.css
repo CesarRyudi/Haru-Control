@@ -67,8 +67,11 @@
   border-radius: 8px;
   padding: 16px;
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
-  align-items: center;
+  align-items: stretch;
+  text-align: center;
+  gap: 12px;
   transition: all 0.2s;
 }
 
@@ -95,24 +98,25 @@
   color: #667eea;
 }
 
-.btn-add {
+.btn-add-wide {
   background: #667eea;
   color: white;
   border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.btn-add:hover {
+.btn-add-wide:hover {
   background: #5568d3;
-  transform: scale(1.1);
+}
+
+.product-card .item-controls {
+  justify-content: center;
 }
 
 .empty-cart {
@@ -127,8 +131,6 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
-  max-height: 50vh;
-  overflow-y: auto;
 }
 
 .cart-item {
