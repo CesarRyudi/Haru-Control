@@ -387,3 +387,52 @@
     justify-content: space-between;
   }
 }
+
+.order-form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.order-form-actions button {
+  width: 100%;
+}
+
+.btn-clear-order {
+  background: #f1f2f6;
+  color: #2f3542;
+  border: 1px solid #ced6e0;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-order:hover:not(:disabled) {
+  background: #dfe4ea;
+}
+
+.btn-cancel-order {
+  background: #ff4757;
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-order:hover:not(:disabled) {
+  background: #ff6b81;
+}
+
+.btn-clear-order:disabled,
+.btn-cancel-order:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

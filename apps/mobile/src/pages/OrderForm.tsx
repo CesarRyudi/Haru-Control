@@ -76,7 +76,9 @@ export default function OrderForm() {
       const response = await api.get(`/orders/${id}`);
       const order = response.data;
 
-      setDeliveryFee(order.deliveryFee || 2);
+      setDeliveryFee(
+        order.deliveryFee != null ? Number(order.deliveryFee) : 2
+      );
       setAddress(order.address || "");
 
       clear();
@@ -119,7 +121,7 @@ export default function OrderForm() {
           productId: item.productId,
           quantity: item.quantity,
         })),
-        deliveryFee,
+        deliveryFee: Number(deliveryFee),
         address,
       };
 
@@ -140,6 +142,30 @@ export default function OrderForm() {
       console.error("Erro ao salvar pedido:", error);
       alert(error.response?.data?.message || "Erro ao salvar pedido");
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearOrder = () => {
+    if (confirm("Tem certeza que deseja limpar todo o pedido?")) {
+      clear();
+      setDeliveryFee(2);
+      setAddress("");
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!isEdit) return;
+    if (!confirm("Deseja realmente cancelar este pedido?")) return;
+
+    try {
+      setLoading(true);
+      await api.post(`/orders/${id}/cancel`);
+      clear();
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao cancelar pedido:", error);
+      alert("Erro ao cancelar pedido");
       setLoading(false);
     }
   };
@@ -333,7 +359,7 @@ export default function OrderForm() {
                 <div className="total-line total-final">
                   <span>Total:</span>
                   <strong>
-                    {formatCurrency(getTotalPrice() + deliveryFee)}
+                    {formatCurrency(getTotalPrice() + Number(deliveryFee))}
                   </strong>
                 </div>
               </div>
@@ -363,17 +389,35 @@ export default function OrderForm() {
                 </div>
               )}
 
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="btn-save"
-              >
-                {loading
-                  ? "Salvando..."
-                  : isEdit
-                    ? "Atualizar Pedido"
-                    : "Criar Pedido"}
-              </button>
+              <div className="order-form-actions">
+                <button
+                  onClick={handleClearOrder}
+                  disabled={loading}
+                  className="btn-clear-order"
+                >
+                  Limpar Pedido
+                </button>
+                {isEdit && (
+                  <button
+                    onClick={handleCancelOrder}
+                    disabled={loading}
+                    className="btn-cancel-order"
+                  >
+                    Cancelar Pedido
+                  </button>
+                )}
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="btn-save"
+                >
+                  {loading
+                    ? "Salvando..."
+                    : isEdit
+                      ? "Atualizar Pedido"
+                      : "Criar Pedido"}
+                </button>
+              </div>
             </>
           )}
         </section>

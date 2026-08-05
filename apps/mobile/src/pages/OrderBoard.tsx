@@ -103,17 +103,6 @@ export default function OrderBoard() {
     }
   };
 
-  const handleCancelOrder = async (orderId: string) => {
-    if (!confirm("Deseja realmente cancelar este pedido?")) return;
-
-    try {
-      await api.post(`/orders/${orderId}/cancel`);
-      loadOrders(true);
-    } catch (error) {
-      console.error("Erro ao cancelar pedido:", error);
-      alert("Erro ao cancelar pedido");
-    }
-  };
 
   if (loading) {
     return <div className="loading">Carregando...</div>;
@@ -176,7 +165,6 @@ export default function OrderBoard() {
                     key={order.id}
                     order={order}
                     onStatusChange={handleStatusChange}
-                    onCancel={handleCancelOrder}
                     onEdit={() => navigate(`/orders/${order.id}/edit`)}
                     showToast={setToast}
                   />
@@ -198,7 +186,6 @@ export default function OrderBoard() {
                     key={order.id}
                     order={order}
                     onStatusChange={handleStatusChange}
-                    onCancel={handleCancelOrder}
                     onEdit={() => navigate(`/orders/${order.id}/edit`)}
                     showToast={setToast}
                   />
@@ -220,7 +207,6 @@ export default function OrderBoard() {
                     key={order.id}
                     order={order}
                     onStatusChange={handleStatusChange}
-                    onCancel={handleCancelOrder}
                     onEdit={() => navigate(`/orders/${order.id}/edit`)}
                     showToast={setToast}
                   />
@@ -293,7 +279,6 @@ export default function OrderBoard() {
 interface OrderCardProps {
   order: any;
   onStatusChange?: (id: string, status: OrderStatus) => void;
-  onCancel?: (id: string) => void;
   onEdit?: () => void;
   readonly?: boolean;
   showToast?: (
@@ -304,11 +289,30 @@ interface OrderCardProps {
 function OrderCard({
   order,
   onStatusChange,
-  onCancel,
   onEdit,
   readonly,
   showToast,
 }: OrderCardProps) {
+  const [showModal, setShowModal] = useState(false);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) {
+      return;
+    }
+    setShowModal(true);
+  };
+
+  const getPrevStatus = () => {
+    switch (order.status) {
+      case OrderStatus.PENDING:
+        return OrderStatus.DRAFT;
+      case OrderStatus.READY:
+        return OrderStatus.PENDING;
+      default:
+        return null;
+    }
+  };
+
   const getNextStatus = () => {
     switch (order.status) {
       case OrderStatus.DRAFT:
@@ -391,6 +395,7 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
   };
 
   const nextStatus = getNextStatus();
+  const prevStatus = getPrevStatus();
 
   const getStatusLabel = () => {
     switch (order.status) {
@@ -413,76 +418,133 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
     parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0);
 
   return (
-    <div className="order-card">
-      <div className="order-header">
-        <div className="order-header-left">
-          <span className="order-id">#{order.id.slice(0, 8)}</span>
-          <span className={`status-badge status-${order.status.toLowerCase()}`}>
-            {getStatusLabel()}
-          </span>
+    <>
+      <div className="order-card" onClick={handleCardClick}>
+        <div className="order-header">
+          <div className="order-header-left">
+            <span className="order-id">#{order.id.slice(0, 8)}</span>
+            <span className={`status-badge status-${order.status.toLowerCase()}`}>
+              {getStatusLabel()}
+            </span>
+          </div>
+          <span className="order-time">{formatDate(order.createdAt)}</span>
         </div>
-        <span className="order-time">{formatDate(order.createdAt)}</span>
+
+        {order.address && (
+          <div className="order-address-text">{order.address}</div>
+        )}
+
+        <div className="order-total">{formatCurrency(totalWithDelivery)}</div>
+
+        {order.items && (
+          <div className="order-items-container">
+            <div className="order-items">
+              {order.items.slice(0, 6).map((item: any) => (
+                <div key={item.id} className="order-item">
+                  {item.quantity}x {item.product.name}
+                </div>
+              ))}
+              {order.items.length > 6 && (
+                <div className="order-item-more">
+                  +{order.items.length - 6} mais
+                </div>
+              )}
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyOrder();
+              }}
+              className="btn-copy"
+              title="Copiar pedido"
+            >
+              📋
+            </button>
+          </div>
+        )}
+
+        {!readonly && (
+          <div className="order-actions">
+            {prevStatus && onStatusChange && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(order.id, prevStatus);
+                }}
+                className="btn-back-phase"
+              >
+                Voltar
+              </button>
+            )}
+
+            {nextStatus && onStatusChange && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(order.id, nextStatus);
+                }}
+                className="btn-advance"
+              >
+                {nextStatus === OrderStatus.COMPLETED ? "Concluir" : "Avançar"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {order.address && (
-        <div className="order-address-text">{order.address}</div>
-      )}
-
-      <div className="order-total">{formatCurrency(totalWithDelivery)}</div>
-
-      {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
-        <div className="delivery-fee-info">
-          (Produtos: {formatCurrency(order.totalPrice)} + Entrega:{" "}
-          {formatCurrency(order.deliveryFee)})
-        </div>
-      )}
-
-      {order.items && (
-        <div className="order-items-container">
-          <div className="order-items">
-            {order.items.slice(0, 3).map((item: any) => (
-              <div key={item.id} className="order-item">
-                {item.quantity}x {item.product.name}
+      {showModal && (
+        <div className="order-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="order-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="order-modal-header">
+              <h3>Pedido #{order.id.slice(0, 8)}</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="btn-close-modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="order-modal-items">
+              {order.items?.map((item: any) => (
+                <div key={item.id} className="order-modal-item">
+                  <span className="item-qty">{item.quantity}x</span>
+                  <span className="item-name">{item.product.name}</span>
+                  <span className="item-price">
+                    {formatCurrency(item.unitPrice * item.quantity)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="order-modal-total">
+              <div className="total-line">
+                <span>Produtos:</span>
+                <span>{formatCurrency(order.totalPrice)}</span>
               </div>
-            ))}
-            {order.items.length > 3 && (
-              <div className="order-item-more">
-                +{order.items.length - 3} mais
+              <div className="total-line">
+                <span>Entrega:</span>
+                <span>{formatCurrency(order.deliveryFee || 0)}</span>
+              </div>
+              <div className="total-line total-final">
+                <span>Total:</span>
+                <strong>{formatCurrency(totalWithDelivery)}</strong>
+              </div>
+            </div>
+            {!readonly && onEdit && (
+              <div className="order-modal-actions">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                  className="btn-edit-modal"
+                >
+                  Editar Pedido
+                </button>
               </div>
             )}
           </div>
-          <button
-            onClick={handleCopyOrder}
-            className="btn-copy"
-            title="Copiar pedido"
-          >
-            📋
-          </button>
         </div>
       )}
-
-      {!readonly && (
-        <div className="order-actions">
-          {onCancel && (
-            <button onClick={() => onCancel(order.id)} className="btn-cancel">
-              Cancelar
-            </button>
-          )}
-          {onEdit && (
-            <button onClick={onEdit} className="btn-edit">
-              Editar
-            </button>
-          )}
-          {nextStatus && onStatusChange && (
-            <button
-              onClick={() => onStatusChange(order.id, nextStatus)}
-              className="btn-advance"
-            >
-              {nextStatus === OrderStatus.COMPLETED ? "Concluir" : "Avançar"}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
