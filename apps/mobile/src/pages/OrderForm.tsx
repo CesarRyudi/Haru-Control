@@ -310,21 +310,14 @@ export default function OrderForm() {
                 />
               </div>
 
-              <div className="address-section" style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "5px" }}>
+              <div className="address-section">
                 <label htmlFor="address">Endereço de Entrega (Opcional):</label>
                 <textarea
                   id="address"
                   value={address || ""}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Rua, Número, Bairro, Referência..."
-                  style={{
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ddd",
-                    minHeight: "60px",
-                    fontFamily: "inherit",
-                    resize: "vertical"
-                  }}
+                  className="address-input"
                 />
               </div>
 

@@ -376,19 +376,18 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ''}Certo?`;
         <span className="order-time">{formatDate(order.createdAt)}</span>
       </div>
 
+      {order.address && (
+        <div className="order-address-text">
+          {order.address}
+        </div>
+      )}
+
       <div className="order-total">{formatCurrency(totalWithDelivery)}</div>
 
       {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
         <div className="delivery-fee-info">
           (Produtos: {formatCurrency(order.totalPrice)} + Entrega:{" "}
           {formatCurrency(order.deliveryFee)})
-        </div>
-      )}
-
-      {order.address && (
-        <div className="order-address" style={{ margin: "10px 0", padding: "10px", backgroundColor: "#fff9c4", borderRadius: "4px", fontSize: "14px", border: "1px solid #ffd54f", color: "#333", whiteSpace: "pre-line" }}>
-          <strong>📍 Endereço:</strong><br/>
-          {order.address}
         </div>
       )}
 
