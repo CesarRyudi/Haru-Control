@@ -266,6 +266,11 @@ export default function OrderBoard() {
             onClick: () => navigate("/stock"),
           },
           {
+            icon: "👥",
+            label: "Clientes",
+            onClick: () => navigate("/customers"),
+          },
+          {
             icon: "➕",
             label: "Novo Pedido",
             onClick: () => navigate("/orders/new"),

@@ -19,7 +19,9 @@ export interface Product {
 export interface Customer {
   id: string;
   name: string;
-  contact: string | null;
+  phone: string | null;
+  address: string | null;
+  observation: string | null;
   createdAt: Date;
 }
 

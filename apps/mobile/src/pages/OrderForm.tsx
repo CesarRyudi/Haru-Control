@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
 import { useOrderDraft } from "../store/useOrderDraft";
+import CustomerFormModal from "../components/CustomerFormModal";
 import "./OrderForm.css";
 
 interface Product {
@@ -14,17 +15,29 @@ interface Product {
   category?: { name: string; price?: number };
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  address?: string;
+}
+
 export default function OrderForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [isCustomerSelectModalOpen, setIsCustomerSelectModalOpen] = useState(false);
+  const [isCustomerFormModalOpen, setIsCustomerFormModalOpen] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [deliveryFee, setDeliveryFee] = useState<number>(2);
 
-  const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress } =
+  const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress, customerId, setCustomer } =
     useOrderDraft();
 
   const groupedProducts = useMemo(() => {
@@ -57,10 +70,23 @@ export default function OrderForm() {
 
   useEffect(() => {
     loadProducts();
-    if (isEdit) {
+    loadCustomers();
+  }, []);
+
+  useEffect(() => {
+    if (isEdit && customers.length > 0) {
       loadOrder();
     }
-  }, [id]);
+  }, [id, customers.length > 0]);
+
+  const loadCustomers = async () => {
+    try {
+      const response = await api.get("/customers");
+      setCustomers(response.data);
+    } catch (error) {
+      console.error("Erro ao carregar clientes:", error);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -80,6 +106,11 @@ export default function OrderForm() {
         order.deliveryFee != null ? Number(order.deliveryFee) : 2
       );
       setAddress(order.address || "");
+      if (order.customerId) {
+        setCustomer(order.customerId);
+        const cust = customers.find(c => c.id === order.customerId);
+        if (cust) setCustomerSearch(cust.name);
+      }
 
       clear();
       order.items.forEach((item: any) => {
@@ -123,6 +154,7 @@ export default function OrderForm() {
         })),
         deliveryFee: Number(deliveryFee),
         address,
+        customerId,
       };
 
       let response;
@@ -183,6 +215,56 @@ export default function OrderForm() {
         </button>
         <h1>{isEdit ? "Editar Pedido" : "Novo Pedido"}</h1>
       </header>
+
+      <div className="order-details-card" style={{ marginBottom: '24px' }}>
+        <h3>Detalhes do Cliente</h3>
+        
+        <div className="customer-section">
+          <label>Cliente (Opcional):</label>
+          {!customerId ? (
+            <button 
+              type="button"
+              className="btn-select-customer" 
+              onClick={() => {
+                setCustomerSearch("");
+                setIsCustomerSelectModalOpen(true);
+              }}
+              style={{ width: '100%', padding: '16px', background: '#fdfdfd', border: '2px dashed #ccc', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', color: '#666', fontSize: '16px', fontWeight: 'bold', transition: 'all 0.2s' }}
+            >
+              👤 Selecionar Cliente
+            </button>
+          ) : (() => {
+            const selectedCustomer = customers.find(c => c.id === customerId);
+            return (
+              <div 
+                className="selected-customer-card" 
+                onClick={() => {
+                  setCustomerSearch("");
+                  setIsCustomerSelectModalOpen(true);
+                }}
+                style={{ background: '#f8f9fa', border: '1px solid #3498db', borderLeft: '4px solid #3498db', borderRadius: '8px', padding: '16px', cursor: 'pointer' }}
+              >
+                <h4 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '16px' }}>{selectedCustomer?.name || 'Cliente Desconhecido'}</h4>
+                {selectedCustomer?.address && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📍 {selectedCustomer.address}</p>}
+                {!selectedCustomer?.address && selectedCustomer?.phone && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📞 {selectedCustomer.phone}</p>}
+                {selectedCustomer?.observation && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📝 {selectedCustomer.observation}</p>}
+                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#3498db', fontWeight: 'bold', textAlign: 'right' }}>Toque para trocar</p>
+              </div>
+            );
+          })()}
+        </div>
+
+        <div className="address-section">
+          <label htmlFor="address">Endereço de Entrega (Opcional):</label>
+          <textarea
+            id="address"
+            value={address || ""}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Rua, Número, Bairro, Referência..."
+            className="address-input"
+          />
+        </div>
+      </div>
 
       <div className="form-content">
         <section className="products-section">
@@ -262,9 +344,8 @@ export default function OrderForm() {
           {items.length === 0 ? (
             <p className="empty-cart">Nenhum produto adicionado</p>
           ) : (
-            <>
-              <div className="cart-items">
-                {items.map((item) => (
+            <div className="cart-items">
+              {items.map((item) => (
                   <div key={item.productId} className="cart-item">
                     <div className="item-info">
                       <h3>{item.productName}</h3>
@@ -320,6 +401,10 @@ export default function OrderForm() {
                   </div>
                 ))}
               </div>
+            )}
+        </section>
+
+        <section className="checkout-section">
 
               <div className="delivery-fee-section">
                 <label htmlFor="deliveryFee">Taxa de Entrega:</label>
@@ -333,17 +418,6 @@ export default function OrderForm() {
                   }
                   showButtons
                   className="delivery-fee-input"
-                />
-              </div>
-
-              <div className="address-section">
-                <label htmlFor="address">Endereço de Entrega (Opcional):</label>
-                <textarea
-                  id="address"
-                  value={address || ""}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Rua, Número, Bairro, Referência..."
-                  className="address-input"
                 />
               </div>
 
@@ -418,10 +492,85 @@ export default function OrderForm() {
                       : "Criar Pedido"}
                 </button>
               </div>
-            </>
-          )}
         </section>
       </div>
+
+      {isCustomerSelectModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsCustomerSelectModalOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column' }}>
+            <h2>Selecionar Cliente</h2>
+            <div className="customer-search-wrapper" style={{ position: "relative", marginBottom: '16px' }}>
+              <input
+                type="text"
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Buscar cliente por nome ou telefone..."
+                className="address-input"
+              />
+            </div>
+            
+            <div className="customers-list" style={{ flex: 1, overflowY: 'auto' }}>
+              {customerId && (
+                <div 
+                  className="customer-card" 
+                  style={{ marginBottom: '12px', background: '#fff0f0', border: '1px solid #ffcccc', borderRadius: '8px', padding: '16px', cursor: 'pointer', textAlign: 'center' }}
+                  onClick={() => {
+                    setCustomer(undefined);
+                    setCustomerSearch("");
+                    setAddress("");
+                    setIsCustomerSelectModalOpen(false);
+                  }}
+                >
+                  <h4 style={{ margin: '0', color: '#e74c3c' }}>Remover Cliente Selecionado</h4>
+                </div>
+              )}
+
+              {customers
+                .filter(c => c.id !== customerId)
+                .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || (c.phone && c.phone.includes(customerSearch)) || (c.address && c.address.toLowerCase().includes(customerSearch.toLowerCase())))
+                .map(cust => (
+                  <div key={cust.id} className="customer-card" style={{ marginBottom: '12px', background: '#fff', border: '1px solid #eee', borderRadius: '8px', padding: '16px', cursor: 'pointer' }}
+                    onClick={() => {
+                      setCustomer(cust.id);
+                      setCustomerSearch("");
+                      setAddress(cust.address || "");
+                      setIsCustomerSelectModalOpen(false);
+                    }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#333' }}>{cust.name}</h4>
+                    {cust.address && <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>📍 {cust.address}</p>}
+                    {!cust.address && cust.phone && <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>📞 {cust.phone}</p>}
+                  </div>
+              ))}
+              {customers.filter(c => c.id !== customerId).filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || (c.phone && c.phone.includes(customerSearch)) || (c.address && c.address.toLowerCase().includes(customerSearch.toLowerCase()))).length === 0 && (
+                <p style={{ textAlign: 'center', color: '#999', marginTop: '20px' }}>Nenhum cliente encontrado.</p>
+              )}
+            </div>
+
+            <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+              <button className="btn-secondary" onClick={() => setIsCustomerSelectModalOpen(false)} style={{ flex: 1 }}>
+                Cancelar
+              </button>
+              <button className="btn-primary" onClick={() => { setIsCustomerSelectModalOpen(false); setIsCustomerFormModalOpen(true); }} style={{ flex: 1 }}>
+                + Novo Cliente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCustomerFormModalOpen && (
+        <CustomerFormModal
+          onClose={() => setIsCustomerFormModalOpen(false)}
+          onSuccess={(newCustomer) => {
+            setCustomers([...customers, newCustomer]);
+            setCustomer(newCustomer.id);
+            setCustomerSearch("");
+            setAddress(newCustomer.address || "");
+            setIsCustomerFormModalOpen(false);
+          }}
+        />
+      )}
+
     </div>
   );
 }

@@ -219,6 +219,72 @@
   background: #c0392b;
 }
 
+.order-details-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  border: 1px solid #eee;
+}
+
+.order-details-card h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #2c3e50;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 12px;
+}
+
+.customer-details-box {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border-left: 4px solid #3498db;
+}
+
+.customer-details-box p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.customer-section,
+.address-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.customer-section label,
+.address-section label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.address-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  background-color: #fdfdfd;
+  transition: all 0.2s;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.address-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  background-color: #fff;
+}
+
 .delivery-fee-section {
   display: flex;
   align-items: center;

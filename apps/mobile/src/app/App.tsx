@@ -5,6 +5,7 @@ import OrderForm from "../pages/OrderForm";
 import PinLogin from "../pages/PinLogin";
 import Products from "../pages/Products";
 import Stock from "../pages/Stock";
+import Customers from "../pages/Customers";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -62,6 +63,7 @@ function App() {
         <Route path="/orders/:id/edit" element={<OrderForm />} />
         <Route path="/products" element={<Products />} />
         <Route path="/stock" element={<Stock />} />
+        <Route path="/customers" element={<Customers />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

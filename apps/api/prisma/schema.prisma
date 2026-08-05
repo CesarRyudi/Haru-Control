@@ -37,10 +37,12 @@ model Category {
 }
 
 model Customer {
-    id        String   @id @default(uuid())
-    name      String
-    contact   String?
-    createdAt DateTime @default(now()) @map("created_at")
+    id          String   @id @default(uuid())
+    name        String
+    phone       String?
+    address     String?
+    observation String?
+    createdAt   DateTime @default(now()) @map("created_at")
 
     orders Order[]
 
