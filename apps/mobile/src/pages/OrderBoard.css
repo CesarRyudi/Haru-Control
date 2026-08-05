@@ -56,46 +56,82 @@
   color: white;
 }
 
-.board-columns {
+.board-tabs {
   display: flex;
-  gap: 20px;
-  padding: 0 20px 20px;
+  gap: 8px;
+  padding: 0 20px 16px;
   overflow-x: auto;
-  overflow-y: hidden;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.board-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.board-tabs::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  border-radius: 4px 4px 0 0;
+}
+
+.tab-btn:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.tab-btn.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.tab-badge {
+  background: #f0f0f0;
+  color: #666;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.tab-btn.active .tab-badge {
+  background: #667eea;
+  color: white;
+}
+
+.board-content {
+  display: flex;
+  padding: 0 20px 20px;
   flex: 1;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  scroll-padding: 20px;
-}
-
-.board-columns::-webkit-scrollbar {
-  height: 10px;
-}
-
-.board-columns::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-
-.board-columns::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 10px;
-}
-
-.board-columns::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  overflow: hidden;
 }
 
 .board-column {
-  min-width: 90vw;
-  max-width: 90vw;
+  width: 100%;
   background: white;
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  scroll-snap-align: center;
 }
 
 .board-column h2 {
@@ -359,13 +395,12 @@
     padding: 16px;
   }
 
-  .board-columns {
+  .board-tabs {
     padding: 0 16px 16px;
   }
 
-  .board-column {
-    min-width: 95vw;
-    max-width: 95vw;
+  .board-content {
+    padding: 0 16px 16px;
   }
 
   .header-actions {

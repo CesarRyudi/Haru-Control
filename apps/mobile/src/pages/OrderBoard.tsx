@@ -15,6 +15,7 @@ export default function OrderBoard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [completedDate, setCompletedDate] = useState(getTodayString());
+  const [activeTab, setActiveTab] = useState<OrderStatus>(OrderStatus.DRAFT);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -59,7 +60,7 @@ export default function OrderBoard() {
       [...allOrdersRes.data, ...completedRes.data].forEach((order: Order) => {
         ordersMap.set(order.id, order);
       });
-      
+
       const allOrders = Array.from(ordersMap.values());
       console.log("Combined orders:", allOrders);
       setOrders(allOrders);
@@ -87,7 +88,7 @@ export default function OrderBoard() {
 
   const handleStatusChange = async (
     orderId: string,
-    newStatus: OrderStatus
+    newStatus: OrderStatus,
   ) => {
     try {
       if (newStatus === OrderStatus.COMPLETED) {
@@ -123,94 +124,141 @@ export default function OrderBoard() {
       <header className="board-header">
         <h1>Pedidos</h1>
       </header>
-
-      <div className="board-columns" ref={boardColumnsRef}>
-        <div className="board-column">
-          <h2>Rascunho</h2>
-          <div className="orders-list">
-            {getOrdersByStatus(OrderStatus.DRAFT).length === 0 ? (
-              <p className="empty-state">Nenhum pedido rascunho</p>
-            ) : (
-              getOrdersByStatus(OrderStatus.DRAFT).map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onStatusChange={handleStatusChange}
-                  onCancel={handleCancelOrder}
-                  onEdit={() => navigate(`/orders/${order.id}/edit`)}
-                  showToast={setToast}
-                />
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="board-column">
-          <h2>Em Produção</h2>
-          <div className="orders-list">
-            {getOrdersByStatus(OrderStatus.PENDING).length === 0 ? (
-              <p className="empty-state">Nenhum pedido em produção</p>
-            ) : (
-              getOrdersByStatus(OrderStatus.PENDING).map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onStatusChange={handleStatusChange}
-                  onCancel={handleCancelOrder}
-                  onEdit={() => navigate(`/orders/${order.id}/edit`)}
-                  showToast={setToast}
-                />
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="board-column">
-          <h2>Pronto</h2>
-          <div className="orders-list">
-            {getOrdersByStatus(OrderStatus.READY).length === 0 ? (
-              <p className="empty-state">Nenhum pedido pronto</p>
-            ) : (
-              getOrdersByStatus(OrderStatus.READY).map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onStatusChange={handleStatusChange}
-                  onCancel={handleCancelOrder}
-                  onEdit={() => navigate(`/orders/${order.id}/edit`)}
-                  showToast={setToast}
-                />
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="board-column">
-          <div className="column-header">
-            <h2>Concluídos</h2>
-            <input
-              type="date"
-              value={completedDate}
-              onChange={(e) => setCompletedDate(e.target.value)}
-              className="date-filter"
-            />
-          </div>
-          <div className="orders-list">
-            {getOrdersByStatus(OrderStatus.COMPLETED).length === 0 ? (
-              <p className="empty-state">Nenhum pedido concluído</p>
-            ) : (
-              getOrdersByStatus(OrderStatus.COMPLETED).map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  readonly
-                  showToast={setToast}
-                />
-              ))
-            )}
-          </div>
-        </div>
+      <div className="board-tabs">
+        <button
+          className={`tab-btn ${activeTab === OrderStatus.DRAFT ? "active" : ""}`}
+          onClick={() => setActiveTab(OrderStatus.DRAFT)}
+        >
+          Rascunho
+          <span className="tab-badge">
+            {getOrdersByStatus(OrderStatus.DRAFT).length}
+          </span>
+        </button>
+        <button
+          className={`tab-btn ${activeTab === OrderStatus.PENDING ? "active" : ""}`}
+          onClick={() => setActiveTab(OrderStatus.PENDING)}
+        >
+          Produção
+          <span className="tab-badge">
+            {getOrdersByStatus(OrderStatus.PENDING).length}
+          </span>
+        </button>
+        <button
+          className={`tab-btn ${activeTab === OrderStatus.READY ? "active" : ""}`}
+          onClick={() => setActiveTab(OrderStatus.READY)}
+        >
+          Em Entrega
+          <span className="tab-badge">
+            {getOrdersByStatus(OrderStatus.READY).length}
+          </span>
+        </button>
+        <button
+          className={`tab-btn ${activeTab === OrderStatus.COMPLETED ? "active" : ""}`}
+          onClick={() => setActiveTab(OrderStatus.COMPLETED)}
+        >
+          Concluídos
+          <span className="tab-badge">
+            {getOrdersByStatus(OrderStatus.COMPLETED).length}
+          </span>
+        </button>
       </div>
+
+      <div className="board-content" ref={boardColumnsRef}>
+        {activeTab === OrderStatus.DRAFT && (
+          <div className="board-column active-column">
+            <h2>Rascunho</h2>
+            <div className="orders-list">
+              {getOrdersByStatus(OrderStatus.DRAFT).length === 0 ? (
+                <p className="empty-state">Nenhum pedido rascunho</p>
+              ) : (
+                getOrdersByStatus(OrderStatus.DRAFT).map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onStatusChange={handleStatusChange}
+                    onCancel={handleCancelOrder}
+                    onEdit={() => navigate(`/orders/${order.id}/edit`)}
+                    showToast={setToast}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === OrderStatus.PENDING && (
+          <div className="board-column active-column">
+            <h2>Em Produção</h2>
+            <div className="orders-list">
+              {getOrdersByStatus(OrderStatus.PENDING).length === 0 ? (
+                <p className="empty-state">Nenhum pedido em produção</p>
+              ) : (
+                getOrdersByStatus(OrderStatus.PENDING).map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onStatusChange={handleStatusChange}
+                    onCancel={handleCancelOrder}
+                    onEdit={() => navigate(`/orders/${order.id}/edit`)}
+                    showToast={setToast}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === OrderStatus.READY && (
+          <div className="board-column active-column">
+            <h2>Em Entrega</h2>
+            <div className="orders-list">
+              {getOrdersByStatus(OrderStatus.READY).length === 0 ? (
+                <p className="empty-state">Nenhum pedido pronto</p>
+              ) : (
+                getOrdersByStatus(OrderStatus.READY).map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onStatusChange={handleStatusChange}
+                    onCancel={handleCancelOrder}
+                    onEdit={() => navigate(`/orders/${order.id}/edit`)}
+                    showToast={setToast}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === OrderStatus.COMPLETED && (
+          <div className="board-column active-column">
+            <div className="column-header">
+              <h2>Concluídos</h2>
+              <input
+                type="date"
+                value={completedDate}
+                onChange={(e) => setCompletedDate(e.target.value)}
+                className="date-filter"
+              />
+            </div>
+            <div className="orders-list">
+              {getOrdersByStatus(OrderStatus.COMPLETED).length === 0 ? (
+                <p className="empty-state">Nenhum pedido concluído</p>
+              ) : (
+                getOrdersByStatus(OrderStatus.COMPLETED).map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    readonly
+                    showToast={setToast}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {toast && (
         <Toast
           message={toast.message}
@@ -249,7 +297,7 @@ interface OrderCardProps {
   onEdit?: () => void;
   readonly?: boolean;
   showToast?: (
-    toast: { message: string; type: "success" | "error" } | null
+    toast: { message: string; type: "success" | "error" } | null,
   ) => void;
 }
 
@@ -284,7 +332,7 @@ function OrderCard({
     const itemsList = order.items
       .map(
         (item: any) =>
-          `${item.quantity}  ${item.product.name}(${formatCurrency(item.unitPrice)})`
+          `${item.quantity}  ${item.product.name}(${formatCurrency(item.unitPrice)})`,
       )
       .join("\n");
 
@@ -303,7 +351,7 @@ Taxa de entrega: ${formatCurrency(deliveryFee)}
 
 Valor total: ${formatCurrency(finalTotal)} 
 
-${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ''}Certo?`;
+${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -351,7 +399,7 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ''}Certo?`;
       case OrderStatus.PENDING:
         return "Pendente";
       case OrderStatus.READY:
-        return "Pronto";
+        return "Em entrega";
       case OrderStatus.COMPLETED:
         return "Concluído";
       case OrderStatus.CANCELLED:
@@ -377,9 +425,7 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ''}Certo?`;
       </div>
 
       {order.address && (
-        <div className="order-address-text">
-          {order.address}
-        </div>
+        <div className="order-address-text">{order.address}</div>
       )}
 
       <div className="order-total">{formatCurrency(totalWithDelivery)}</div>
