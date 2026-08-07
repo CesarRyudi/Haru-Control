@@ -1,3 +1,4 @@
+import { Customer } from "@haru-control/types";
 import { NumberInput } from "@haru-control/ui";
 import { formatCurrency } from "@haru-control/utils";
 import { useEffect, useState, useMemo } from "react";
@@ -13,13 +14,6 @@ interface Product {
   unit: string;
   price: number;
   category?: { name: string; price?: number };
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  phone?: string;
-  address?: string;
 }
 
 export default function OrderForm() {
