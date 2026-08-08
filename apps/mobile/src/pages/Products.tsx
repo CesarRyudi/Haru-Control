@@ -313,8 +313,6 @@ export default function Products() {
 
       <FloatingActionButton
         menuItems={[
-          { icon: "📋", label: "Início", onClick: () => navigate("/") },
-          { icon: "📊", label: "Estoque", onClick: () => navigate("/stock") },
           { icon: "➕", label: "Novo Produto", onClick: () => handleOpenModal() },
           { icon: "📁", label: "Nova Categoria", onClick: () => handleOpenCategoryModal() },
         ]}

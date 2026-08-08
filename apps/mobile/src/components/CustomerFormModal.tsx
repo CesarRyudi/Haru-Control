@@ -7,9 +7,10 @@ interface CustomerFormModalProps {
   editingCustomer?: Customer | null;
   onClose: () => void;
   onSuccess: (customer: Customer) => void;
+  onDelete?: (customerId: string) => void;
 }
 
-export default function CustomerFormModal({ editingCustomer, onClose, onSuccess }: CustomerFormModalProps) {
+export default function CustomerFormModal({ editingCustomer, onClose, onSuccess, onDelete }: CustomerFormModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -68,6 +69,23 @@ export default function CustomerFormModal({ editingCustomer, onClose, onSuccess 
     }
   };
 
+  const handleDelete = async () => {
+    if (!editingCustomer) return;
+    if (!confirm("Tem certeza que deseja excluir este cliente?")) return;
+    
+    setFormLoading(true);
+    try {
+      await api.delete(`/customers/${editingCustomer.id}`);
+      if (onDelete) onDelete(editingCustomer.id);
+      onClose();
+    } catch (error) {
+      console.error("Erro ao excluir cliente:", error);
+      alert("Ocorreu um erro ao excluir o cliente.");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -117,15 +135,27 @@ export default function CustomerFormModal({ editingCustomer, onClose, onSuccess 
           </div>
 
           <div className="modal-actions">
+            {editingCustomer && onDelete && (
+              <button
+                type="button"
+                className="btn-danger"
+                style={{ background: '#ff4757', color: 'white', border: 'none', padding: '16px', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', flex: 1 }}
+                onClick={handleDelete}
+                disabled={formLoading}
+              >
+                Excluir
+              </button>
+            )}
             <button
               type="button"
               className="btn-secondary"
               onClick={onClose}
               disabled={formLoading}
+              style={{ flex: 1 }}
             >
               Cancelar
             </button>
-            <button type="submit" className="btn-primary" disabled={formLoading}>
+            <button type="submit" className="btn-primary" disabled={formLoading} style={{ flex: 1 }}>
               {formLoading ? "Salvando..." : "Salvar"}
             </button>
           </div>

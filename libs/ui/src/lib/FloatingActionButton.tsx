@@ -8,15 +8,17 @@ interface MenuItem {
 }
 
 interface FloatingActionButtonProps {
-  menuItems: MenuItem[];
+  menuItems?: MenuItem[];
+  onClick?: () => void;
+  icon?: string;
 }
 
-export function FloatingActionButton({ menuItems }: FloatingActionButtonProps) {
+export function FloatingActionButton({ menuItems, onClick, icon = "＋" }: FloatingActionButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className={`fab-container ${isOpen ? "fab-open" : ""}`}>
-      {isOpen && (
+      {isOpen && menuItems && (
         <div className="fab-menu">
           {menuItems.map((item, index) => (
             <button
@@ -34,11 +36,17 @@ export function FloatingActionButton({ menuItems }: FloatingActionButtonProps) {
         </div>
       )}
       <button
-        className="fab-button"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`fab-button ${onClick ? "fab-single-action" : ""}`}
+        onClick={() => {
+          if (onClick) {
+            onClick();
+          } else {
+            setIsOpen(!isOpen);
+          }
+        }}
         aria-label="Menu de navegação"
       >
-        {isOpen ? "✕" : "☰"}
+        {onClick ? icon : (isOpen ? "✕" : "☰")}
       </button>
     </div>
   );

@@ -6,6 +6,7 @@ import PinLogin from "../pages/PinLogin";
 import Products from "../pages/Products";
 import Stock from "../pages/Stock";
 import Customers from "../pages/Customers";
+import AppLayout from "../components/AppLayout";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -58,12 +59,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<OrderBoard />} />
+        <Route path="/" element={<AppLayout><OrderBoard /></AppLayout>} />
         <Route path="/orders/new" element={<OrderForm />} />
         <Route path="/orders/:id/edit" element={<OrderForm />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/stock" element={<Stock />} />
-        <Route path="/customers" element={<Customers />} />
+        <Route path="/products" element={<AppLayout><Products /></AppLayout>} />
+        <Route path="/stock" element={<AppLayout><Stock /></AppLayout>} />
+        <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -254,28 +254,8 @@ export default function OrderBoard() {
       )}
 
       <FloatingActionButton
-        menuItems={[
-          {
-            icon: "📦",
-            label: "Produtos",
-            onClick: () => navigate("/products"),
-          },
-          {
-            icon: "📊",
-            label: "Estoque",
-            onClick: () => navigate("/stock"),
-          },
-          {
-            icon: "👥",
-            label: "Clientes",
-            onClick: () => navigate("/customers"),
-          },
-          {
-            icon: "➕",
-            label: "Novo Pedido",
-            onClick: () => navigate("/orders/new"),
-          },
-        ]}
+        onClick={() => navigate("/orders/new")}
+        icon="＋"
       />
     </div>
   );

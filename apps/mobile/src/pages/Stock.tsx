@@ -145,15 +145,15 @@ export default function Stock() {
             <h2 style={{ borderBottom: "2px solid #ddd", paddingBottom: "8px", marginBottom: "16px", color: "#444" }}>
               {group.name}
             </h2>
-            <div className="stock-list">
+            <div className="products-grid">
               {group.items.map(({ product, stockItem }) => (
                 <div
                   key={product.id}
-                  className={`stock-item ${stockItem.currentStock < 0 ? "negative" : ""}`}
+                  className={`product-card ${stockItem.currentStock < 0 ? "negative" : ""}`}
                 >
-                  <div className="stock-info">
+                  <div className="product-info">
                     <h3>{product.name}</h3>
-                    <p className="stock-quantity">
+                    <p className="product-price">
                       Estoque: <strong>{stockItem.currentStock}</strong>
                     </p>
                     {stockItem.warnings && stockItem.warnings.length > 0 && (
@@ -166,12 +166,14 @@ export default function Stock() {
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleOpenModal("adjust", product.id, stockItem.currentStock)}
-                    className="btn-adjust"
-                  >
-                    Ajustar
-                  </button>
+                  <div className="item-controls" style={{ margin: "0", justifyContent: "center" }}>
+                    <button
+                      onClick={() => handleOpenModal("adjust", product.id, stockItem.currentStock)}
+                      className="btn-add-wide"
+                    >
+                      Ajustar
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -248,23 +250,8 @@ export default function Stock() {
       )}
 
       <FloatingActionButton
-        menuItems={[
-          {
-            icon: "📋",
-            label: "Início",
-            onClick: () => navigate("/"),
-          },
-          {
-            icon: "📦",
-            label: "Produtos",
-            onClick: () => navigate("/products"),
-          },
-          {
-            icon: "➕",
-            label: "Entrada",
-            onClick: () => handleOpenModal("in"),
-          },
-        ]}
+        onClick={() => handleOpenModal("in")}
+        icon="＋"
       />
     </div>
   );
