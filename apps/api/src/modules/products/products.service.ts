@@ -14,6 +14,8 @@ export class ProductsService {
         unit: data.unit,
         price: data.price,
         categoryId: data.categoryId,
+        isSellable: data.isSellable,
+        isPurchasable: data.isPurchasable,
       },
     });
   }
@@ -41,6 +43,30 @@ export class ProductsService {
   async remove(id: string) {
     return this.prisma.product.delete({
       where: { id },
+    });
+  }
+
+  async getRecipe(id: string) {
+    return this.prisma.recipeItem.findMany({
+      where: { parentId: id },
+      include: { child: true },
+    });
+  }
+
+  async addRecipeItem(id: string, data: { childId: string; quantity: number; unit?: string }) {
+    return this.prisma.recipeItem.create({
+      data: {
+        parentId: id,
+        childId: data.childId,
+        quantity: data.quantity,
+        unit: data.unit ?? "Un",
+      },
+    });
+  }
+
+  async removeRecipeItem(id: string, recipeItemId: string) {
+    return this.prisma.recipeItem.delete({
+      where: { id: recipeItemId },
     });
   }
 }

@@ -8,8 +8,21 @@ import {
   Post,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
-import { IsNumber, IsOptional, IsString } from "class-validator";
+import { IsNumber, IsOptional, IsString, IsBoolean } from "class-validator";
 import { ProductsService } from "./products.service";
+
+export class AddRecipeItemDto {
+  @IsString()
+  childId: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  quantity: number;
+
+  @IsString()
+  @IsOptional()
+  unit?: string;
+}
 
 export class CreateProductDto {
   @IsString()
@@ -25,6 +38,14 @@ export class CreateProductDto {
   @IsString()
   @IsOptional()
   categoryId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isSellable?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isPurchasable?: boolean;
 }
 
 export class UpdateProductDto {
@@ -44,6 +65,14 @@ export class UpdateProductDto {
   @IsString()
   @IsOptional()
   categoryId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isSellable?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isPurchasable?: boolean;
 }
 
 @Controller("products")
@@ -74,5 +103,20 @@ export class ProductsController {
   @Delete(":id")
   remove(@Param("id") id: string) {
     return this.productsService.remove(id);
+  }
+
+  @Get(":id/recipe")
+  getRecipe(@Param("id") id: string) {
+    return this.productsService.getRecipe(id);
+  }
+
+  @Post(":id/recipe")
+  addRecipeItem(@Param("id") id: string, @Body() addRecipeItemDto: AddRecipeItemDto) {
+    return this.productsService.addRecipeItem(id, addRecipeItemDto);
+  }
+
+  @Delete(":id/recipe/:recipeItemId")
+  removeRecipeItem(@Param("id") id: string, @Param("recipeItemId") recipeItemId: string) {
+    return this.productsService.removeRecipeItem(id, recipeItemId);
   }
 }

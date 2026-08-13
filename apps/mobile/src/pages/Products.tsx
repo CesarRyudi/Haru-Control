@@ -19,6 +19,8 @@ interface Product {
   price: number;
   categoryId?: string;
   category?: Category;
+  isSellable: boolean;
+  isPurchasable: boolean;
 }
 
 export default function Products() {
@@ -28,7 +30,7 @@ export default function Products() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({ name: "", price: 0, categoryId: "" });
+  const [formData, setFormData] = useState({ name: "", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState({ name: "", price: 0, observation: "" });
@@ -63,10 +65,12 @@ export default function Products() {
         name: product.name,
         price: product.price,
         categoryId: product.categoryId || "",
+        isSellable: product.isSellable || false,
+        isPurchasable: product.isPurchasable || false,
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", price: 0, categoryId: "" });
+      setFormData({ name: "", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
     }
     setIsModalOpen(true);
   };
@@ -74,7 +78,7 @@ export default function Products() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
-    setFormData({ name: "", price: 0, categoryId: "" });
+    setFormData({ name: "", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -197,6 +201,10 @@ export default function Products() {
                     <div className="product-info">
                       <h3>{product.name}</h3>
                       <p className="product-price">{formatCurrency(product.price)}</p>
+                      <div className="product-badges" style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '0.8em' }}>
+                        {product.isSellable && <span style={{ background: '#e0f7fa', color: '#006064', padding: '2px 6px', borderRadius: '4px' }}>🛒 Venda</span>}
+                        {product.isPurchasable && <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>📦 Compra</span>}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -244,11 +252,26 @@ export default function Products() {
                   required
                 />
               </div>
+              <div className="form-group" style={{ display: 'flex', gap: '16px', margin: '16px 0', flexDirection: 'column' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'normal' }}>
+                  <input type="checkbox" checked={formData.isSellable} onChange={(e) => setFormData({ ...formData, isSellable: e.target.checked })} style={{ width: 'auto', margin: 0 }} />
+                  Pode ser vendido (Produto final)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'normal' }}>
+                  <input type="checkbox" checked={formData.isPurchasable} onChange={(e) => setFormData({ ...formData, isPurchasable: e.target.checked })} style={{ width: 'auto', margin: 0 }} />
+                  Pode ser comprado (Insumo)
+                </label>
+              </div>
               <div className="modal-actions" style={{ justifyContent: editingProduct ? "space-between" : "flex-end", display: "flex", width: "100%" }}>
                 {editingProduct && (
-                  <button type="button" onClick={() => handleDelete(editingProduct.id)} className="btn-delete" style={{ marginRight: 'auto', background: "#e74c3c", color: "white", padding: "12px 24px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
-                    Excluir
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button type="button" onClick={() => handleDelete(editingProduct.id)} className="btn-delete" style={{ background: "#e74c3c", color: "white", padding: "12px 16px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
+                      Excluir
+                    </button>
+                    <button type="button" onClick={() => { handleCloseModal(); navigate(`/products/${editingProduct.id}/recipe`); }} className="btn-secondary" style={{ background: "#3498db", color: "white", padding: "12px 16px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
+                      Receita
+                    </button>
+                  </div>
                 )}
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button type="button" onClick={handleCloseModal} className="btn-secondary">

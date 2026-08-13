@@ -8,17 +8,21 @@ datasource db {
 }
 
 model Product {
-    id         String   @id @default(uuid())
-    name       String
-    unit       String   @default("Un")
-    price      Decimal  @db.Decimal(10, 2)
-    categoryId String?  @map("category_id")
-    createdAt  DateTime @default(now()) @map("created_at")
-    updatedAt  DateTime @updatedAt @map("updated_at")
+    id            String   @id @default(uuid())
+    name          String
+    unit          String   @default("Un")
+    price         Decimal  @db.Decimal(10, 2)
+    categoryId    String?  @map("category_id")
+    isSellable    Boolean  @default(false) @map("is_sellable")
+    isPurchasable Boolean  @default(false) @map("is_purchasable")
+    createdAt     DateTime @default(now()) @map("created_at")
+    updatedAt     DateTime @updatedAt @map("updated_at")
 
     category      Category?     @relation(fields: [categoryId], references: [id])
     orderItems    OrderItem[]
     ledgerEntries LedgerEntry[]
+    recipeItems   RecipeItem[]  @relation("ParentProduct")
+    usedIn        RecipeItem[]  @relation("ChildProduct")
 
     @@map("products")
 }
@@ -79,7 +83,7 @@ model OrderItem {
     id        String  @id @default(uuid())
     orderId   String  @map("order_id")
     productId String  @map("product_id")
-    quantity  Int
+    quantity  Decimal @db.Decimal(10, 4)
     unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
 
     order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -101,7 +105,7 @@ model Sale {
 model LedgerEntry {
     id        String              @id @default(uuid())
     productId String              @map("product_id")
-    quantity  Int
+    quantity  Decimal             @db.Decimal(10, 4)
     type      LedgerOperationType
     orderId   String?             @map("order_id")
     createdAt DateTime            @default(now()) @map("created_at")
@@ -119,4 +123,20 @@ enum LedgerOperationType {
     RELEASE
     SALE
     CORRECTION
+    MANUFACTURING_CONSUMPTION
+    MANUFACTURING_PRODUCTION
+}
+
+model RecipeItem {
+    id       String  @id @default(uuid())
+    parentId String  @map("parent_id")
+    childId  String  @map("child_id")
+    quantity Decimal @db.Decimal(10, 4)
+    unit     String  @default("Un")
+
+    parent Product @relation("ParentProduct", fields: [parentId], references: [id], onDelete: Cascade)
+    child  Product @relation("ChildProduct", fields: [childId], references: [id], onDelete: Restrict)
+
+    @@unique([parentId, childId])
+    @@map("recipe_items")
 }
