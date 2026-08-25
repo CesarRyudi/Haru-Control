@@ -9,7 +9,7 @@ export default function BottomNavigation() {
     { path: "/", icon: "📋", label: "Início" },
     { path: "/customers", icon: "👥", label: "Clientes" },
     { path: "/products", icon: "📦", label: "Produtos" },
-    { path: "/manufacturing", icon: "🏭", label: "Manufatura" },
+    { path: "/manufacturing", icon: "🏭", label: "Produção" },
     { path: "/stock", icon: "📊", label: "Estoque" },
   ];
 

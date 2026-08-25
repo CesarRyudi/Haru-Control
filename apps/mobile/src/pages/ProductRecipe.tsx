@@ -42,9 +42,11 @@ export default function ProductRecipe() {
       setProduct(productRes.data);
       setRecipe(recipeRes.data);
       
-      // Apenas produtos marcados como compráveis/insumos devem aparecer para adicionar à receita
-      const insumos = allProductsRes.data.filter((p: Product) => p.isPurchasable && p.id !== id);
-      setAvailableProducts(insumos);
+      // Qualquer produto do catálogo (exceto o próprio produto) pode ser ingrediente na receita
+      const eligibleProducts = allProductsRes.data
+        .filter((p: Product) => p.id !== id)
+        .sort((a: Product, b: Product) => a.name.localeCompare(b.name));
+      setAvailableProducts(eligibleProducts);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
@@ -62,7 +64,7 @@ export default function ProductRecipe() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.childId) {
-      alert("Selecione um insumo.");
+      alert("Selecione um ingrediente.");
       return;
     }
     
@@ -132,7 +134,7 @@ export default function ProductRecipe() {
             <h2>Adicionar Ingrediente</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Insumo</label>
+                <label>Ingrediente / Insumo</label>
                 <select
                   value={formData.childId}
                   onChange={(e) => setFormData({ ...formData, childId: e.target.value })}
@@ -146,7 +148,7 @@ export default function ProductRecipe() {
                 </select>
               </div>
               <div className="form-group">
-                <label>QuantidadeNecessária</label>
+                <label>Quantidade Necessária</label>
                 <NumberInput
                   step="0.1"
                   min="0.1"
@@ -173,7 +175,7 @@ export default function ProductRecipe() {
 
       <FloatingActionButton
         menuItems={[
-          { icon: "➕", label: "Adicionar Insumo", onClick: () => handleOpenModal() },
+          { icon: "➕", label: "Adicionar Ingrediente", onClick: () => handleOpenModal() },
         ]}
       />
     </div>

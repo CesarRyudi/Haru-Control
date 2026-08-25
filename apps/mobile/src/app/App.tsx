@@ -8,6 +8,7 @@ import Stock from "../pages/Stock";
 import Customers from "../pages/Customers";
 import ProductRecipe from "../pages/ProductRecipe";
 import Manufacturing from "../pages/Manufacturing";
+import Help from "../pages/Help";
 import AppLayout from "../components/AppLayout";
 
 function App() {
@@ -69,6 +70,7 @@ function App() {
         <Route path="/manufacturing" element={<AppLayout><Manufacturing /></AppLayout>} />
         <Route path="/stock" element={<AppLayout><Stock /></AppLayout>} />
         <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
+        <Route path="/help" element={<AppLayout><Help /></AppLayout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -112,6 +112,26 @@ export default function OrderBoard() {
     <div className="order-board">
       <header className="board-header">
         <h1>Pedidos</h1>
+        <button
+          className="help-btn-header"
+          onClick={() => navigate("/help")}
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "8px",
+            padding: "8px 14px",
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "#4f46e5",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            cursor: "pointer",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+          }}
+        >
+          <span>📖</span> Ajuda
+        </button>
       </header>
       <div className="board-tabs">
         <button
