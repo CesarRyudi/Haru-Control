@@ -24,7 +24,11 @@ export class CategoriesService {
     });
   }
 
-  remove(id: string) {
+  async remove(id: string) {
+    await this.prisma.product.updateMany({
+      where: { categoryId: id },
+      data: { categoryId: null },
+    });
     return this.prisma.category.delete({
       where: { id },
     });

@@ -32,6 +32,7 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({ name: "", unit: "un", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
 
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState({ name: "", price: 0, observation: "" });
 
@@ -126,13 +127,24 @@ export default function Products() {
     }
   };
 
-  const handleOpenCategoryModal = () => {
-    setCategoryFormData({ name: "", price: 0, observation: "" });
+  const handleOpenCategoryModal = (category?: Category) => {
+    if (category) {
+      setEditingCategory(category);
+      setCategoryFormData({
+        name: category.name,
+        price: category.price != null ? Number(category.price) : 0,
+        observation: category.observation || "",
+      });
+    } else {
+      setEditingCategory(null);
+      setCategoryFormData({ name: "", price: 0, observation: "" });
+    }
     setIsCategoryModalOpen(true);
   };
 
   const handleCloseCategoryModal = () => {
     setIsCategoryModalOpen(false);
+    setEditingCategory(null);
     setCategoryFormData({ name: "", price: 0, observation: "" });
   };
 
@@ -144,7 +156,11 @@ export default function Products() {
         price: categoryFormData.price > 0 ? categoryFormData.price : null,
         observation: categoryFormData.observation || null,
       };
-      await api.post("/categories", dataToSend);
+      if (editingCategory) {
+        await api.patch(`/categories/${editingCategory.id}`, dataToSend);
+      } else {
+        await api.post("/categories", dataToSend);
+      }
       loadData();
       handleCloseCategoryModal();
     } catch (error) {
@@ -153,24 +169,46 @@ export default function Products() {
     }
   };
 
+  const handleCategoryDelete = async (id: string) => {
+    if (!confirm("Deseja realmente excluir esta categoria? Os produtos vinculados ficarão como 'Sem Categoria'.")) return;
+    try {
+      await api.delete(`/categories/${id}`);
+      loadData();
+      handleCloseCategoryModal();
+    } catch (error) {
+      console.error("Erro ao excluir categoria:", error);
+      alert("Erro ao excluir categoria");
+    }
+  };
+
   const groupedProducts = useMemo(() => {
-    const groups: Record<string, Product[]> = {};
+    const groups: Record<string, { category?: Category; products: Product[] }> = {};
+
+    categories.forEach(cat => {
+      groups[cat.name] = { category: cat, products: [] };
+    });
+
     products.forEach(p => {
       const catName = p.category?.name || "Sem Categoria";
-      if (!groups[catName]) groups[catName] = [];
-      groups[catName].push(p);
+      if (!groups[catName]) {
+        groups[catName] = { category: p.category, products: [] };
+      }
+      groups[catName].products.push(p);
     });
     
     Object.values(groups).forEach(group => {
-      group.sort((a, b) => a.name.localeCompare(b.name));
+      group.products.sort((a, b) => a.name.localeCompare(b.name));
     });
 
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
+    const sortedKeys = Object.keys(groups).filter(key => {
+      if (key === "Sem Categoria" && groups[key].products.length === 0) return false;
+      return true;
+    }).sort((a, b) => {
       if (a === "Sem Categoria") return 1;
       if (b === "Sem Categoria") return -1;
 
-      const catA = groups[a][0]?.category;
-      const catB = groups[b][0]?.category;
+      const catA = groups[a].category;
+      const catB = groups[b].category;
       const priceA = catA?.price != null ? Number(catA.price) : Infinity;
       const priceB = catB?.price != null ? Number(catB.price) : Infinity;
       
@@ -178,8 +216,12 @@ export default function Products() {
       return a.localeCompare(b);
     });
 
-    return sortedKeys.map(key => ({ name: key, products: groups[key] }));
-  }, [products]);
+    return sortedKeys.map(key => ({
+      name: key,
+      category: groups[key].category,
+      products: groups[key].products,
+    }));
+  }, [products, categories]);
 
   return (
     <div className="products-page">
@@ -188,33 +230,65 @@ export default function Products() {
       </header>
 
       <div className="products-list">
-        {products.length === 0 ? (
+        {products.length === 0 && categories.length === 0 ? (
           <p style={{ textAlign: "center", padding: "40px", color: "#999" }}>
             Nenhum produto cadastrado. Clique no botão de ação para adicionar.
           </p>
         ) : (
           groupedProducts.map(group => (
             <div key={group.name} className="product-category-group">
-              <h2 className="category-title">{group.name}</h2>
-              <div className="products-grid">
-                {group.products.map(product => (
-                  <div key={product.id} className="product-card" onClick={() => handleOpenModal(product)} style={{ cursor: "pointer" }}>
-                    <div className="product-info">
-                      <h3>{product.name}</h3>
-                      <p className="product-price">
-                        {formatCurrency(product.price)}
-                        <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
-                          / {product.unit || 'un'}
-                        </span>
-                      </p>
-                      <div className="product-badges" style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '0.8em' }}>
-                        {product.isSellable && <span style={{ background: '#e0f7fa', color: '#006064', padding: '2px 6px', borderRadius: '4px' }}>🛒 Venda</span>}
-                        {product.isPurchasable && <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>📦 Compra</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0 10px', borderBottom: '2px solid #eee', paddingBottom: '5px' }}>
+                <h2 className="category-title" style={{ margin: 0, border: 'none', padding: 0 }}>
+                  {group.name}
+                </h2>
+                {group.category && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCategoryModal(group.category)}
+                    style={{
+                      background: '#edf2f7',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#4a5568',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Editar Categoria"
+                  >
+                    ✏️ Editar
+                  </button>
+                )}
+              </div>
+              {group.products.length === 0 ? (
+                <p style={{ color: '#999', fontSize: '14px', fontStyle: 'italic', padding: '8px 0 16px' }}>
+                  Nenhum produto nesta categoria.
+                </p>
+              ) : (
+                <div className="products-grid">
+                  {group.products.map(product => (
+                    <div key={product.id} className="product-card" onClick={() => handleOpenModal(product)} style={{ cursor: "pointer" }}>
+                      <div className="product-info">
+                        <h3>{product.name}</h3>
+                        <p className="product-price">
+                          {formatCurrency(product.price)}
+                          <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
+                            / {product.unit || 'un'}
+                          </span>
+                        </p>
+                        <div className="product-badges" style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '0.8em' }}>
+                          {product.isSellable && <span style={{ background: '#e0f7fa', color: '#006064', padding: '2px 6px', borderRadius: '4px' }}>🛒 Venda</span>}
+                          {product.isPurchasable && <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>📦 Compra</span>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))
         )}
@@ -318,7 +392,7 @@ export default function Products() {
       {isCategoryModalOpen && (
         <div className="modal-overlay" onClick={handleCloseCategoryModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Nova Categoria</h2>
+            <h2>{editingCategory ? "Editar Categoria" : "Nova Categoria"}</h2>
             <form onSubmit={handleCategorySubmit}>
               <div className="form-group">
                 <label>Nome da Categoria</label>
@@ -349,13 +423,25 @@ export default function Products() {
                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginTop: '5px' }}
                 />
               </div>
-              <div className="modal-actions">
-                <button type="button" onClick={handleCloseCategoryModal} className="btn-secondary">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary">
-                  Salvar
-                </button>
+              <div className="modal-actions" style={{ justifyContent: editingCategory ? "space-between" : "flex-end", display: "flex", width: "100%" }}>
+                {editingCategory && (
+                  <button
+                    type="button"
+                    onClick={() => handleCategoryDelete(editingCategory.id)}
+                    className="btn-delete"
+                    style={{ background: "#e74c3c", color: "white", padding: "12px 16px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+                  >
+                    Excluir
+                  </button>
+                )}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button type="button" onClick={handleCloseCategoryModal} className="btn-secondary">
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    Salvar
+                  </button>
+                </div>
               </div>
             </form>
           </div>
