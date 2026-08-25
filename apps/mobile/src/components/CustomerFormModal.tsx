@@ -26,18 +26,6 @@ export default function CustomerFormModal({ editingCustomer, onClose, onSuccess,
     }
   }, [editingCustomer]);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "");
-    if (value.length > 11) value = value.slice(0, 11);
-    
-    if (value.length > 2) {
-      value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
-    }
-    if (value.length > 9) {
-      value = `${value.slice(0, 10)}-${value.slice(10)}`;
-    }
-    setPhone(value);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,9 +96,8 @@ export default function CustomerFormModal({ editingCustomer, onClose, onSuccess,
             <input
               type="text"
               value={phone}
-              onChange={handlePhoneChange}
-              placeholder="Ex: (11) 99999-9999"
-              maxLength={15}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Ex: (11) 99999-9999 ou +55 11 99999-9999"
             />
           </div>
 
