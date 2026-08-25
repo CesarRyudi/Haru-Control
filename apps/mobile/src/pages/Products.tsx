@@ -364,18 +364,26 @@ export default function Products() {
                   Pode ser comprado (Insumo)
                 </label>
               </div>
-              <div className="modal-actions" style={{ justifyContent: editingProduct ? "space-between" : "flex-end", display: "flex", width: "100%" }}>
+              <div style={{ marginTop: '24px' }}>
                 {editingProduct && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="button" onClick={() => handleDelete(editingProduct.id)} className="btn-delete" style={{ background: "#e74c3c", color: "white", padding: "12px 16px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(editingProduct.id)}
+                      className="btn-danger-outline"
+                    >
                       Excluir
                     </button>
-                    <button type="button" onClick={() => { handleCloseModal(); navigate(`/products/${editingProduct.id}/recipe`); }} className="btn-secondary" style={{ background: "#3498db", color: "white", padding: "12px 16px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
+                    <button
+                      type="button"
+                      onClick={() => { handleCloseModal(); navigate(`/products/${editingProduct.id}/recipe`); }}
+                      className="btn-info-outline"
+                    >
                       Receita
                     </button>
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <button type="button" onClick={handleCloseModal} className="btn-secondary">
                     Cancelar
                   </button>
@@ -423,18 +431,20 @@ export default function Products() {
                   style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginTop: '5px' }}
                 />
               </div>
-              <div className="modal-actions" style={{ justifyContent: editingCategory ? "space-between" : "flex-end", display: "flex", width: "100%" }}>
+              <div style={{ marginTop: '24px' }}>
                 {editingCategory && (
-                  <button
-                    type="button"
-                    onClick={() => handleCategoryDelete(editingCategory.id)}
-                    className="btn-delete"
-                    style={{ background: "#e74c3c", color: "white", padding: "12px 16px", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
-                  >
-                    Excluir
-                  </button>
+                  <div style={{ marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryDelete(editingCategory.id)}
+                      className="btn-danger-outline"
+                      style={{ width: '100%' }}
+                    >
+                      Excluir Categoria
+                    </button>
+                  </div>
                 )}
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <button type="button" onClick={handleCloseCategoryModal} className="btn-secondary">
                     Cancelar
                   </button>
