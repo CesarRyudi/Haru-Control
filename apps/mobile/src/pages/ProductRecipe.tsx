@@ -7,6 +7,7 @@ import "./Products.css";
 interface Product {
   id: string;
   name: string;
+  unit: string;
   isPurchasable: boolean;
 }
 
@@ -61,6 +62,8 @@ export default function ProductRecipe() {
     setIsModalOpen(false);
   };
 
+  const selectedChildProduct = availableProducts.find(p => p.id === formData.childId);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.childId) {
@@ -71,7 +74,8 @@ export default function ProductRecipe() {
     try {
       await api.post(`/products/${id}/recipe`, {
         childId: formData.childId,
-        quantity: formData.quantity
+        quantity: formData.quantity,
+        unit: selectedChildProduct?.unit || "un",
       });
       loadData();
       handleCloseModal();
@@ -116,7 +120,9 @@ export default function ProductRecipe() {
                 <div className="product-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <div>
                     <h3 style={{ fontSize: '1.1em' }}>{item.child.name}</h3>
-                    <p style={{ color: '#666', marginTop: '4px' }}>{item.quantity} {item.unit}</p>
+                    <p style={{ color: '#666', marginTop: '4px' }}>
+                      {item.quantity} {item.unit || item.child?.unit || 'un'}
+                    </p>
                   </div>
                   <button onClick={() => handleDelete(item.id)} style={{ background: 'none', border: 'none', color: '#e74c3c', fontSize: '20px', cursor: 'pointer' }}>
                     🗑️
@@ -143,15 +149,17 @@ export default function ProductRecipe() {
                 >
                   <option value="" disabled>Selecione...</option>
                   {availableProducts.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.name} ({p.unit || 'un'})</option>
                   ))}
                 </select>
               </div>
               <div className="form-group">
-                <label>Quantidade Necessária</label>
+                <label>
+                  Quantidade Necessária {selectedChildProduct ? `(${selectedChildProduct.unit || 'un'})` : ''}
+                </label>
                 <NumberInput
-                  step="0.1"
-                  min="0.1"
+                  step="0.01"
+                  min="0.0001"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
                   showButtons

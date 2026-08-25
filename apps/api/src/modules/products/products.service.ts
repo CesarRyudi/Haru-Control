@@ -54,12 +54,21 @@ export class ProductsService {
   }
 
   async addRecipeItem(id: string, data: { childId: string; quantity: number; unit?: string }) {
+    let unit = data.unit;
+    if (!unit) {
+      const child = await this.prisma.product.findUnique({
+        where: { id: data.childId },
+        select: { unit: true },
+      });
+      unit = child?.unit ?? "Un";
+    }
+
     return this.prisma.recipeItem.create({
       data: {
         parentId: id,
         childId: data.childId,
         quantity: data.quantity,
-        unit: data.unit ?? "Un",
+        unit,
       },
     });
   }

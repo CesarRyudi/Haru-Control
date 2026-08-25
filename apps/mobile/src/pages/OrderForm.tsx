@@ -275,6 +275,9 @@ export default function OrderForm() {
                       <h3>{product.name}</h3>
                       <p className="product-price">
                         {formatCurrency(product.price)}
+                        <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
+                          / {product.unit || 'un'}
+                        </span>
                       </p>
                     </div>
                     {(() => {
@@ -345,7 +348,7 @@ export default function OrderForm() {
                       <h3>{item.productName}</h3>
                       <div className="item-pricing">
                         <p className="unit-price">
-                          {formatCurrency(item.unitPrice)} un.
+                          {formatCurrency(item.unitPrice)} / {products.find(p => p.id === item.productId)?.unit || 'un'}
                         </p>
                         <p className="total-price">
                           Total:{" "}

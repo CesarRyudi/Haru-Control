@@ -6,6 +6,7 @@ import "./Products.css"; // Reuse styling for now
 interface Product {
   id: string;
   name: string;
+  unit: string;
   isSellable: boolean;
 }
 
@@ -34,6 +35,8 @@ export default function Manufacturing() {
     }
   };
 
+  const selectedProduct = products.find(p => p.id === selectedProductId);
+
   const handleProduce = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductId || quantity <= 0) {
@@ -41,7 +44,8 @@ export default function Manufacturing() {
       return;
     }
 
-    if (!confirm(`Confirmar produção de ${quantity} unidade(s)?`)) return;
+    const unitText = selectedProduct?.unit || "unidade(s)";
+    if (!confirm(`Confirmar produção de ${quantity} ${unitText}?`)) return;
 
     setLoading(true);
     try {
@@ -87,16 +91,18 @@ export default function Manufacturing() {
             >
               <option value="" disabled>Selecione um produto final...</option>
               {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>{p.name} ({p.unit || 'un'})</option>
               ))}
             </select>
           </div>
 
           <div className="form-group" style={{ marginTop: '20px' }}>
-            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Quantidade a produzir</label>
+            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>
+              Quantidade a produzir {selectedProduct ? `(${selectedProduct.unit || 'un'})` : ''}
+            </label>
             <NumberInput
-              step="1"
-              min="1"
+              step="0.01"
+              min="0.0001"
               value={quantity}
               onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
               showButtons

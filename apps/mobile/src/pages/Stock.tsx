@@ -154,7 +154,7 @@ export default function Stock() {
                   <div className="product-info">
                     <h3>{product.name}</h3>
                     <p className="product-price">
-                      Estoque: <strong>{stockItem.currentStock}</strong>
+                      Estoque: <strong>{stockItem.currentStock} {product.unit || 'un'}</strong>
                     </p>
                     {stockItem.warnings && stockItem.warnings.length > 0 && (
                       <div className="stock-warnings">
@@ -196,36 +196,45 @@ export default function Stock() {
                   required
                 >
                   <option value="">Selecione um produto</option>
-                  {stock.map((item) => (
-                    <option key={item.productId} value={item.productId}>
-                      {item.productName}
-                    </option>
-                  ))}
+                  {stock.map((item) => {
+                    const prod = products.find(p => p.id === item.productId);
+                    return (
+                      <option key={item.productId} value={item.productId}>
+                        {item.productName} ({prod?.unit || 'un'})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <div className="form-group">
                 <label>
-                  {modalType === "in"
-                    ? "Quantidade (adicionar)"
-                    : "Novo Estoque Atual"}
+                  {(() => {
+                    const prod = products.find(p => p.id === selectedProductId);
+                    const unitSuffix = prod?.unit ? ` (${prod.unit})` : "";
+                    return modalType === "in"
+                      ? `Quantidade a adicionar${unitSuffix}`
+                      : `Novo Estoque Atual${unitSuffix}`;
+                  })()}
                 </label>
                 <div className="stock-adjust-controls">
                   <button
                     type="button"
-                    onClick={() => setNewQuantity(Math.max(0, newQuantity - 1))}
+                    onClick={() => setNewQuantity(Math.max(0, Number((newQuantity - 1).toFixed(4))))}
                     className="btn-qty"
                   >
                     -
                   </button>
                   <NumberInput
+                    step="0.01"
+                    min="0"
                     value={newQuantity}
-                    onChange={(e) => setNewQuantity(parseInt(e.target.value) || 0)}
+                    onChange={(e) => setNewQuantity(parseFloat(e.target.value) || 0)}
                     required
                     className="qty-input"
                   />
                   <button
                     type="button"
-                    onClick={() => setNewQuantity(newQuantity + 1)}
+                    onClick={() => setNewQuantity(Number((newQuantity + 1).toFixed(4)))}
                     className="btn-qty"
                   >
                     +

@@ -30,7 +30,7 @@ export default function Products() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({ name: "", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
+  const [formData, setFormData] = useState({ name: "", unit: "un", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState({ name: "", price: 0, observation: "" });
@@ -63,6 +63,7 @@ export default function Products() {
       setEditingProduct(product);
       setFormData({
         name: product.name,
+        unit: product.unit || "un",
         price: product.price,
         categoryId: product.categoryId || "",
         isSellable: product.isSellable || false,
@@ -70,7 +71,7 @@ export default function Products() {
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
+      setFormData({ name: "", unit: "un", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
     }
     setIsModalOpen(true);
   };
@@ -78,7 +79,7 @@ export default function Products() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
-    setFormData({ name: "", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
+    setFormData({ name: "", unit: "un", price: 0, categoryId: "", isSellable: false, isPurchasable: false });
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -97,7 +98,7 @@ export default function Products() {
     try {
       const dataToSend = { 
         ...formData, 
-        unit: "Un",
+        unit: formData.unit.trim() || "un",
         categoryId: formData.categoryId || undefined 
       };
       if (editingProduct) {
@@ -200,7 +201,12 @@ export default function Products() {
                   <div key={product.id} className="product-card" onClick={() => handleOpenModal(product)} style={{ cursor: "pointer" }}>
                     <div className="product-info">
                       <h3>{product.name}</h3>
-                      <p className="product-price">{formatCurrency(product.price)}</p>
+                      <p className="product-price">
+                        {formatCurrency(product.price)}
+                        <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
+                          / {product.unit || 'un'}
+                        </span>
+                      </p>
                       <div className="product-badges" style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '0.8em' }}>
                         {product.isSellable && <span style={{ background: '#e0f7fa', color: '#006064', padding: '2px 6px', borderRadius: '4px' }}>🛒 Venda</span>}
                         {product.isPurchasable && <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>📦 Compra</span>}
@@ -227,6 +233,28 @@ export default function Products() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label>Unidade de Medida</label>
+                <input
+                  type="text"
+                  list="units-suggestions"
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="ex: un, kg, g, ml, L, cx, pct"
+                  required
+                />
+                <datalist id="units-suggestions">
+                  <option value="un" />
+                  <option value="g" />
+                  <option value="kg" />
+                  <option value="ml" />
+                  <option value="L" />
+                  <option value="cx" />
+                  <option value="pct" />
+                  <option value="fatia" />
+                  <option value="porção" />
+                </datalist>
               </div>
               <div className="form-group">
                 <label>Categoria (Opcional)</label>
