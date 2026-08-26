@@ -6,6 +6,7 @@ import {
 import { OrderStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StockService } from "../stock/stock.service";
+import { PushoverService } from "../notifications/pushover.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
 
@@ -13,8 +14,52 @@ import { UpdateOrderDto } from "./dto/update-order.dto";
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
-    private stockService: StockService
+    private stockService: StockService,
+    private pushoverService: PushoverService
   ) {}
+
+  private formatOrder(order: any, warnings?: string[]) {
+    return {
+      id: order.id,
+      customerId: order.customerId,
+      status: order.status,
+      totalPrice: Number(order.totalPrice),
+      deliveryFee: Number(order.deliveryFee),
+      address: order.address,
+      pushoverReceipt: order.pushoverReceipt,
+      acknowledgedAt: order.acknowledgedAt,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      items: (order.items || []).map((item: any) => ({
+        id: item.id,
+        orderId: item.orderId,
+        productId: item.productId,
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        product: item.product
+          ? {
+              id: item.product.id,
+              name: item.product.name,
+              unit: item.product.unit,
+              price: Number(item.product.price),
+              createdAt: item.product.createdAt,
+              updatedAt: item.product.updatedAt,
+            }
+          : null,
+      })),
+      customer: order.customer
+        ? {
+            id: order.customer.id,
+            name: order.customer.name,
+            phone: order.customer.phone,
+            address: order.customer.address,
+            observation: order.customer.observation,
+            createdAt: order.customer.createdAt,
+          }
+        : null,
+      warnings: warnings && warnings.length > 0 ? warnings : undefined,
+    };
+  }
 
   async create(createOrderDto: CreateOrderDto) {
     const warnings: string[] = [];
@@ -36,7 +81,7 @@ export class OrdersService {
         const currentStock = await this.stockService.getCurrentStock(
           item.productId
         );
-        const futureStock = currentStock - item.quantity;
+        const futureStock = Number(currentStock) - Number(item.quantity);
 
         if (futureStock < 0) {
           warnings.push(
@@ -54,7 +99,7 @@ export class OrdersService {
     );
 
     const totalPrice = itemsWithPrices.reduce(
-      (sum, item) => sum + item.quantity * Number(item.unitPrice),
+      (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
       0
     );
 
@@ -80,6 +125,7 @@ export class OrdersService {
             product: true,
           },
         },
+        customer: true,
       },
     });
 
@@ -90,36 +136,7 @@ export class OrdersService {
       )
     );
 
-    // Mapear explicitamente para evitar problemas com webpack
-    return {
-      id: order.id,
-      customerId: order.customerId,
-      status: order.status,
-      totalPrice: order.totalPrice,
-      deliveryFee: order.deliveryFee,
-      address: order.address,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-      items: order.items.map((item) => ({
-        id: item.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        product: item.product
-          ? {
-              id: item.product.id,
-              name: item.product.name,
-              description: item.product.description,
-              price: item.product.price,
-              image: item.product.image,
-              createdAt: item.product.createdAt,
-              updatedAt: item.product.updatedAt,
-            }
-          : null,
-      })),
-      warnings: warnings.length > 0 ? warnings : undefined,
-    };
+    return this.formatOrder(order, warnings);
   }
 
   async findAll(
@@ -163,44 +180,7 @@ export class OrdersService {
       orderBy: { createdAt: "desc" },
     });
 
-    // Mapear explicitamente para evitar problemas com webpack
-    return orders.map((order) => ({
-      id: order.id,
-      customerId: order.customerId,
-      status: order.status,
-      totalPrice: order.totalPrice,
-      deliveryFee: order.deliveryFee,
-      address: order.address,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-      items: order.items.map((item) => ({
-        id: item.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        product: item.product
-          ? {
-              id: item.product.id,
-              name: item.product.name,
-              description: item.product.description,
-              price: item.product.price,
-              image: item.product.image,
-              createdAt: item.product.createdAt,
-              updatedAt: item.product.updatedAt,
-            }
-          : null,
-      })),
-      customer: order.customer
-        ? {
-            id: order.customer.id,
-            name: order.customer.name,
-            phone: order.customer.phone,
-            createdAt: order.customer.createdAt,
-            updatedAt: order.customer.updatedAt,
-          }
-        : null,
-    }));
+    return orders.map((order) => this.formatOrder(order));
   }
 
   async findOne(id: string) {
@@ -220,44 +200,7 @@ export class OrdersService {
       throw new NotFoundException("Pedido não encontrado");
     }
 
-    // Mapear explicitamente para evitar problemas com webpack
-    return {
-      id: order.id,
-      customerId: order.customerId,
-      status: order.status,
-      totalPrice: order.totalPrice,
-      deliveryFee: order.deliveryFee,
-      address: order.address,
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
-      items: order.items.map((item) => ({
-        id: item.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        product: item.product
-          ? {
-              id: item.product.id,
-              name: item.product.name,
-              description: item.product.description,
-              price: item.product.price,
-              image: item.product.image,
-              createdAt: item.product.createdAt,
-              updatedAt: item.product.updatedAt,
-            }
-          : null,
-      })),
-      customer: order.customer
-        ? {
-            id: order.customer.id,
-            name: order.customer.name,
-            phone: order.customer.phone,
-            createdAt: order.customer.createdAt,
-            updatedAt: order.customer.updatedAt,
-          }
-        : null,
-    };
+    return this.formatOrder(order);
   }
 
   async update(id: string, updateOrderDto: UpdateOrderDto) {
@@ -280,7 +223,7 @@ export class OrdersService {
 
       // Liberar estoque dos itens antigos
       await Promise.all(
-        existingItems.map((item) =>
+        existingItems.map((item: any) =>
           this.stockService.releaseStock(
             item.productId,
             item.quantity,
@@ -311,7 +254,7 @@ export class OrdersService {
           const currentStock = await this.stockService.getCurrentStock(
             item.productId
           );
-          const futureStock = currentStock - item.quantity;
+          const futureStock = Number(currentStock) - Number(item.quantity);
 
           if (futureStock < 0) {
             warnings.push(
@@ -328,7 +271,7 @@ export class OrdersService {
       );
 
       const totalPrice = itemsWithPrices.reduce(
-        (sum, item) => sum + item.quantity * Number(item.unitPrice),
+        (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
         0
       );
 
@@ -359,12 +302,54 @@ export class OrdersService {
     }
 
     // Se apenas atualizando status ou deliveryFee ou address
-    if (updateOrderDto.status || updateOrderDto.deliveryFee !== undefined || updateOrderDto.address !== undefined) {
+    if (
+      updateOrderDto.status ||
+      updateOrderDto.deliveryFee !== undefined ||
+      updateOrderDto.address !== undefined
+    ) {
       const updateData: any = {};
-      if (updateOrderDto.status) updateData.status = updateOrderDto.status;
       if (updateOrderDto.deliveryFee !== undefined)
         updateData.deliveryFee = updateOrderDto.deliveryFee;
-      if (updateOrderDto.address !== undefined) updateData.address = updateOrderDto.address;
+      if (updateOrderDto.address !== undefined)
+        updateData.address = updateOrderDto.address;
+
+      if (updateOrderDto.status) {
+        updateData.status = updateOrderDto.status;
+
+        // Se o pedido está entrando em PRODUÇÃO (PENDING)
+        if (
+          updateOrderDto.status === OrderStatus.PENDING &&
+          order.status !== OrderStatus.PENDING
+        ) {
+          const receipt = await this.pushoverService.sendOrderAlert({
+            id: order.id,
+            items: order.items,
+            totalPrice: order.totalPrice,
+            deliveryFee:
+              updateOrderDto.deliveryFee !== undefined
+                ? updateOrderDto.deliveryFee
+                : order.deliveryFee,
+            address:
+              updateOrderDto.address !== undefined
+                ? updateOrderDto.address
+                : order.address,
+          });
+
+          if (receipt) {
+            updateData.pushoverReceipt = receipt;
+            updateData.acknowledgedAt = null;
+          }
+        }
+        // Se o pedido está saindo de PRODUÇÃO para outro status e ainda não foi confirmado no Pushover
+        else if (
+          updateOrderDto.status !== OrderStatus.PENDING &&
+          order.status === OrderStatus.PENDING &&
+          order.pushoverReceipt &&
+          !order.acknowledgedAt
+        ) {
+          await this.pushoverService.cancelAlert(order.pushoverReceipt);
+        }
+      }
 
       await this.prisma.order.update({
         where: { id },
@@ -391,16 +376,21 @@ export class OrdersService {
       throw new BadRequestException("Pedido cancelado não pode ser concluído");
     }
 
+    // Se havia alerta pendente no Pushover, cancela
+    if (order.pushoverReceipt && !order.acknowledgedAt) {
+      await this.pushoverService.cancelAlert(order.pushoverReceipt);
+    }
+
     // Liberar estoque reservado
     await Promise.all(
-      order.items.map((item) =>
+      order.items.map((item: any) =>
         this.stockService.releaseStock(item.productId, item.quantity, order.id)
       )
     );
 
     // Registrar venda
     await Promise.all(
-      order.items.map((item) =>
+      order.items.map((item: any) =>
         this.stockService.recordSale(item.productId, item.quantity, order.id)
       )
     );
@@ -420,37 +410,11 @@ export class OrdersService {
             product: true,
           },
         },
+        customer: true,
       },
     });
 
-    // Mapear explicitamente para evitar problemas com webpack
-    return {
-      id: completedOrder.id,
-      customerId: completedOrder.customerId,
-      status: completedOrder.status,
-      totalPrice: completedOrder.totalPrice,
-      deliveryFee: completedOrder.deliveryFee,
-      createdAt: completedOrder.createdAt,
-      updatedAt: completedOrder.updatedAt,
-      items: completedOrder.items.map((item) => ({
-        id: item.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        product: item.product
-          ? {
-              id: item.product.id,
-              name: item.product.name,
-              description: item.product.description,
-              price: item.product.price,
-              image: item.product.image,
-              createdAt: item.product.createdAt,
-              updatedAt: item.product.updatedAt,
-            }
-          : null,
-      })),
-    };
+    return this.formatOrder(completedOrder);
   }
 
   async cancel(id: string) {
@@ -466,9 +430,14 @@ export class OrdersService {
       throw new BadRequestException("Pedido já está cancelado");
     }
 
+    // Se havia alerta pendente no Pushover, cancela
+    if (order.pushoverReceipt && !order.acknowledgedAt) {
+      await this.pushoverService.cancelAlert(order.pushoverReceipt);
+    }
+
     // Liberar estoque reservado
     await Promise.all(
-      order.items.map((item) =>
+      order.items.map((item: any) =>
         this.stockService.releaseStock(item.productId, item.quantity, order.id)
       )
     );
@@ -483,36 +452,22 @@ export class OrdersService {
             product: true,
           },
         },
+        customer: true,
       },
     });
 
-    // Mapear explicitamente para evitar problemas com webpack
-    return {
-      id: cancelledOrder.id,
-      customerId: cancelledOrder.customerId,
-      status: cancelledOrder.status,
-      totalPrice: cancelledOrder.totalPrice,
-      deliveryFee: cancelledOrder.deliveryFee,
-      createdAt: cancelledOrder.createdAt,
-      updatedAt: cancelledOrder.updatedAt,
-      items: cancelledOrder.items.map((item) => ({
-        id: item.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        product: item.product
-          ? {
-              id: item.product.id,
-              name: item.product.name,
-              description: item.product.description,
-              price: item.product.price,
-              image: item.product.image,
-              createdAt: item.product.createdAt,
-              updatedAt: item.product.updatedAt,
-            }
-          : null,
-      })),
-    };
+    return this.formatOrder(cancelledOrder);
+  }
+
+  async acknowledge(id: string) {
+    const order = await this.findOne(id);
+    if (order.pushoverReceipt && !order.acknowledgedAt) {
+      await this.pushoverService.cancelAlert(order.pushoverReceipt);
+    }
+    await this.prisma.order.update({
+      where: { id },
+      data: { acknowledgedAt: new Date() },
+    });
+    return this.findOne(id);
   }
 }

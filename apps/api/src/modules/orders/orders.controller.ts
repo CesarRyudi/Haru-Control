@@ -56,4 +56,9 @@ export class OrdersController {
   cancel(@Param("id") id: string) {
     return this.ordersService.cancel(id);
   }
+
+  @Post(":id/acknowledge")
+  acknowledge(@Param("id") id: string) {
+    return this.ordersService.acknowledge(id);
+  }
 }

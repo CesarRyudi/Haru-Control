@@ -270,6 +270,52 @@
   color: #721c24;
 }
 
+.ack-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  cursor: default;
+  transition: all 0.2s ease-in-out;
+}
+
+.ack-badge.ack-pending {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  cursor: pointer;
+  animation: pulse-amber 2s infinite ease-in-out;
+}
+
+.ack-badge.ack-pending:hover {
+  background: #fde68a;
+  color: #92400e;
+  transform: scale(1.04);
+}
+
+.ack-badge.ack-confirmed {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+@keyframes pulse-amber {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
 .order-time {
   font-size: 12px;
   color: #999;

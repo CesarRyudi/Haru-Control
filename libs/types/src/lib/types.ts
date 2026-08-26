@@ -32,6 +32,8 @@ export interface Order {
   totalPrice: number;
   deliveryFee: number;
   address: string | null;
+  pushoverReceipt?: string | null;
+  acknowledgedAt?: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,6 +116,8 @@ export interface OrderResponse {
   totalPrice: number;
   items: OrderItemResponse[];
   address?: string | null;
+  pushoverReceipt?: string | null;
+  acknowledgedAt?: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
   warnings?: string[];

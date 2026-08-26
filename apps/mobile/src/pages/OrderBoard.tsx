@@ -25,7 +25,22 @@ export default function OrderBoard() {
 
   useEffect(() => {
     loadOrders();
+    const interval = setInterval(() => {
+      loadOrders(true);
+    }, 3000);
+    return () => clearInterval(interval);
   }, [completedDate]);
+
+  const handleAcknowledge = async (orderId: string) => {
+    try {
+      await api.post(`/orders/${orderId}/acknowledge`);
+      loadOrders(true);
+      setToast({ message: "Alerta confirmado com sucesso!", type: "success" });
+    } catch (error) {
+      console.error("Erro ao confirmar pedido:", error);
+      setToast({ message: "Erro ao confirmar pedido", type: "error" });
+    }
+  };
 
   const loadOrders = async (preserveScroll = false) => {
     console.log("Loading orders...");
@@ -206,6 +221,7 @@ export default function OrderBoard() {
                     key={order.id}
                     order={order}
                     onStatusChange={handleStatusChange}
+                    onAcknowledge={handleAcknowledge}
                     onEdit={() => navigate(`/orders/${order.id}/edit`)}
                     showToast={setToast}
                   />
@@ -284,6 +300,7 @@ export default function OrderBoard() {
 interface OrderCardProps {
   order: any;
   onStatusChange?: (id: string, status: OrderStatus) => void;
+  onAcknowledge?: (id: string) => void;
   onEdit?: () => void;
   readonly?: boolean;
   showToast?: (
@@ -294,6 +311,7 @@ interface OrderCardProps {
 function OrderCard({
   order,
   onStatusChange,
+  onAcknowledge,
   onEdit,
   readonly,
   showToast,
@@ -407,7 +425,7 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
       case OrderStatus.DRAFT:
         return "Rascunho";
       case OrderStatus.PENDING:
-        return "Pendente";
+        return "Produção";
       case OrderStatus.READY:
         return "Em entrega";
       case OrderStatus.COMPLETED:
@@ -416,6 +434,16 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
         return "Cancelado";
       default:
         return order.status;
+    }
+  };
+
+  const formatAckTime = (date: any) => {
+    if (!date) return "";
+    try {
+      const d = new Date(date);
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
     }
   };
 
@@ -431,6 +459,28 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
             <span className={`status-badge status-${order.status.toLowerCase()}`}>
               {getStatusLabel()}
             </span>
+            {order.status === OrderStatus.PENDING && order.pushoverReceipt && (
+              order.acknowledgedAt ? (
+                <span
+                  className="ack-badge ack-confirmed"
+                  title={`Confirmado no celular às ${formatAckTime(order.acknowledgedAt)}`}
+                >
+                  ✅ Confirmado {formatAckTime(order.acknowledgedAt)}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="ack-badge ack-pending"
+                  title="Alarme tocando no celular. Clique para confirmar pelo painel"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAcknowledge?.(order.id);
+                  }}
+                >
+                  🔔 Pendente
+                </button>
+              )
+            )}
           </div>
           <span className="order-time">{formatDate(order.createdAt)}</span>
         </div>
