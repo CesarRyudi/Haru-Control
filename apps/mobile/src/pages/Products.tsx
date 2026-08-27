@@ -346,7 +346,8 @@ export default function Products() {
               <div className="form-group">
                 <label>Preço</label>
                 <NumberInput
-                  step="0.5"
+                  step="any"
+                  buttonStep={0.5}
                   min="0"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
@@ -414,7 +415,8 @@ export default function Products() {
               <div className="form-group">
                 <label>Preço Padrão (Opcional)</label>
                 <NumberInput
-                  step="0.5"
+                  step="any"
+                  buttonStep={0.5}
                   min="0"
                   value={categoryFormData.price}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, price: parseFloat(e.target.value) || 0 })}

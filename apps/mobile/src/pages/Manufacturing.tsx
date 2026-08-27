@@ -101,7 +101,7 @@ export default function Manufacturing() {
               Quantidade a produzir {selectedProduct ? `(${selectedProduct.unit || 'un'})` : ''}
             </label>
             <NumberInput
-              step="0.01"
+              step="any"
               min="0.0001"
               value={quantity}
               onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}

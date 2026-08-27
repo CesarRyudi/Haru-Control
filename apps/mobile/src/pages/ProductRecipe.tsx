@@ -158,7 +158,7 @@ export default function ProductRecipe() {
                   Quantidade Necessária {selectedChildProduct ? `(${selectedChildProduct.unit || 'un'})` : ''}
                 </label>
                 <NumberInput
-                  step="0.01"
+                  step="any"
                   min="0.0001"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}

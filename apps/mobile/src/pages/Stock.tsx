@@ -225,7 +225,7 @@ export default function Stock() {
                     -
                   </button>
                   <NumberInput
-                    step="0.01"
+                    step="any"
                     min="0"
                     value={newQuantity}
                     onChange={(e) => setNewQuantity(parseFloat(e.target.value) || 0)}

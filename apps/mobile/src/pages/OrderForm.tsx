@@ -407,7 +407,8 @@ export default function OrderForm() {
                 <label htmlFor="deliveryFee">Taxa de Entrega:</label>
                 <NumberInput
                   id="deliveryFee"
-                  step="0.5"
+                  step="any"
+                  buttonStep={0.5}
                   min="0"
                   value={deliveryFee}
                   onChange={(e) =>

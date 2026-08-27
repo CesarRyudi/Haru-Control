@@ -9,6 +9,7 @@ interface NumberInputProps extends Omit<
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   showButtons?: boolean;
   step?: string | number;
+  buttonStep?: number;
 }
 
 export function NumberInput({
@@ -16,6 +17,7 @@ export function NumberInput({
   onChange,
   showButtons = false,
   step = 1,
+  buttonStep,
   min,
   max,
   ...props
@@ -24,13 +26,28 @@ export function NumberInput({
     e.target.select();
   };
 
+  const getStepValue = () => {
+    if (buttonStep !== undefined) {
+      return buttonStep;
+    }
+    const parsed = typeof step === "number" ? step : parseFloat(step?.toString() || "");
+    return isNaN(parsed) || parsed <= 0 ? 1 : parsed;
+  };
+
+  const roundToPrecision = (num: number, stepVal: number) => {
+    const decimals = (stepVal.toString().split(".")[1] || "").length;
+    const precision = Math.max(decimals, 4);
+    return parseFloat(num.toFixed(precision));
+  };
+
   const handleIncrement = () => {
-    const currentValue = parseFloat(value.toString()) || 0;
-    const stepValue = parseFloat(step.toString());
-    const newValue = currentValue + stepValue;
+    const currentValue = parseFloat(value?.toString() || "0") || 0;
+    const stepValue = getStepValue();
+    let newValue = roundToPrecision(currentValue + stepValue, stepValue);
 
     if (max !== undefined && newValue > parseFloat(max.toString())) {
-      return;
+      newValue = parseFloat(max.toString());
+      if (newValue <= currentValue) return;
     }
 
     const fakeEvent = {
@@ -40,12 +57,13 @@ export function NumberInput({
   };
 
   const handleDecrement = () => {
-    const currentValue = parseFloat(value.toString()) || 0;
-    const stepValue = parseFloat(step.toString());
-    const newValue = currentValue - stepValue;
+    const currentValue = parseFloat(value?.toString() || "0") || 0;
+    const stepValue = getStepValue();
+    let newValue = roundToPrecision(currentValue - stepValue, stepValue);
 
     if (min !== undefined && newValue < parseFloat(min.toString())) {
-      return;
+      newValue = parseFloat(min.toString());
+      if (newValue >= currentValue) return;
     }
 
     const fakeEvent = {
