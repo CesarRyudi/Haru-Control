@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from "@nestjs/common";
 import { Type } from "class-transformer";
 import { IsNumber, IsOptional, IsString, IsBoolean } from "class-validator";
@@ -86,8 +87,15 @@ export class ProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(
+    @Query("isSellable") isSellable?: string,
+    @Query("isPurchasable") isPurchasable?: string
+  ) {
+    return this.productsService.findAll({
+      isSellable: isSellable !== undefined ? isSellable === "true" : undefined,
+      isPurchasable:
+        isPurchasable !== undefined ? isPurchasable === "true" : undefined,
+    });
   }
 
   @Get(":id")

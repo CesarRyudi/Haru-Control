@@ -20,8 +20,17 @@ export class ProductsService {
     });
   }
 
-  async findAll() {
+  async findAll(filter?: { isSellable?: boolean; isPurchasable?: boolean }) {
+    const where: Prisma.ProductWhereInput = {};
+    if (filter?.isSellable !== undefined) {
+      where.isSellable = filter.isSellable;
+    }
+    if (filter?.isPurchasable !== undefined) {
+      where.isPurchasable = filter.isPurchasable;
+    }
+
     return this.prisma.product.findMany({
+      where,
       include: { category: true },
       orderBy: { name: "asc" },
     });

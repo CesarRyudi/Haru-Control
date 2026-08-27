@@ -84,7 +84,9 @@ export default function OrderForm() {
 
   const loadProducts = async () => {
     try {
-      const response = await api.get("/products");
+      const response = await api.get("/products", {
+        params: { isSellable: true },
+      });
       setProducts(response.data);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
