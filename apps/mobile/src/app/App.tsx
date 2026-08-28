@@ -10,31 +10,17 @@ import ProductRecipe from "../pages/ProductRecipe";
 import Manufacturing from "../pages/Manufacturing";
 import Help from "../pages/Help";
 import AppLayout from "../components/AppLayout";
+import { isAuthSessionValid } from "../services/biometrics";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar se existe autenticação válida no localStorage
-    const authData = localStorage.getItem("auth_token");
-
-    if (authData) {
-      try {
-        const { authenticated, expiresAt } = JSON.parse(authData);
-
-        // Verificar se não expirou (12 horas)
-        if (authenticated && Date.now() < expiresAt) {
-          setIsAuthenticated(true);
-        } else {
-          // Limpar se expirou
-          localStorage.removeItem("auth_token");
-        }
-      } catch (error) {
-        localStorage.removeItem("auth_token");
-      }
+    // Verificar se existe autenticação válida (válida por 7 dias)
+    if (isAuthSessionValid()) {
+      setIsAuthenticated(true);
     }
-
     setIsLoading(false);
   }, []);
 
