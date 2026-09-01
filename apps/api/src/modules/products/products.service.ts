@@ -1,6 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import { areUnitsCompatible, normalizeUnit } from "@haru-control/utils";
 
 @Injectable()
 export class ProductsService {
@@ -63,13 +64,21 @@ export class ProductsService {
   }
 
   async addRecipeItem(id: string, data: { childId: string; quantity: number; unit?: string }) {
-    let unit = data.unit;
-    if (!unit) {
-      const child = await this.prisma.product.findUnique({
-        where: { id: data.childId },
-        select: { unit: true },
-      });
-      unit = child?.unit ?? "Un";
+    const child = await this.prisma.product.findUnique({
+      where: { id: data.childId },
+      select: { name: true, unit: true },
+    });
+
+    if (!child) {
+      throw new BadRequestException("Insumo / Ingrediente não encontrado.");
+    }
+
+    const unit = data.unit ? normalizeUnit(data.unit) : normalizeUnit(child.unit);
+
+    if (!areUnitsCompatible(unit, child.unit)) {
+      throw new BadRequestException(
+        `Incompatibilidade de unidades: Não é possível usar '${data.unit || unit}' para o insumo '${child.name}', que está cadastrado em '${child.unit}'.`
+      );
     }
 
     return this.prisma.recipeItem.create({

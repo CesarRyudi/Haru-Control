@@ -78,7 +78,7 @@ export class StockService {
       where: { productId },
       _sum: { quantity: true },
     });
-    return result._sum.quantity || 0;
+    return Number(result._sum.quantity || 0);
   }
 
   async getStockSnapshot() {

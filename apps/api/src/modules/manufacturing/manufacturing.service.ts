@@ -1,16 +1,20 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { convertQuantity } from '@haru-control/utils';
 
 @Injectable()
 export class ManufacturingService {
   constructor(private readonly prisma: PrismaService) {}
 
   async produce(data: { productId: string; quantity: number }) {
-    // Busca o produto e sua receita
+    // Busca o produto e sua receita incluindo os dados do insumo (child)
     const product = await this.prisma.product.findUnique({
       where: { id: data.productId },
-      include: { recipeItems: true },
+      include: {
+        recipeItems: {
+          include: { child: true },
+        },
+      },
     });
 
     if (!product) {
@@ -21,21 +25,40 @@ export class ManufacturingService {
       throw new BadRequestException('Este produto não possui uma receita (BOM) definida.');
     }
 
-    // Calcula os ingredientes necessários
-    const requiredIngredients = product.recipeItems.map(item => ({
-      productId: item.childId,
-      requiredQuantity: Number(item.quantity) * data.quantity,
-    }));
+    // Calcula os ingredientes necessários convertendo da unidade da receita para a unidade do insumo no estoque
+    const requiredIngredients = product.recipeItems.map((item) => {
+      let requiredInStockUnit: number;
+      const recipeUnit = item.unit || item.child.unit;
+      try {
+        const singleConverted = convertQuantity(
+          Number(item.quantity),
+          recipeUnit,
+          item.child.unit
+        );
+        requiredInStockUnit = Number((singleConverted * data.quantity).toFixed(6));
+      } catch (err: any) {
+        throw new BadRequestException(
+          `Erro na receita de '${product.name}' com o ingrediente '${item.child.name}': ${err.message}`
+        );
+      }
+
+      return {
+        productId: item.childId,
+        productName: item.child.name,
+        stockUnit: item.child.unit,
+        recipeUnit: item.unit,
+        recipeQuantity: Number(item.quantity) * data.quantity,
+        requiredQuantity: requiredInStockUnit,
+      };
+    });
 
     // Verifica o estoque atual dos ingredientes para emitir aviso (se necessário)
-    // Para simplificar e performar melhor, vamos permitir o registro e retornar um aviso.
     const warnings: string[] = [];
-    
+
     // Inicia a transação
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1. Consome os ingredientes (MANUFACTURING_CONSUMPTION)
+      // 1. Consome os ingredientes (MANUFACTURING_CONSUMPTION) convertidos para a unidade do estoque
       for (const ingredient of requiredIngredients) {
-        // Verifica estoque atual (opcional, apenas para o aviso)
         const currentStock = await tx.ledgerEntry.aggregate({
           where: { productId: ingredient.productId },
           _sum: { quantity: true },
@@ -43,7 +66,9 @@ export class ManufacturingService {
 
         const stockAvailable = Number(currentStock._sum.quantity || 0);
         if (stockAvailable < ingredient.requiredQuantity) {
-          warnings.push(`Estoque negativo para o insumo ID ${ingredient.productId}. Disponível: ${stockAvailable}, Necessário: ${ingredient.requiredQuantity}`);
+          warnings.push(
+            `Estoque insuficiente para o insumo "${ingredient.productName}". Disponível: ${stockAvailable} ${ingredient.stockUnit}, Necessário: ${ingredient.requiredQuantity} ${ingredient.stockUnit}`
+          );
         }
 
         await tx.ledgerEntry.create({
@@ -73,3 +98,4 @@ export class ManufacturingService {
     };
   }
 }
+

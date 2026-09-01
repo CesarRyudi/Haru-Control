@@ -23,6 +23,18 @@ interface Product {
   isPurchasable: boolean;
 }
 
+const COMMON_UNITS = [
+  { value: "un", label: "un (unidade)" },
+  { value: "g", label: "g (grama)" },
+  { value: "kg", label: "kg (quilograma)" },
+  { value: "ml", label: "ml (mililitro)" },
+  { value: "L", label: "L (litro)" },
+  { value: "cx", label: "cx (caixa)" },
+  { value: "pct", label: "pct (pacote)" },
+  { value: "fatia", label: "fatia" },
+  { value: "porção", label: "porção" },
+];
+
 export default function Products() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
@@ -310,25 +322,34 @@ export default function Products() {
               </div>
               <div className="form-group">
                 <label>Unidade de Medida</label>
-                <input
-                  type="text"
-                  list="units-suggestions"
-                  value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  placeholder="ex: un, kg, g, ml, L, cx, pct"
-                  required
-                />
-                <datalist id="units-suggestions">
-                  <option value="un" />
-                  <option value="g" />
-                  <option value="kg" />
-                  <option value="ml" />
-                  <option value="L" />
-                  <option value="cx" />
-                  <option value="pct" />
-                  <option value="fatia" />
-                  <option value="porção" />
-                </datalist>
+                <select
+                  value={COMMON_UNITS.some(u => u.value === formData.unit) ? formData.unit : "custom"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "custom") {
+                      setFormData(prev => ({ ...prev, unit: "" }));
+                    } else {
+                      setFormData(prev => ({ ...prev, unit: val }));
+                    }
+                  }}
+                  className="form-select"
+                >
+                  {COMMON_UNITS.map(u => (
+                    <option key={u.value} value={u.value}>{u.label}</option>
+                  ))}
+                  <option value="custom">Outra (digitar manualmente)...</option>
+                </select>
+                {!COMMON_UNITS.some(u => u.value === formData.unit) && (
+                  <input
+                    type="text"
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                    placeholder="Digite a unidade (ex: garrafa, dose, par...)"
+                    style={{ marginTop: '8px' }}
+                    required
+                    autoFocus
+                  />
+                )}
               </div>
               <div className="form-group">
                 <label>Categoria (Opcional)</label>
