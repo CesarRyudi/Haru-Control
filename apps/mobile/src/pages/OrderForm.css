@@ -53,7 +53,7 @@
   border-bottom: 2px solid #f0f0f0;
 }
 
-.products-grid {
+.order-form .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
@@ -61,7 +61,7 @@
   overflow-y: auto;
 }
 
-.product-card {
+.order-form .product-card {
   background: #fafafa;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -75,12 +75,12 @@
   transition: all 0.2s;
 }
 
-.product-card:hover {
+.order-form .product-card:hover {
   border-color: #667eea;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
 }
 
-.product-info h3 {
+.order-form .product-info h3 {
   font-size: 16px;
   color: #333;
   margin-bottom: 4px;
@@ -429,11 +429,11 @@
 }
 
 @media (max-width: 1024px) {
-  .form-content {
+  .order-form .form-content {
     grid-template-columns: 1fr;
   }
 
-  .products-grid {
+  .order-form .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
 }

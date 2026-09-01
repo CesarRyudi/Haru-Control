@@ -201,7 +201,7 @@ export default function Stock() {
                   Nenhum item nesta categoria.
                 </p>
               ) : (
-                <div className="products-grid">
+                <div className="products-grid stock-products-grid">
                   {group.items.map(({ product, stockItem }) => (
                     <div
                       key={product.id}

@@ -32,11 +32,22 @@
   flex: 1;
 }
 
+.product-category-group {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.products-page .products-grid,
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
+  height: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .product-card {
