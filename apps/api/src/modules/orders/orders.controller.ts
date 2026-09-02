@@ -37,6 +37,14 @@ export class OrdersController {
     return this.ordersService.findAll(OrderStatus.COMPLETED, targetDate);
   }
 
+  @Get("metrics")
+  async getMetrics(
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string
+  ) {
+    return this.ordersService.getMetrics(startDate, endDate);
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.ordersService.findOne(id);
