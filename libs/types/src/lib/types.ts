@@ -36,6 +36,8 @@ export interface Order {
   acknowledgedAt?: Date | string | null;
   createdAt: Date;
   updatedAt: Date;
+  customer?: Customer | null;
+  items?: any[];
 }
 
 export interface OrderItem {

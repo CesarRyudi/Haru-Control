@@ -10,14 +10,14 @@
 ## 🎯 Fase 1: Transição de Ambientes (Coolify Prod/Dev) & Fechamento do MVP
 
 - `[ ]` **Segregação de Ambientes & Infraestrutura no Coolify:**
-  - `[ ]` Renomear/reconfigurar a aplicação atual no Coolify para **Produção** (preservando banco de dados com dados reais).
-  - `[ ]` Criar e proteger branch de produção no Git (ex: `production` ou release branch).
-  - `[ ]` Criar nova aplicação e novo banco de dados PostgreSQL isolado no Coolify para **Desenvolvimento**.
-  - `[ ]` Conectar a branch `main` do repositório ao novo ambiente de Desenvolvimento no Coolify.
-- `[ ]` **Normalização do Pipeline de Migrations do Prisma:**
-  - `[ ]` Limpar comandos provisórios do `Dockerfile.api` (remover flags de risco como `--accept-data-loss` ou `db push`).
-  - `[ ]` Garantir que o container execute estritamente `npx prisma migrate deploy` no bootstrap.
-  - `[ ]` Validar execução e idempotência das migrations no novo banco de desenvolvimento.
+  - `[x]` Renomear/reconfigurar a aplicação atual no Coolify para **Produção** (preservando banco de dados com dados reais).
+  - `[x]` Criar e publicar branch de produção no Git (`production`).
+  - `[x]` Criar nova aplicação e novo banco de dados PostgreSQL isolado no Coolify para **Desenvolvimento**.
+  - `[x]` Conectar a branch `main` do repositório ao novo ambiente de Desenvolvimento no Coolify e configurar `.env` local.
+- `[x]` **Normalização do Pipeline de Migrations do Prisma:**
+  - `[x]` Limpar comandos provisórios do `Dockerfile.api` (garantido `npx prisma migrate deploy`).
+  - `[x]` Garantir que o container execute estritamente `npx prisma migrate deploy` no bootstrap.
+  - `[x]` Validar execução e idempotência das migrations no novo banco de desenvolvimento.
 - `[ ]` **Validação Operacional & Fechamento da Fase 1:**
   - `[ ]` Testar fluxo completo de ponta a ponta (login PIN/biometria, criação de pedido, baixa de estoque, manufatura e insights) em Dev.
   - `[ ]` Validar que o ambiente de Produção permanece 100% íntegro e operacional.
