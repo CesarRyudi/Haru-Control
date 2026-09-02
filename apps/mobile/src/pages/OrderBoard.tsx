@@ -400,7 +400,7 @@ Taxa de entrega: ${formatCurrency(deliveryFee)}
 
 Valor total: ${formatCurrency(finalTotal)} 
 
-${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
+${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -511,6 +511,12 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
           <div className="order-address-text">{order.address}</div>
         )}
 
+        {order.customer?.name && (
+          <div className="order-customer-name">
+            👤 {order.customer.name}
+          </div>
+        )}
+
         <div className="order-total">{formatCurrency(totalWithDelivery)}</div>
 
         {order.items && (
@@ -573,7 +579,19 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
         <div className="order-modal-overlay" onClick={() => setShowModal(false)}>
           <div className="order-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="order-modal-header">
-              <h3>Pedido #{order.id.slice(0, 8)}</h3>
+              <div>
+                <h3>Pedido #{order.id.slice(0, 8)}</h3>
+                {order.customer?.name && (
+                  <div className="order-modal-customer">
+                    👤 {order.customer.name}
+                  </div>
+                )}
+                {order.address && (
+                  <div className="order-modal-address">
+                    📍 {order.address}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setShowModal(false)}
                 className="btn-close-modal"
