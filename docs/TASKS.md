@@ -3,7 +3,7 @@
 ## 🐛 Bugs Prioritários (BUGS.md)
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
-*(Nenhum bug aberto no momento)*
+- `[ ]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[🟡 Implementado: CORS dinâmico e ARG de build no Dockerfile — ⏳ Aguardando Validação Prática]*
 
 ---
 
@@ -19,6 +19,7 @@
   - `[x]` Garantir que o container execute estritamente `npx prisma migrate deploy` no bootstrap.
   - `[x]` Validar execução e idempotência das migrations no novo banco de desenvolvimento.
 - `[ ]` **Validação Operacional & Fechamento da Fase 1:**
+  - `[x]` Criar script de seed (`apps/api/prisma/seed.ts`) com massa de dados realista da Haru Cookies (sem café/álcool).
   - `[ ]` Testar fluxo completo de ponta a ponta (login PIN/biometria, criação de pedido, baixa de estoque, manufatura e insights) em Dev.
   - `[ ]` Validar que o ambiente de Produção permanece 100% íntegro e operacional.
   - `[ ]` Arquivar o histórico da Fase 1 em `docs/HISTORY_ARCHIVE.md` e abrir a Fase 2.

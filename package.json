@@ -10,7 +10,9 @@
     "test": "nx run-many --target=test --all",
     "prisma:generate": "cd apps/api && npx prisma generate",
     "prisma:migrate": "cd apps/api && npx prisma migrate dev",
+    "prisma:seed": "cd apps/api && npx ts-node prisma/seed.ts",
     "prisma:studio": "cd apps/api && npx prisma studio",
+    "seed": "npx ts-node apps/api/prisma/seed.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
@@ -77,5 +79,9 @@
     "ts-node": "10.9.2",
     "typescript": "~5.3.3",
     "vite": "^5.0.11"
+  },
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma",
+    "seed": "ts-node apps/api/prisma/seed.ts"
   }
 }
