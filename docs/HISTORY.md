@@ -91,4 +91,13 @@
   - **Isolamento de Branches:** Código commitado e mergeado na branch `main`. A branch `production` permanece intacta.
   - Validação de build executada com sucesso (`npx nx build mobile`).
 
+### [2026-09-08] Validação do Deploy Segregado e Reversão dos Badges de Teste
+
+- **Contexto:** Teste em nuvem concluído com sucesso total. O deploy automático do Coolify na branch `main` atualizou exclusivamente o ambiente de Desenvolvimento (`Dev`), enquanto o ambiente de Produção (`production`) permaneceu 100% inalterado e isolado.
+- **Decisões & Reversão:**
+  - `apps/mobile/src/pages/PinLogin.tsx`: Removido o badge provisório `DEV 🧪`, restaurando o título limpo original `Haru Control`.
+  - `apps/mobile/src/pages/OrderBoard.tsx`: Removido o badge provisório `DEV 🧪`, restaurando o título limpo original `Pedidos`.
+  - Validação de build executada com sucesso (`npx nx build mobile`).
+  - Commit e push executados na branch `main`.
+
 ---

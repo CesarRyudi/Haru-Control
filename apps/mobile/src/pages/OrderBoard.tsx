@@ -126,23 +126,7 @@ export default function OrderBoard() {
   return (
     <div className="order-board">
       <header className="board-header">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <h1>Pedidos</h1>
-          <span
-            style={{
-              backgroundColor: "#f59e0b",
-              color: "#ffffff",
-              fontSize: "12px",
-              fontWeight: 800,
-              padding: "3px 10px",
-              borderRadius: "12px",
-              textTransform: "uppercase",
-              boxShadow: "0 1px 3px rgba(245, 158, 11, 0.4)",
-            }}
-          >
-            Dev 🧪
-          </span>
-        </div>
+        <h1>Pedidos</h1>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
             className="insights-btn-header"
