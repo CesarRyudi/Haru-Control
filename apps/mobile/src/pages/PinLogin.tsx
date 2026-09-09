@@ -154,7 +154,23 @@ export default function PinLogin({ onSuccess }: PinLoginProps) {
   return (
     <div className="pin-login">
       <div className="pin-login-card">
-        <h1>Haru Control</h1>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+          <h1>Haru Control</h1>
+          <span
+            style={{
+              backgroundColor: "#f59e0b",
+              color: "#ffffff",
+              fontSize: "12px",
+              fontWeight: 800,
+              padding: "3px 10px",
+              borderRadius: "12px",
+              textTransform: "uppercase",
+              boxShadow: "0 1px 3px rgba(245, 158, 11, 0.4)",
+            }}
+          >
+            Dev 🧪
+          </span>
+        </div>
         <p className="subtitle">Digite o PIN para acessar</p>
 
         {biometricsRegistered && (

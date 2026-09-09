@@ -82,4 +82,13 @@
   - `Dockerfile.mobile`: Declaradas as diretivas `ARG VITE_API_URL` e `ENV VITE_API_URL=$VITE_API_URL` na etapa de build do Docker, garantindo que o Vite capture a URL remota da API durante `npx nx build mobile --prod`.
   - Validação de compilação da API e do Mobile executada com sucesso.
 
+### [2026-09-08] Teste Visual de Deploy Segregado (Dev vs Prod)
+
+- **Contexto:** Validação prática do pipeline de deploy do Coolify para garantir que alterações enviadas para a branch `main` afetem exclusivamente o ambiente de Desenvolvimento (`Dev`), mantendo o ambiente de Produção (`production`) 100% inalterado.
+- **Decisões & Alterações:**
+  - `apps/mobile/src/pages/PinLogin.tsx`: Adicionado badge estilizado `DEV 🧪` ao lado do título principal "Haru Control".
+  - `apps/mobile/src/pages/OrderBoard.tsx`: Adicionado badge estilizado `DEV 🧪` ao lado do cabeçalho "Pedidos".
+  - **Isolamento de Branches:** Código commitado e mergeado na branch `main`. A branch `production` permanece intacta.
+  - Validação de build executada com sucesso (`npx nx build mobile`).
+
 ---

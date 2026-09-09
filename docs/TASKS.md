@@ -20,6 +20,7 @@
   - `[x]` Validar execução e idempotência das migrations no novo banco de desenvolvimento.
 - `[ ]` **Validação Operacional & Fechamento da Fase 1:**
   - `[x]` Criar script de seed (`apps/api/prisma/seed.ts`) com massa de dados realista da Haru Cookies (sem café/álcool).
+  - `[/]` Testar segregação de ambientes e deploy do Coolify via alteração visual na branch `main`.
   - `[ ]` Testar fluxo completo de ponta a ponta (login PIN/biometria, criação de pedido, baixa de estoque, manufatura e insights) em Dev.
   - `[ ]` Validar que o ambiente de Produção permanece 100% íntegro e operacional.
   - `[ ]` Arquivar o histórico da Fase 1 em `docs/HISTORY_ARCHIVE.md` e abrir a Fase 2.
