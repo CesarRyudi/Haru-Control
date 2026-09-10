@@ -177,6 +177,26 @@ export default function OrderBoard() {
         <h1>Pedidos</h1>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
+            className="history-btn-header"
+            onClick={() => navigate("/orders/history")}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "8px 14px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#475569",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            }}
+          >
+            <span>📜</span> Histórico
+          </button>
+          <button
             className="insights-btn-header"
             onClick={() => navigate("/insights")}
             style={{

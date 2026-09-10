@@ -130,4 +130,27 @@
 - **Validação:** Compilação dos pacotes `types`, `api` e `mobile` concluída com 100% de sucesso.
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
+### [2026-09-10] Implementação de Pedidos Retroativos, Tela de Histórico Geral e Edição Flexível
+
+- **Contexto:** Necessidade de registrar pedidos passados/históricos diretamente pelo app ou em lote (batch), consultar todo o histórico com filtros avançados e permitir editar metadados e itens de pedidos já concluídos ou cancelados.
+- **Implementações Realizadas:**
+  - **1. Banco de Dados & Prisma (`schema.prisma`):**
+    - Adicionado campo `completedAt DateTime? @map("completed_at")` no modelo `Order`.
+    - Gerada e aplicada com sucesso a migration `20260910025657_add_order_completed_at` no banco de dados.
+    - Sincronizados tipos compartilhados em `libs/types/src/lib/types.ts`.
+  - **2. API NestJS (`orders.controller.ts` & `orders.service.ts`):**
+    - **Endpoint Batch:** Implementado `@Post("batch")` para criação em lote de pedidos com suporte a datas (`createdAt`, `completedAt`), status customizado, cliente, endereço e itens com preços unitários específicos.
+    - **Filtros no `findAll`:** Adicionados filtros opcionais por `startDate`, `endDate`, `customerId` e busca textual `search` (case-insensitive em ID, cliente, endereço e produtos).
+    - **Edição Flexível (`update`):** Removida a trava rígida que impedia edição de pedidos já concluídos/cancelados. Agora é possível retificar datas (`createdAt`, `completedAt`), cliente, endereço, taxa de entrega, status e itens, sincronizando automaticamente os lançamentos contábeis de estoque (Ledger) e o registro de faturamento em `Sale`.
+    - **Conclusão (`complete`):** Atualização automática de `completedAt` e upsert atômico na tabela `Sale`.
+  - **3. Frontend Mobile (`OrderHistory.tsx`, `OrderHistory.css` & `OrderBoard.tsx`):**
+    - **Nova Tela `/orders/history`:** Criada página dedicada com cabeçalho, KPIs de faturamento e volume de pedidos concluídos, e cards detalhados com badges coloridos de status.
+    - **Filtros Avançados:** Barra de filtros com busca textual em tempo real, seletor de status (`TODOS`, `COMPLETED`, `CANCELLED`, `PENDING`, `READY`, `DRAFT`), intervalo de datas (`startDate` a `endDate`) e botão de limpeza.
+    - **Modal "Novo Pedido Histórico":** Formulário completo para inclusão retroativa de pedidos passados, permitindo definir data/hora de criação e conclusão, cliente, endereço, taxa de entrega, seleção de múltiplos produtos com quantidade e preço unitário customizável, cálculo de total dinâmico e controle de notificação Pushover (desmarcado por padrão para histórico).
+    - **Modal "Editar Pedido":** Modal direto no card para edição flexível de qualquer pedido listado no histórico.
+    - **Navegação:** Adicionado botão de atalho `📜 Histórico` no cabeçalho do `OrderBoard` e rota `/orders/history` registrada em `App.tsx` com o `AppLayout`.
+- **Validação:** Compilação de todos os projetos (`types`, `api`, `mobile`) concluída com 100% de sucesso.
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
 ---
+

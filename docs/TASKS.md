@@ -35,7 +35,7 @@
 - `[x]` **Ajuste e Simplificação da Mensagem Copiada do Pedido (Comanda WhatsApp):**
   - Remover o nome do cliente da mensagem copiada ao clicar no ícone 📋 do card de pedido.
   - Avaliar/definir se o endereço de entrega permanece como campo condicional ou se a mensagem retorna 100% ao formato original enxuto (Itens + Subtotal + Taxa de Entrega + Total + "Certo?").
-- `[ ]` **Pedidos Retroativos, Tela de Histórico Geral e Edição de Pedidos:**
+- `[x]` **Pedidos Retroativos, Tela de Histórico Geral e Edição de Pedidos:**
   - **Endpoint Batch de Importação / Criação Retroativa:**
     - Criar endpoint `POST /orders/batch` recebendo um array de pedidos.
     - Suportar definição explícita de `status`, `createdAt` (data de criação retroativa), `completedAt` (data de conclusão), cliente, itens, preços e endereço.

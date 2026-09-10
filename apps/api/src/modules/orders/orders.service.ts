@@ -28,6 +28,7 @@ export class OrdersService {
       address: order.address,
       pushoverReceipt: order.pushoverReceipt,
       acknowledgedAt: order.acknowledgedAt,
+      completedAt: order.completedAt,
       notify: order.notify ?? true,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
@@ -99,20 +100,38 @@ export class OrdersService {
       })
     );
 
-    const totalPrice = itemsWithPrices.reduce(
+    const calculatedTotal = itemsWithPrices.reduce(
       (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
       0
     );
+    const totalPrice =
+      createOrderDto.totalPrice !== undefined
+        ? Number(createOrderDto.totalPrice)
+        : calculatedTotal;
+
+    const initialStatus = createOrderDto.status || OrderStatus.DRAFT;
+    const createdAt = createOrderDto.createdAt
+      ? new Date(createOrderDto.createdAt)
+      : undefined;
+    const completedAt = createOrderDto.completedAt
+      ? new Date(createOrderDto.completedAt)
+      : initialStatus === OrderStatus.COMPLETED
+      ? createdAt || new Date()
+      : undefined;
 
     // Criar pedido e itens
     const order = await this.prisma.order.create({
       data: {
         customerId: createOrderDto.customerId,
-        status: OrderStatus.DRAFT,
+        status: initialStatus,
         totalPrice,
         deliveryFee: createOrderDto.deliveryFee ?? 2,
         address: createOrderDto.address,
-        notify: createOrderDto.notify ?? true,
+        notify:
+          createOrderDto.notify ??
+          (initialStatus === OrderStatus.COMPLETED ? false : true),
+        ...(createdAt && { createdAt }),
+        ...(completedAt && { completedAt }),
         items: {
           create: itemsWithPrices.map((item) => ({
             productId: item.productId,
@@ -131,20 +150,52 @@ export class OrdersService {
       },
     });
 
-    // Reservar estoque
-    await Promise.all(
-      itemsWithPrices.map((item) =>
-        this.stockService.reserveStock(item.productId, item.quantity, order.id)
-      )
-    );
+    if (initialStatus === OrderStatus.COMPLETED) {
+      // Registrar baixa contábil de venda no estoque
+      await Promise.all(
+        itemsWithPrices.map((item) =>
+          this.stockService.recordSale(item.productId, item.quantity, order.id)
+        )
+      );
+      // Criar registro de venda
+      await this.prisma.sale.create({
+        data: {
+          orderId: order.id,
+          createdAt: completedAt || createdAt || new Date(),
+        },
+      });
+    } else {
+      // Reservar estoque
+      await Promise.all(
+        itemsWithPrices.map((item) =>
+          this.stockService.reserveStock(item.productId, item.quantity, order.id)
+        )
+      );
+    }
 
     return this.formatOrder(order, warnings);
+  }
+
+  async createBatch(ordersDto: CreateOrderDto[]) {
+    const results = [];
+    for (const dto of ordersDto) {
+      const order = await this.create(dto);
+      results.push(order);
+    }
+    return {
+      count: results.length,
+      orders: results,
+    };
   }
 
   async findAll(
     status?: OrderStatus,
     date?: string,
-    excludeStatus?: OrderStatus | OrderStatus[]
+    excludeStatus?: OrderStatus | OrderStatus[],
+    startDate?: string,
+    endDate?: string,
+    customerId?: string,
+    search?: string,
   ) {
     const where: any = {};
 
@@ -157,16 +208,48 @@ export class OrdersService {
       where.status = { notIn: excluded };
     }
 
+    if (customerId) {
+      where.customerId = customerId;
+    }
+
     if (date) {
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      const sDate = new Date(date);
+      sDate.setHours(0, 0, 0, 0);
+      const eDate = new Date(date);
+      eDate.setHours(23, 59, 59, 999);
 
       where.createdAt = {
-        gte: startDate,
-        lte: endDate,
+        gte: sDate,
+        lte: eDate,
       };
+    } else if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        const sDate = new Date(startDate);
+        sDate.setHours(0, 0, 0, 0);
+        where.createdAt.gte = sDate;
+      }
+      if (endDate) {
+        const eDate = new Date(endDate);
+        eDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = eDate;
+      }
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { id: { contains: term, mode: "insensitive" } },
+        { address: { contains: term, mode: "insensitive" } },
+        { customer: { name: { contains: term, mode: "insensitive" } } },
+        {
+          items: {
+            some: {
+              product: { name: { contains: term, mode: "insensitive" } },
+            },
+          },
+        },
+      ];
     }
 
     const orders = await this.prisma.order.findMany({
@@ -207,32 +290,38 @@ export class OrdersService {
 
   async update(id: string, updateOrderDto: UpdateOrderDto) {
     const order = await this.findOne(id);
+    const warnings: string[] = [];
 
-    if (
-      order.status === OrderStatus.COMPLETED ||
-      order.status === OrderStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        "Não é possível editar pedido concluído ou cancelado"
-      );
+    // Se atualizando cliente, verificar existência
+    if (updateOrderDto.customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: updateOrderDto.customerId },
+      });
+      if (!customer) {
+        throw new NotFoundException(
+          `Cliente ${updateOrderDto.customerId} não encontrado`
+        );
+      }
     }
 
-    const warnings: string[] = [];
+    let itemsTotalPrice: number | undefined;
 
     // Se atualizando itens
     if (updateOrderDto.items) {
       const existingItems = order.items;
 
-      // Liberar estoque dos itens antigos
-      await Promise.all(
-        existingItems.map((item: any) =>
-          this.stockService.releaseStock(
-            item.productId,
-            item.quantity,
-            order.id
+      // Se o pedido não estava cancelado, liberar estoque dos itens antigos
+      if (order.status !== OrderStatus.CANCELLED) {
+        await Promise.all(
+          existingItems.map((item: any) =>
+            this.stockService.releaseStock(
+              item.productId,
+              item.quantity,
+              order.id
+            )
           )
-        )
-      );
+        );
+      }
 
       // Deletar itens antigos
       await this.prisma.orderItem.deleteMany({
@@ -267,12 +356,12 @@ export class OrdersService {
           return {
             productId: item.productId,
             quantity: item.quantity,
-            unitPrice: product.price,
+            unitPrice: item.unitPrice !== undefined ? item.unitPrice : product.price,
           };
         })
       );
 
-      const totalPrice = itemsWithPrices.reduce(
+      itemsTotalPrice = itemsWithPrices.reduce(
         (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
         0
       );
@@ -285,82 +374,162 @@ export class OrdersService {
         })),
       });
 
-      // Reservar estoque dos novos itens
-      await Promise.all(
-        itemsWithPrices.map((item) =>
-          this.stockService.reserveStock(
-            item.productId,
-            item.quantity,
-            order.id
+      // Movimentar estoque conforme status de destino
+      const targetStatus = updateOrderDto.status || order.status;
+      if (targetStatus === OrderStatus.COMPLETED) {
+        await Promise.all(
+          itemsWithPrices.map((item) =>
+            this.stockService.recordSale(
+              item.productId,
+              item.quantity,
+              order.id
+            )
           )
-        )
-      );
-
-      // Atualizar total do pedido
-      await this.prisma.order.update({
-        where: { id },
-        data: { totalPrice },
-      });
+        );
+      } else if (targetStatus !== OrderStatus.CANCELLED) {
+        await Promise.all(
+          itemsWithPrices.map((item) =>
+            this.stockService.reserveStock(
+              item.productId,
+              item.quantity,
+              order.id
+            )
+          )
+        );
+      }
     }
 
-    // Se apenas atualizando status ou deliveryFee ou address
-    if (
-      updateOrderDto.status ||
-      updateOrderDto.deliveryFee !== undefined ||
-      updateOrderDto.address !== undefined
-    ) {
-      const updateData: any = {};
-      if (updateOrderDto.deliveryFee !== undefined)
-        updateData.deliveryFee = updateOrderDto.deliveryFee;
-      if (updateOrderDto.address !== undefined)
-        updateData.address = updateOrderDto.address;
-      if (updateOrderDto.notify !== undefined)
-        updateData.notify = updateOrderDto.notify;
+    const updateData: any = {};
+    if (updateOrderDto.customerId !== undefined) {
+      updateData.customerId = updateOrderDto.customerId;
+    }
+    if (updateOrderDto.deliveryFee !== undefined) {
+      updateData.deliveryFee = updateOrderDto.deliveryFee;
+    }
+    if (updateOrderDto.address !== undefined) {
+      updateData.address = updateOrderDto.address;
+    }
+    if (updateOrderDto.notify !== undefined) {
+      updateData.notify = updateOrderDto.notify;
+    }
+    if (updateOrderDto.createdAt !== undefined) {
+      updateData.createdAt = new Date(updateOrderDto.createdAt);
+    }
+    if (updateOrderDto.completedAt !== undefined) {
+      updateData.completedAt = updateOrderDto.completedAt ? new Date(updateOrderDto.completedAt) : null;
+    }
+    if (updateOrderDto.totalPrice !== undefined) {
+      updateData.totalPrice = updateOrderDto.totalPrice;
+    } else if (itemsTotalPrice !== undefined) {
+      updateData.totalPrice = itemsTotalPrice;
+    }
 
-      if (updateOrderDto.status) {
-        updateData.status = updateOrderDto.status;
+    if (updateOrderDto.status) {
+      const oldStatus = order.status;
+      const newStatus = updateOrderDto.status;
+      updateData.status = newStatus;
 
-        const shouldNotify =
-          updateOrderDto.notify !== undefined
-            ? updateOrderDto.notify
-            : (order.notify ?? true);
-
-        // Se o pedido está entrando em PRODUÇÃO (PENDING) e deve notificar no celular
-        if (
-          updateOrderDto.status === OrderStatus.PENDING &&
-          order.status !== OrderStatus.PENDING &&
-          shouldNotify
-        ) {
-          const receipt = await this.pushoverService.sendOrderAlert({
-            id: order.id,
-            items: order.items,
-            totalPrice: order.totalPrice,
-            deliveryFee:
-              updateOrderDto.deliveryFee !== undefined
-                ? updateOrderDto.deliveryFee
-                : order.deliveryFee,
-            address:
-              updateOrderDto.address !== undefined
-                ? updateOrderDto.address
-                : order.address,
-          });
-
-          if (receipt) {
-            updateData.pushoverReceipt = receipt;
-            updateData.acknowledgedAt = null;
-          }
+      // Se mudou para COMPLETED e antes não era COMPLETED
+      if (newStatus === OrderStatus.COMPLETED && oldStatus !== OrderStatus.COMPLETED) {
+        // Se itens não foram recriados acima, liberar reserva e registrar venda
+        if (!updateOrderDto.items) {
+          await Promise.all(
+            order.items.map((item: any) =>
+              this.stockService.releaseStock(item.productId, item.quantity, order.id)
+            )
+          );
+          await Promise.all(
+            order.items.map((item: any) =>
+              this.stockService.recordSale(item.productId, item.quantity, order.id)
+            )
+          );
         }
-        // Se o pedido está saindo de PRODUÇÃO para outro status e ainda não foi confirmado no Pushover
-        else if (
-          updateOrderDto.status !== OrderStatus.PENDING &&
-          order.status === OrderStatus.PENDING &&
-          order.pushoverReceipt &&
-          !order.acknowledgedAt
-        ) {
+
+        if (!updateData.completedAt && !order.completedAt) {
+          updateData.completedAt = new Date();
+        }
+
+        await this.prisma.sale.upsert({
+          where: { orderId: id },
+          create: {
+            orderId: id,
+            createdAt: updateData.completedAt || order.createdAt || new Date(),
+          },
+          update: {
+            createdAt: updateData.completedAt || order.createdAt || new Date(),
+          },
+        });
+
+        if (order.pushoverReceipt && !order.acknowledgedAt) {
           await this.pushoverService.cancelAlert(order.pushoverReceipt);
         }
+      } else if (oldStatus === OrderStatus.COMPLETED && newStatus !== OrderStatus.COMPLETED) {
+        // Se estava concluído e agora mudou para outro status
+        await this.prisma.sale.deleteMany({ where: { orderId: id } });
       }
 
+      const shouldNotify =
+        updateOrderDto.notify !== undefined
+          ? updateOrderDto.notify
+          : (order.notify ?? true);
+
+      // Se o pedido está entrando em PRODUÇÃO (PENDING) e deve notificar no celular
+      if (
+        newStatus === OrderStatus.PENDING &&
+        oldStatus !== OrderStatus.PENDING &&
+        shouldNotify
+      ) {
+        const receipt = await this.pushoverService.sendOrderAlert({
+          id: order.id,
+          items: order.items,
+          totalPrice:
+            updateData.totalPrice !== undefined
+              ? updateData.totalPrice
+              : order.totalPrice,
+          deliveryFee:
+            updateData.deliveryFee !== undefined
+              ? updateData.deliveryFee
+              : order.deliveryFee,
+          address:
+            updateData.address !== undefined
+              ? updateData.address
+              : order.address,
+        });
+
+        if (receipt) {
+          updateData.pushoverReceipt = receipt;
+          updateData.acknowledgedAt = null;
+        }
+      } else if (
+        newStatus !== OrderStatus.PENDING &&
+        oldStatus === OrderStatus.PENDING &&
+        order.pushoverReceipt &&
+        !order.acknowledgedAt
+      ) {
+        await this.pushoverService.cancelAlert(order.pushoverReceipt);
+      }
+    }
+
+    // Se completado e alterou completedAt ou createdAt, sincronizar Sale.createdAt
+    if (
+      (order.status === OrderStatus.COMPLETED || updateData.status === OrderStatus.COMPLETED) &&
+      (updateData.completedAt || updateData.createdAt)
+    ) {
+      const saleDate =
+        updateData.completedAt ||
+        updateData.createdAt ||
+        order.completedAt ||
+        order.createdAt;
+
+      if (saleDate) {
+        await this.prisma.sale.updateMany({
+          where: { orderId: id },
+          data: { createdAt: saleDate },
+        });
+      }
+    }
+
+    if (Object.keys(updateData).length > 0) {
       await this.prisma.order.update({
         where: { id },
         data: updateData,
@@ -405,15 +574,22 @@ export class OrdersService {
       )
     );
 
-    // Criar registro de venda
-    await this.prisma.sale.create({
-      data: { orderId: id },
+    const now = new Date();
+
+    // Criar ou atualizar registro de venda
+    await this.prisma.sale.upsert({
+      where: { orderId: id },
+      create: { orderId: id, createdAt: now },
+      update: { createdAt: now },
     });
 
-    // Atualizar status do pedido
+    // Atualizar status do pedido com data de conclusão
     const completedOrder = await this.prisma.order.update({
       where: { id },
-      data: { status: OrderStatus.COMPLETED },
+      data: {
+        status: OrderStatus.COMPLETED,
+        completedAt: now,
+      },
       include: {
         items: {
           include: {

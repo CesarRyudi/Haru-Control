@@ -1,7 +1,10 @@
+import { OrderStatus } from "@prisma/client";
 import { Type } from "class-transformer";
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -17,6 +20,11 @@ export class CreateOrderItemDto {
   @Min(1)
   @Type(() => Number)
   quantity: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  unitPrice?: number;
 }
 
 export class CreateOrderDto {
@@ -35,6 +43,23 @@ export class CreateOrderDto {
   deliveryFee?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  totalPrice?: number;
+
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
+  @IsOptional()
+  @IsDateString()
+  createdAt?: string | Date;
+
+  @IsOptional()
+  @IsDateString()
+  completedAt?: string | Date;
+
+  @IsOptional()
   @IsBoolean()
   notify?: boolean;
 
@@ -42,4 +67,11 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   items: CreateOrderItemDto[];
+}
+
+export class CreateBatchOrderDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderDto)
+  orders: CreateOrderDto[];
 }

@@ -10,6 +10,7 @@ import ProductRecipe from "../pages/ProductRecipe";
 import Manufacturing from "../pages/Manufacturing";
 import Help from "../pages/Help";
 import Insights from "../pages/Insights";
+import OrderHistory from "../pages/OrderHistory";
 import AppLayout from "../components/AppLayout";
 import { isAuthSessionValid } from "../services/biometrics";
 
@@ -50,6 +51,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<AppLayout><OrderBoard /></AppLayout>} />
+        <Route path="/orders/history" element={<AppLayout><OrderHistory /></AppLayout>} />
         <Route path="/orders/new" element={<OrderForm />} />
         <Route path="/orders/:id/edit" element={<OrderForm />} />
         <Route path="/products" element={<AppLayout><Products /></AppLayout>} />

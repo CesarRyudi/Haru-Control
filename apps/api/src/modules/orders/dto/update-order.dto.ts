@@ -3,6 +3,7 @@ import { Type } from "class-transformer";
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -13,6 +14,10 @@ import {
 import { CreateOrderItemDto } from "./create-order.dto";
 
 export class UpdateOrderDto {
+  @IsOptional()
+  @IsString()
+  customerId?: string;
+
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -26,12 +31,25 @@ export class UpdateOrderDto {
   deliveryFee?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  totalPrice?: number;
+
+  @IsOptional()
   @IsEnum(OrderStatus)
   status?: OrderStatus;
 
   @IsOptional()
   @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsDateString()
+  createdAt?: string | Date;
+
+  @IsOptional()
+  @IsDateString()
+  completedAt?: string | Date;
 
   @IsOptional()
   @IsBoolean()

@@ -62,6 +62,7 @@ model Order {
     address         String?
     pushoverReceipt String?     @map("pushover_receipt")
     acknowledgedAt  DateTime?   @map("acknowledged_at")
+    completedAt     DateTime?   @map("completed_at")
     notify          Boolean     @default(true) @map("notify")
     createdAt       DateTime    @default(now()) @map("created_at")
     updatedAt       DateTime    @updatedAt @map("updated_at")
