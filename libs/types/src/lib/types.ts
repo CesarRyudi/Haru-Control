@@ -34,6 +34,7 @@ export interface Order {
   address: string | null;
   pushoverReceipt?: string | null;
   acknowledgedAt?: Date | string | null;
+  notify?: boolean;
   createdAt: Date;
   updatedAt: Date;
   customer?: Customer | null;
@@ -120,6 +121,7 @@ export interface OrderResponse {
   address?: string | null;
   pushoverReceipt?: string | null;
   acknowledgedAt?: Date | string | null;
+  notify?: boolean;
   createdAt: Date;
   updatedAt: Date;
   warnings?: string[];

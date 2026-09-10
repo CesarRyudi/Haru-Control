@@ -30,6 +30,7 @@ export default function OrderForm() {
   const [loading, setLoading] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [deliveryFee, setDeliveryFee] = useState<number>(2);
+  const [notify, setNotify] = useState<boolean>(true);
 
   const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress, customerId, setCustomer } =
     useOrderDraft();
@@ -102,6 +103,9 @@ export default function OrderForm() {
         order.deliveryFee != null ? Number(order.deliveryFee) : 2
       );
       setAddress(order.address || "");
+      if (order.notify !== undefined && order.notify !== null) {
+        setNotify(Boolean(order.notify));
+      }
       if (order.customerId) {
         setCustomer(order.customerId);
         const cust = customers.find(c => c.id === order.customerId);
@@ -151,6 +155,7 @@ export default function OrderForm() {
         deliveryFee: Number(deliveryFee),
         address,
         customerId,
+        notify,
       };
 
       let response;
@@ -179,6 +184,7 @@ export default function OrderForm() {
       clear();
       setDeliveryFee(2);
       setAddress("");
+      setNotify(true);
     }
   };
 
@@ -259,6 +265,25 @@ export default function OrderForm() {
             placeholder="Rua, Número, Bairro, Referência..."
             className="address-input"
           />
+        </div>
+
+        <div className="notify-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={notify}
+              onChange={(e) => setNotify(e.target.checked)}
+              style={{ width: '22px', height: '22px', accentColor: '#4f46e5', cursor: 'pointer' }}
+            />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '15px', color: '#1e293b' }}>
+                🔔 Alerta de emergência no celular (Pushover)
+              </div>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                Desmarque para pedidos presenciais de balcão ou se já estiver na cozinha
+              </div>
+            </div>
+          </label>
         </div>
       </div>
 

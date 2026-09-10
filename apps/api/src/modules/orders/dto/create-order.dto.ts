@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   IsArray,
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
@@ -32,6 +33,10 @@ export class CreateOrderDto {
   @Min(0)
   @Type(() => Number)
   deliveryFee?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  notify?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })

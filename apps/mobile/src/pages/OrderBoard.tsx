@@ -10,6 +10,13 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./OrderBoard.css";
 
+const TABS: OrderStatus[] = [
+  OrderStatus.DRAFT,
+  OrderStatus.PENDING,
+  OrderStatus.READY,
+  OrderStatus.COMPLETED,
+];
+
 export default function OrderBoard() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -22,6 +29,43 @@ export default function OrderBoard() {
   } | null>(null);
   const boardColumnsRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button, input, textarea, select, a, .order-modal-content")) {
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    // Critérios para swipe horizontal:
+    // 1. Mínimo de 50px de deslocamento
+    // 2. Movimento predominantemente horizontal (deltaX > 1.5 * deltaY)
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      const currentIndex = TABS.indexOf(activeTab);
+      if (deltaX < 0 && currentIndex < TABS.length - 1) {
+        // Deslize para a esquerda -> avança de aba
+        setActiveTab(TABS[currentIndex + 1]);
+      } else if (deltaX > 0 && currentIndex > 0) {
+        // Deslize para a direita -> volta de aba
+        setActiveTab(TABS[currentIndex - 1]);
+      }
+    }
+  };
 
   useEffect(() => {
     loadOrders();
@@ -124,7 +168,11 @@ export default function OrderBoard() {
   }
 
   return (
-    <div className="order-board">
+    <div
+      className="order-board"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <header className="board-header">
         <h1>Pedidos</h1>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -397,10 +445,9 @@ ${itemsList}
 
 Valor do pedido: ${formatCurrency(orderTotal)} 
 Taxa de entrega: ${formatCurrency(deliveryFee)} 
-
 Valor total: ${formatCurrency(finalTotal)} 
 
-${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
+${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -481,11 +528,11 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
             <span className={`status-badge status-${order.status.toLowerCase()}`}>
               {getStatusLabel()}
             </span>
-            {order.status === OrderStatus.PENDING && order.pushoverReceipt && (
+            {order.status === OrderStatus.PENDING && (
               order.acknowledgedAt ? (
                 <span
                   className="ack-badge ack-confirmed"
-                  title={`Confirmado no celular às ${formatAckTime(order.acknowledgedAt)}`}
+                  title={`Confirmado às ${formatAckTime(order.acknowledgedAt)}`}
                 >
                   ✅ Confirmado {formatAckTime(order.acknowledgedAt)}
                 </span>
@@ -493,13 +540,13 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
                 <button
                   type="button"
                   className="ack-badge ack-pending"
-                  title="Alarme tocando no celular. Clique para confirmar pelo painel"
+                  title={order.pushoverReceipt ? "Alarme tocando no celular. Clique para confirmar pelo painel" : "Clique para confirmar ciência do pedido"}
                   onClick={(e) => {
                     e.stopPropagation();
                     onAcknowledge?.(order.id);
                   }}
                 >
-                  🔔 Pendente
+                  {order.pushoverReceipt ? "🔔 Pendente" : "⏱️ Confirmar"}
                 </button>
               )
             )}
@@ -591,6 +638,11 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
                     📍 {order.address}
                   </div>
                 )}
+                {order.acknowledgedAt && (
+                  <div style={{ fontSize: "13px", color: "#059669", marginTop: "4px", fontWeight: 600 }}>
+                    ✅ Confirmado às {formatAckTime(order.acknowledgedAt)}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -624,17 +676,45 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
                 <strong>{formatCurrency(totalWithDelivery)}</strong>
               </div>
             </div>
-            {!readonly && onEdit && (
-              <div className="order-modal-actions">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                  }}
-                  className="btn-edit-modal"
-                >
-                  Editar Pedido
-                </button>
+            {!readonly && (
+              <div className="order-modal-actions" style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+                {order.status === OrderStatus.PENDING && !order.acknowledgedAt && onAcknowledge && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAcknowledge(order.id);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      background: "#10b981",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "8px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <span>✅</span> Confirmar Pedido
+                  </button>
+                )}
+                {onEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit();
+                    }}
+                    className="btn-edit-modal"
+                    style={{ flex: 1 }}
+                  >
+                    Editar Pedido
+                  </button>
+                )}
               </div>
             )}
           </div>

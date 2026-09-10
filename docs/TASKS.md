@@ -30,20 +30,11 @@
 ## 🔮 Fases Futuras & Backlog
 
 ### Fase 2: Expansão Operacional, Automações & Relatórios
-- `[ ]` **Navegação por Swipe (Gesto de Deslizar) entre Abas de Pedidos:**
+- `[x]` **Navegação por Swipe (Gesto de Deslizar) entre Abas de Pedidos:**
   - Permitir alternar entre as colunas/abas (`Rascunho`, `Em Produção`, `Em Entrega`, `Concluídos`) por gesto de deslizar horizontal (swipe left/right) na tela, facilitando o uso com uma só mão (alcance do dedão na parte inferior), sem bloquear a rolagem vertical.
-- `[ ]` **Ajuste e Simplificação da Mensagem Copiada do Pedido (Comanda WhatsApp):**
+- `[x]` **Ajuste e Simplificação da Mensagem Copiada do Pedido (Comanda WhatsApp):**
   - Remover o nome do cliente da mensagem copiada ao clicar no ícone 📋 do card de pedido.
   - Avaliar/definir se o endereço de entrega permanece como campo condicional ou se a mensagem retorna 100% ao formato original enxuto (Itens + Subtotal + Taxa de Entrega + Total + "Certo?").
-- `[ ]` **Integração de Pix Copia e Cola Dinâmico no Pedido com Gestão de Status:**
-  - **Geração de Código Pix:** Gerar código Pix "Copia e Cola" (e QR Code) com o valor exato final do pedido (produtos + taxa de entrega) e identificador único (`txid`).
-  - **Ciclo de Vida & Status do Pagamento:**
-    - Novos campos no modelo `Order` (ex: `pix_code`, `pix_txid`, `pix_status` [PENDING, PAID, EXPIRED], `pix_generated_at`, `pix_paid_at`).
-    - Registro de histórico e auditoria de quando o código foi gerado e quando o pagamento foi confirmado.
-  - **UI/UX Mobile:**
-    - Botão de ação rápida no card/modal para gerar e copiar a chave Pix com 1 toque.
-    - Opção de anexar o código Pix diretamente na mensagem formatada enviada ao cliente via WhatsApp.
-    - Badges visuais de status do Pix no card (ex: 🟡 Aguardando Pix, 🟢 Pix Pago).
 - `[ ]` **Pedidos Retroativos, Tela de Histórico Geral e Edição de Pedidos:**
   - **Endpoint Batch de Importação / Criação Retroativa:**
     - Criar endpoint `POST /orders/batch` recebendo um array de pedidos.
@@ -54,7 +45,16 @@
     - Botão para **"Novo Pedido Histórico"**: formulário permitindo cadastrar pedidos passados diretamente pelo app, escolhendo data/hora de criação, conclusão e status.
   - **Edição Flexível de Pedidos:**
     - Permitir editar qualquer pedido existente (mesmo já concluído) para retificar informações (itens, valores, status, datas de criação e conclusão), prevenindo erros operacionais.
-- `[ ]` **Confirmação Interna de Pedidos (ACK no App) e Controle de Notificações:**
+- `[ ]` **Integração de Pix Copia e Cola Dinâmico no Pedido com Gestão de Status:**
+  - **Geração de Código Pix:** Gerar código Pix "Copia e Cola" (e QR Code) com o valor exato final do pedido (produtos + taxa de entrega) e identificador único (`txid`).
+  - **Ciclo de Vida & Status do Pagamento:**
+    - Novos campos no modelo `Order` (ex: `pix_code`, `pix_txid`, `pix_status` [PENDING, PAID, EXPIRED], `pix_generated_at`, `pix_paid_at`).
+    - Registro de histórico e auditoria de quando o código foi gerado e quando o pagamento foi confirmado.
+  - **UI/UX Mobile:**
+    - Botão de ação rápida no card/modal para gerar e copiar a chave Pix com 1 toque.
+    - Opção de anexar o código Pix diretamente na mensagem formatada enviada ao cliente via WhatsApp.
+    - Badges visuais de status do Pix no card (ex: 🟡 Aguardando Pix, 🟢 Pix Pago).
+- `[x]` **Confirmação Interna de Pedidos (ACK no App) e Controle de Notificações:**
   - **Controle Opcional de Notificação na Criação/Edição:**
     - Adicionar checkbox no formulário do pedido (`OrderForm.tsx`): *"Enviar alerta sonoro de emergência (Pushover)"*, com **valor padrão marcado (`true`)**.
     - Se desmarcado, enviar `notify: false` no payload da API para não disparar o alarme no celular (ideal para pedidos presenciais de balcão ou quando o confeiteiro já estiver no local).

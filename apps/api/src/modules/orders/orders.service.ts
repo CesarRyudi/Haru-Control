@@ -28,6 +28,7 @@ export class OrdersService {
       address: order.address,
       pushoverReceipt: order.pushoverReceipt,
       acknowledgedAt: order.acknowledgedAt,
+      notify: order.notify ?? true,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: (order.items || []).map((item: any) => ({
@@ -111,6 +112,7 @@ export class OrdersService {
         totalPrice,
         deliveryFee: createOrderDto.deliveryFee ?? 2,
         address: createOrderDto.address,
+        notify: createOrderDto.notify ?? true,
         items: {
           create: itemsWithPrices.map((item) => ({
             productId: item.productId,
@@ -312,14 +314,22 @@ export class OrdersService {
         updateData.deliveryFee = updateOrderDto.deliveryFee;
       if (updateOrderDto.address !== undefined)
         updateData.address = updateOrderDto.address;
+      if (updateOrderDto.notify !== undefined)
+        updateData.notify = updateOrderDto.notify;
 
       if (updateOrderDto.status) {
         updateData.status = updateOrderDto.status;
 
-        // Se o pedido está entrando em PRODUÇÃO (PENDING)
+        const shouldNotify =
+          updateOrderDto.notify !== undefined
+            ? updateOrderDto.notify
+            : (order.notify ?? true);
+
+        // Se o pedido está entrando em PRODUÇÃO (PENDING) e deve notificar no celular
         if (
           updateOrderDto.status === OrderStatus.PENDING &&
-          order.status !== OrderStatus.PENDING
+          order.status !== OrderStatus.PENDING &&
+          shouldNotify
         ) {
           const receipt = await this.pushoverService.sendOrderAlert({
             id: order.id,

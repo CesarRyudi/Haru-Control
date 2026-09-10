@@ -112,6 +112,22 @@
   - **Insights & Projeção:** Cálculo de projeção mensal linear de faturamento (*run-rate*) nos Insights.
   - **Inteligência Preditiva:** Previsão estatística de demanda por dia da semana e sugestão automática de fornada/produção diária cruzada com estoque.
   - **Gestão de Perdas:** Módulo contábil de descarte de produtos/insumos por validade ou quebra vinculado ao Ledger (`WASTE`) e análises nos Insights.
+### [2026-09-09] Implementação das Melhorias 1, 2 e 5 (Swipe, Comanda WhatsApp e ACK/Notificação)
+
+- **Contexto:** Execução das três primeiras melhorias prioritárias para otimização da experiência diária do atendimento e gestão de pedidos.
+- **Implementações Realizadas:**
+  - **1. Navegação por Swipe nas Abas (`OrderBoard.tsx`):**
+    - Adicionado suporte a gestos de deslizar (touch swipe left/right) na tela com tolerância mínima de 50px e proporção `deltaX > 1.5 * deltaY`, permitindo trocar de abas (`Rascunho` ↔ `Produção` ↔ `Entrega` ↔ `Concluídos`) com o dedão na parte inferior sem travar a rolagem vertical.
+    - Ignorados toques iniciados em botões, campos de texto ou modais para evitar conflitos de interação.
+  - **2. Simplificação da Comanda Copiada para WhatsApp (`OrderBoard.tsx`):**
+    - Removido o campo `Cliente: ${nome}` da comanda gerada no botão 📋 de cópia rápida.
+    - Mantido apenas o endereço de entrega (caso preenchido), preservando o formato enxuto e direto ao ponto.
+  - **3. Confirmação no App (ACK) e Checkbox de Notificação (`OrderForm.tsx`, `OrderBoard.tsx`, API e Prisma):**
+    - `schema.prisma`: Adicionado campo `notify Boolean @default(true) @map("notify")` no modelo `Order`, aplicado via migration `20260909132237_add_order_notify_field`.
+    - `OrderForm.tsx`: Adicionado checkbox com valor padrão marcado (`true`) permitindo desativar o alerta sonoro no celular para pedidos presenciais de balcão.
+    - `OrderBoard.tsx`: Liberado o botão de confirmação (`⏱️ Confirmar`) e badge (`✅ Confirmado`) no card e no modal de detalhes mesmo para pedidos sem `pushoverReceipt`.
+    - `orders.service.ts`: API verifica o campo `notify` antes de invocar o `pushoverService.sendOrderAlert`.
+- **Validação:** Compilação dos pacotes `types`, `api` e `mobile` concluída com 100% de sucesso.
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
 ---
