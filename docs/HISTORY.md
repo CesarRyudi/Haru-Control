@@ -152,5 +152,35 @@
 - **Validação:** Compilação de todos os projetos (`types`, `api`, `mobile`) concluída com 100% de sucesso.
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
+### [2026-09-10] Implantação da Infraestrutura de Testes Automatizados E2E com Playwright
+
+- **Contexto:** Necessidade de instituir uma suíte de testes de ponta a ponta (E2E) robusta, confiável e automatizada para prevenir regressões e comprovar o funcionamento de novas features na aplicação mobile-first Haru Control.
+- **Implementações Realizadas:**
+  - **1. Arquitetura & Configuração Playwright (`playwright.config.ts`, `e2e/tsconfig.json`):**
+    - Configurado ambiente Playwright com suporte nativo a TypeScript, emulação mobile-first (`Pixel 7`, viewport 412x915, `hasTouch: true`).
+    - Integração de `webServer` no config para subida e checagem automática dos serviços de backend (`:3000/products`) e frontend mobile (`:4200`).
+    - Adicionados scripts no `package.json`: `test:e2e`, `test:e2e:ui`, `test:e2e:headed` e `test:e2e:codegen`.
+    - Configurado `.gitignore` para pastas de relatórios, traces e `.auth`.
+  - **2. Sessão Rápida & Fixtures (`auth.setup.ts`, `base-test.ts`):**
+    - Implementado setup global que executa login por PIN uma única vez e persiste o estado em `e2e/.auth/user.json`, reaproveitando o login instantaneamente nos demais testes.
+    - Criada fixture customizada `test` que injeta automaticamente todos os Page Objects prontos para uso.
+  - **3. Page Object Model (POM) (`e2e/page-objects/`):**
+    - `LoginPage.ts`: Ações e seletores da tela de PIN e descarte de biometria.
+    - `OrderBoardPage.ts`: Ações das abas, cards, avanço de status no Kanban, modal e gestos de swipe.
+    - `OrderFormPage.ts`: Ações de seleção de cliente, adição de produtos, taxa de entrega e submissão.
+    - `OrderHistoryPage.ts`: Ações da tela de histórico, filtros de busca, modal de pedido retroativo e cards.
+  - **4. Suíte de Testes Críticos (`e2e/specs/`):**
+    - `01-auth.spec.ts`: Validação de login com PIN incorreto (exibe erro) e PIN correto (carrega Kanban).
+    - `02-order-lifecycle.spec.ts`: Fluxo completo do pedido (criar novo no formulário -> validar no Kanban -> avançar para Produção com confirmação ACK -> avançar para Entrega -> concluir).
+    - `03-mobile-gestures.spec.ts`: Navegação direta entre abas e teste de gestos de swipe horizontal por toque em tela sensível.
+    - `04-history-retroactive.spec.ts`: Acesso ao Histórico, cadastro de pedido retroativo e filtros de busca.
+  - **5. Correção de Bug Descoberto nos Testes (`orders.service.ts`):**
+    - Identificado e corrigido bug de timezone (offset UTC-3) no filtro por data da API (`date`, `startDate`, `endDate`), garantindo que buscas por pedidos do dia atual considerem o fuso horário local e o campo `completedAt`.
+  - **6. Documentação para QA (`e2e/README.md`):**
+    - Criado guia completo de onboarding para o novo QA com tabela de equivalência Python (`pytest-playwright`) vs TypeScript (`@playwright/test`), comandos úteis e tutorial de novos testes.
+- **Validação:** 7 testes E2E executados e aprovados com 100% de sucesso (21.6s). Workspace completo (`types`, `utils`, `api`, `mobile`) compilado com sucesso.
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
 ---
+
 

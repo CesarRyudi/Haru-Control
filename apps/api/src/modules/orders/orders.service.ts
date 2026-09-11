@@ -213,27 +213,32 @@ export class OrdersService {
     }
 
     if (date) {
-      const sDate = new Date(date);
-      sDate.setHours(0, 0, 0, 0);
-      const eDate = new Date(date);
-      eDate.setHours(23, 59, 59, 999);
+      const [year, month, day] = date.split("-").map(Number);
+      const sDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const eDate = new Date(year, month - 1, day, 23, 59, 59, 999);
 
-      where.createdAt = {
-        gte: sDate,
-        lte: eDate,
-      };
+      if (status === OrderStatus.COMPLETED) {
+        where.OR = [
+          { completedAt: { gte: sDate, lte: eDate } },
+          { completedAt: null, createdAt: { gte: sDate, lte: eDate } },
+        ];
+      } else {
+        where.createdAt = {
+          gte: sDate,
+          lte: eDate,
+        };
+      }
     } else if (startDate || endDate) {
-      where.createdAt = {};
+      const dateFilter: any = {};
       if (startDate) {
-        const sDate = new Date(startDate);
-        sDate.setHours(0, 0, 0, 0);
-        where.createdAt.gte = sDate;
+        const [sy, sm, sd] = startDate.split("-").map(Number);
+        dateFilter.gte = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
       }
       if (endDate) {
-        const eDate = new Date(endDate);
-        eDate.setHours(23, 59, 59, 999);
-        where.createdAt.lte = eDate;
+        const [ey, em, ed] = endDate.split("-").map(Number);
+        dateFilter.lte = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       }
+      where.createdAt = dateFilter;
     }
 
     if (search && search.trim()) {

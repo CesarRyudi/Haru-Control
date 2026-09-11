@@ -45,6 +45,17 @@
     - Botão para **"Novo Pedido Histórico"**: formulário permitindo cadastrar pedidos passados diretamente pelo app, escolhendo data/hora de criação, conclusão e status.
   - **Edição Flexível de Pedidos:**
     - Permitir editar qualquer pedido existente (mesmo já concluído) para retificar informações (itens, valores, status, datas de criação e conclusão), prevenindo erros operacionais.
+- `[x]` **Instituição de Testes Automatizados E2E com Playwright (Qualidade & Confiabilidade):**
+  - **Ambiente & Arquitetura de Testes E2E:**
+    - Configurado ambiente Playwright com emulação mobile-first nativa (`Pixel 7`, touch, viewport 412x915).
+    - Definição da stack em TypeScript integrado ao monorepo Nx com compartilhamento de tipos e scripts dedicados.
+    - Estrutura de fixtures de autenticação (`auth.setup.ts` gerando `e2e/.auth/user.json`) para bypass rápido de PIN em milissegundos.
+    - Configuração de `webServer` no Playwright para auto-inicialização da API e Mobile.
+  - **Page Objects (POM) & Suíte Inicial de Testes Críticos:**
+    - Criação de Page Objects das principais páginas (`LoginPage`, `OrderBoardPage`, `OrderFormPage`, `OrderHistoryPage`).
+    - Testes de ponta a ponta dos fluxos centrais: autenticação (PIN correto e inválido), criação de pedido e movimentação completa de status até conclusão com confirmação ACK, navegação por abas e gestos de swipe horizontal por toque, e cadastro de pedidos retroativos com filtros.
+  - **Automação & Execução:**
+    - Scripts de execução adicionados ao `package.json` (`test:e2e`, `test:e2e:ui`, `test:e2e:headed`, `test:e2e:codegen`) e guia completo para novos QAs em `e2e/README.md`.
 - `[ ]` **Integração de Pix Copia e Cola Dinâmico no Pedido com Gestão de Status:**
   - **Geração de Código Pix:** Gerar código Pix "Copia e Cola" (e QR Code) com o valor exato final do pedido (produtos + taxa de entrega) e identificador único (`txid`).
   - **Ciclo de Vida & Status do Pagamento:**
