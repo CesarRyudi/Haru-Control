@@ -10,6 +10,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `BUG-000` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Exemplo de Bug de Demonstração (Template) | `src/example.ts` | 2026-09-02 |
 | `BUG-001` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
+| `BUG-002` | `[x]` Implementado | `⏳ Pendente` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
 
 ---
 
@@ -47,6 +48,41 @@
 #### 5. Lições Aprendidas & Prevenção Futura
 - Sempre configurar `enableCors({ origin: true, credentials: true, methods: [...] })` em APIs NestJS desacopladas de SPA.
 - Declarar explicitamente `ARG` e `ENV` em Dockerfiles de SPAs (Vite/React) para variáveis de build time.
+
+### [BUG-002] Quebra de layout e overflow no modal de pedidos históricos
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `[ ]` Pendente de Validação
+- **Severidade:** `🟡 Média`
+- **Data de Registro:** 2026-09-11
+- **Data de Implementação:** 2026-09-11
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderHistory.css`, `apps/mobile/src/pages/OrderForm.tsx`, `e2e/page-objects/OrderHistoryPage.ts`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao abrir o modal de "Novo Pedido Histórico" ou "Editar Pedido" na tela de histórico (`/orders/history`), o conteúdo dos itens e campos transborda para o lado direito da tela (horizontal overflow), cortando elementos e tornando o uso em dispositivos móveis visualmente quebrado e desconfortável.
+- **Passos para Reproduzir:**
+  1. Acessar `/orders/history` no mobile ou tela com largura restrita.
+  2. Clicar em "＋ Pedido Histórico" ou "✏️ Editar Pedido".
+  3. Observar que a seção de itens e campos do formulário ultrapassa a largura máxima do modal, forçando scroll horizontal indesejado e cortando botões.
+- **Comportamento Esperado:** Formulário com layout responsivo, espaçoso e consistente, idealmente reaproveitando a tela canônica já existente de pedidos (`OrderForm`).
+- **Logs / Erros de Console:** Nenhum erro de console reportado (falha de layout/CSS e duplicação de responsabilidade de UI).
+
+#### 2. Onde está o problema (Localização Técnica)
+- O modal inline em `OrderHistory.tsx` e `OrderHistory.css` tentava recriar um formulário completo de pedido (seleção de produtos, inputs de quantidade, preço unitário, datas, cliente e totais) em uma janela modal com restrições de largura fixa (`max-width: 600px`, grids de múltiplas colunas e tabelas de itens comprimidas).
+- Além do problema visual de CSS, havia uma duplicidade arquitetural: já existe a tela completa e validada de pedidos (`OrderForm.tsx` em `/orders/new` e `/orders/:id/edit`), que já suporta seleção de categorias, busca de clientes com modal dedicado, controle de estoque e avisos.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Implementação inicial da feature de histórico onde optou-se por um modal local rápido para cadastrar pedidos históricos, em vez de estender a tela canônica `OrderForm` para aceitar parâmetros de pedidos retroativos (datas customizadas e status concluído).
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Unificação arquitetural: os modais duplicados e quebrados em `OrderHistory.tsx` e `OrderHistory.css` foram completamente eliminados (~700 linhas de código removidas).
+- "＋ Pedido Histórico" agora redireciona diretamente para `/orders/new?retroactive=true`.
+- "✏️ Editar Pedido" nos cards agora redireciona para `/orders/${order.id}/edit`.
+- `OrderForm.tsx` foi aprimorado para suportar data retroativa (`createdAt`), data de conclusão (`completedAt`) e `status` customizado via um card dedicado e limpo, desativando o alerta Pushover por padrão em pedidos históricos e redirecionando de volta ao histórico ao salvar.
+- A suíte E2E (`OrderHistoryPage.ts` e `04-history-retroactive.spec.ts`) foi adaptada e executada com 100% de sucesso.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Evitar duplicar fluxos complexos de criação/edição em modais comprimidos quando já existe uma tela canônica de página inteira (Full Page Form) testada e adaptada para mobile. Reaproveitar a rota existente com suporte a parâmetros retroativos reduz manutenção e padroniza a UX.
 
 ---
 

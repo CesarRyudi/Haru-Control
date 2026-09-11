@@ -181,6 +181,23 @@
 - **Validação:** 7 testes E2E executados e aprovados com 100% de sucesso (21.6s). Workspace completo (`types`, `utils`, `api`, `mobile`) compilado com sucesso.
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
----
+### [2026-09-11] Resolução do BUG-002: Unificação da Criação e Edição de Pedidos Históricos no OrderForm
+
+- **Contexto:** Relatado pelo usuário que o modal de pedidos históricos na tela de histórico (`/orders/history`) apresentava quebra de layout com overflow horizontal de itens em telas menores/mobile. Questionada e acordada a oportunidade de reaproveitar a tela canônica `OrderForm` (`/orders/new` e `/orders/:id/edit`), já amplamente testada, validada e familiar para o operador, eliminando duplicação de lógica e componentes.
+- **Implementações Realizadas:**
+  - **1. Eliminação dos Modais Duplicados em `OrderHistory.tsx` & `OrderHistory.css`:**
+    - Removidos completamente os modais inline de criação retroativa e edição de pedidos, estados redundantes (`products`, `customers`, `draftItems`) e classes de CSS associadas (~700 linhas de código removidas).
+    - O botão "＋ Pedido Histórico" agora navega diretamente para `/orders/new?retroactive=true`.
+    - O botão "✏️ Editar Pedido" nos cards agora navega diretamente para `/orders/${order.id}/edit`.
+  - **2. Extensão e Suporte a Pedidos Retroativos e Edição em `OrderForm.tsx`:**
+    - Detecta `isRetroactive` via query string `?retroactive=true` e `isEdit` via parâmetro de rota.
+    - Seção visual dedicada e responsiva "📅 Data & Status do Pedido", preenchida por padrão para pedidos retroativos (status `COMPLETED`, notificação Pushover desmarcada por padrão) e disponível para edição.
+    - Suporte a retificação de datas de criação (`createdAt`) e conclusão (`completedAt`), sincronizadas com o backend no formato ISO 8601.
+    - Redirecionamento inteligente: ao salvar ou continuar com avisos em pedidos históricos, retorna diretamente para `/orders/history`.
+  - **3. Atualização dos Testes Automatizados E2E (`OrderHistoryPage.ts` & `04-history-retroactive.spec.ts`):**
+    - Atualizado o Page Object `OrderHistoryPage` para interagir com o fluxo da tela cheia `OrderForm`.
+    - Execução da suíte completa de testes E2E do Playwright (`npx playwright test`): 7/7 testes aprovados com sucesso.
+- **Validação:** Workspace compilado com sucesso (`npx nx run-many -t build`) e suíte Playwright verde (7 passed).
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
 

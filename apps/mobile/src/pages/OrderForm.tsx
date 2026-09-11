@@ -1,8 +1,8 @@
-import { Customer } from "@haru-control/types";
+import { Customer, OrderStatus } from "@haru-control/types";
 import { NumberInput } from "@haru-control/ui";
 import { formatCurrency } from "@haru-control/utils";
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useOrderDraft } from "../store/useOrderDraft";
 import CustomerFormModal from "../components/CustomerFormModal";
@@ -16,10 +16,20 @@ interface Product {
   category?: { name: string; price?: number };
 }
 
+const toDateTimeLocal = (date?: string | Date | null): string => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export default function OrderForm() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const isEdit = !!id;
+  const isRetroactive = searchParams.get("retroactive") === "true";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -30,7 +40,17 @@ export default function OrderForm() {
   const [loading, setLoading] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [deliveryFee, setDeliveryFee] = useState<number>(2);
-  const [notify, setNotify] = useState<boolean>(true);
+  const [notify, setNotify] = useState<boolean>(!isRetroactive);
+
+  // Data e status para pedidos retroativos ou edição
+  const [status, setStatus] = useState<OrderStatus>(
+    isRetroactive ? OrderStatus.COMPLETED : OrderStatus.DRAFT
+  );
+  const [createdAt, setCreatedAt] = useState<string>(toDateTimeLocal(new Date()));
+  const [completedAt, setCompletedAt] = useState<string>(toDateTimeLocal(new Date()));
+  const [showRetroactiveConfig, setShowRetroactiveConfig] = useState<boolean>(
+    isRetroactive || isEdit
+  );
 
   const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress, customerId, setCustomer } =
     useOrderDraft();
@@ -106,6 +126,17 @@ export default function OrderForm() {
       if (order.notify !== undefined && order.notify !== null) {
         setNotify(Boolean(order.notify));
       }
+      if (order.status) {
+        setStatus(order.status);
+      }
+      if (order.createdAt) {
+        setCreatedAt(toDateTimeLocal(order.createdAt));
+      }
+      if (order.completedAt) {
+        setCompletedAt(toDateTimeLocal(order.completedAt));
+      }
+      setShowRetroactiveConfig(true);
+
       if (order.customerId) {
         setCustomer(order.customerId);
         const cust = customers.find(c => c.id === order.customerId);
@@ -116,7 +147,7 @@ export default function OrderForm() {
       order.items.forEach((item: any) => {
         addItem({
           productId: item.productId,
-          productName: item.product.name,
+          productName: item.product?.name || item.productName || "Produto",
           quantity: item.quantity,
           unitPrice: item.unitPrice,
         });
@@ -147,16 +178,33 @@ export default function OrderForm() {
     setWarnings([]);
 
     try {
-      const payload = {
+      const payload: any = {
         items: items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
+          unitPrice: item.unitPrice,
         })),
         deliveryFee: Number(deliveryFee),
         address,
         customerId,
         notify,
       };
+
+      if (isRetroactive || isEdit || showRetroactiveConfig) {
+        payload.status = status;
+        if (createdAt) {
+          payload.createdAt = new Date(createdAt).toISOString();
+        }
+        if (status === OrderStatus.COMPLETED) {
+          payload.completedAt = completedAt
+            ? new Date(completedAt).toISOString()
+            : createdAt
+            ? new Date(createdAt).toISOString()
+            : new Date().toISOString();
+        } else if (completedAt) {
+          payload.completedAt = new Date(completedAt).toISOString();
+        }
+      }
 
       let response;
       if (isEdit) {
@@ -169,7 +217,11 @@ export default function OrderForm() {
         setWarnings(response.data.warnings);
       } else {
         clear();
-        navigate("/");
+        if (isRetroactive) {
+          navigate("/orders/history");
+        } else {
+          navigate(-1);
+        }
       }
     } catch (error: any) {
       console.error("Erro ao salvar pedido:", error);
@@ -184,7 +236,7 @@ export default function OrderForm() {
       clear();
       setDeliveryFee(2);
       setAddress("");
-      setNotify(true);
+      setNotify(!isRetroactive);
     }
   };
 
@@ -196,7 +248,7 @@ export default function OrderForm() {
       setLoading(true);
       await api.post(`/orders/${id}/cancel`);
       clear();
-      navigate("/");
+      navigate(-1);
     } catch (error) {
       console.error("Erro ao cancelar pedido:", error);
       alert("Erro ao cancelar pedido");
@@ -206,17 +258,216 @@ export default function OrderForm() {
 
   const handleContinueWithWarnings = () => {
     clear();
-    navigate("/");
+    if (isRetroactive) {
+      navigate("/orders/history");
+    } else {
+      navigate(-1);
+    }
   };
 
   return (
     <div className="order-form">
       <header className="form-header">
-        <button onClick={() => navigate("/")} className="btn-back">
+        <button
+          onClick={() => (isRetroactive ? navigate("/orders/history") : navigate(-1))}
+          className="btn-back"
+        >
           ← Voltar
         </button>
-        <h1>{isEdit ? "Editar Pedido" : "Novo Pedido"}</h1>
+        <h1>
+          {isEdit
+            ? "Editar Pedido"
+            : isRetroactive
+            ? "Novo Pedido Histórico"
+            : "Novo Pedido"}
+        </h1>
       </header>
+
+      {/* Configuração de Data e Status (Retroativo ou Edição) */}
+      {isRetroactive || isEdit || showRetroactiveConfig ? (
+        <div
+          className="order-details-card"
+          style={{
+            marginBottom: "24px",
+            borderLeft: "4px solid #059669",
+            backgroundColor: "#f0fdf4",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "12px",
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                color: "#065f46",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span>📅</span> Data & Status do Pedido{" "}
+              {isRetroactive && (
+                <span
+                  style={{
+                    fontSize: "12px",
+                    background: "#d1fae5",
+                    color: "#065f46",
+                    padding: "2px 8px",
+                    borderRadius: "12px",
+                    fontWeight: "normal",
+                  }}
+                >
+                  Retroativo
+                </span>
+              )}
+            </h3>
+            {!isRetroactive && !isEdit && (
+              <button
+                type="button"
+                onClick={() => setShowRetroactiveConfig(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                }}
+              >
+                ✕ Ocultar
+              </button>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "14px",
+            }}
+          >
+            <div>
+              <label
+                htmlFor="order-created-at"
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: "#334155",
+                  marginBottom: "4px",
+                }}
+              >
+                Data de Criação *
+              </label>
+              <input
+                id="order-created-at"
+                type="datetime-local"
+                value={createdAt}
+                onChange={(e) => setCreatedAt(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  boxSizing: "border-box",
+                  background: "#fff",
+                }}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="order-status"
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  color: "#334155",
+                  marginBottom: "4px",
+                }}
+              >
+                Status do Pedido
+              </label>
+              <select
+                id="order-status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as OrderStatus)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  boxSizing: "border-box",
+                  background: "white",
+                }}
+              >
+                <option value={OrderStatus.COMPLETED}>Concluído</option>
+                <option value={OrderStatus.DRAFT}>Rascunho</option>
+                <option value={OrderStatus.PENDING}>Em Produção</option>
+                <option value={OrderStatus.READY}>Em Entrega</option>
+                <option value={OrderStatus.CANCELLED}>Cancelado</option>
+              </select>
+            </div>
+
+            {status === OrderStatus.COMPLETED && (
+              <div>
+                <label
+                  htmlFor="order-completed-at"
+                  style={{
+                    display: "block",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    color: "#334155",
+                    marginBottom: "4px",
+                  }}
+                >
+                  Data de Conclusão
+                </label>
+                <input
+                  id="order-completed-at"
+                  type="datetime-local"
+                  value={completedAt}
+                  onChange={(e) => setCompletedAt(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    boxSizing: "border-box",
+                    background: "#fff",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginBottom: "16px", textAlign: "right" }}>
+          <button
+            type="button"
+            onClick={() => setShowRetroactiveConfig(true)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#059669",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: "600",
+              textDecoration: "underline",
+            }}
+          >
+            ⚙️ Definir data retroativa ou status inicial
+          </button>
+        </div>
+      )}
 
       <div className="order-details-card" style={{ marginBottom: '24px' }}>
         <h3>Detalhes do Cliente</h3>
@@ -514,6 +765,8 @@ export default function OrderForm() {
                     ? "Salvando..."
                     : isEdit
                       ? "Atualizar Pedido"
+                      : isRetroactive
+                      ? "Salvar Pedido Histórico"
                       : "Criar Pedido"}
                 </button>
               </div>

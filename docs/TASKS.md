@@ -4,6 +4,7 @@
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
 - `[ ]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[🟡 Implementado: CORS dinâmico e ARG de build no Dockerfile — ⏳ Aguardando Validação Prática]*
+- `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[🟡 Implementado: migrada criação e edição de pedidos históricos para a tela canônica OrderForm, eliminando modais duplicados e validado via testes E2E — ⏳ Aguardando Validação Prática]*
 
 ---
 

@@ -45,31 +45,38 @@ export class OrderHistoryPage {
     return this.orderCards;
   }
 
-  async openNewHistoricalOrderModal() {
+  async openNewHistoricalOrder() {
     await this.newHistoricalOrderButton.click();
-    await expect(this.page.locator(".history-modal")).toBeVisible();
+    await expect(this.page).toHaveURL(/.*orders\/new\?retroactive=true/, { timeout: 10000 });
+    await expect(this.page.locator(".order-form h1")).toContainText("Novo Pedido Histórico");
   }
 
   async createHistoricalOrder(options: {
     address?: string;
     deliveryFee?: number;
-    productIndex?: number;
   } = {}) {
-    await this.openNewHistoricalOrderModal();
+    await this.openNewHistoricalOrder();
 
     if (options.address) {
-      await this.page.locator(".history-modal input[placeholder*='Rua']").fill(options.address);
+      await this.page.locator("textarea#address").fill(options.address);
     }
 
     if (options.deliveryFee !== undefined) {
-      await this.page.locator(".history-modal input[type='number']").first().fill(options.deliveryFee.toString());
+      await this.page.locator("input#deliveryFee").fill(options.deliveryFee.toString());
     }
 
     // Adiciona o primeiro produto da lista
-    await this.page.locator(".modal-items-section button.btn-add-item").click();
+    const addBtn = this.page.locator("button.btn-add-wide").first();
+    await expect(addBtn).toBeVisible({ timeout: 5000 });
+    await addBtn.click();
 
     // Salva o pedido histórico
-    await this.page.locator(".history-modal-footer button.btn-primary").click();
-    await expect(this.page.locator(".history-modal")).toBeHidden({ timeout: 10000 });
+    const saveBtn = this.page.locator("button.btn-save");
+    await expect(saveBtn).toBeVisible();
+    await saveBtn.click();
+
+    // Aguarda retorno para a listagem do histórico
+    await expect(this.page).toHaveURL(/.*orders\/history/, { timeout: 10000 });
+    await expect(this.newHistoricalOrderButton).toBeVisible({ timeout: 10000 });
   }
 }
