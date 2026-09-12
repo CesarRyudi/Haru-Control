@@ -198,6 +198,38 @@
     - Atualizado o Page Object `OrderHistoryPage` para interagir com o fluxo da tela cheia `OrderForm`.
     - Execução da suíte completa de testes E2E do Playwright (`npx playwright test`): 7/7 testes aprovados com sucesso.
 - **Validação:** Workspace compilado com sucesso (`npx nx run-many -t build`) e suíte Playwright verde (7 passed).
-- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+### [2026-09-11] Bloqueio Rigoroso de Alertas de Emergência para Pedidos Históricos
+
+- **Contexto:** Solicitação explícita para garantir que pedidos históricos/retroativos NUNCA gerem alertas ou notificações sonoras de emergência (Pushover) no celular sob nenhuma hipótese.
+- **Implementações Realizadas:**
+  - **1. Backend (`orders.service.ts`):**
+    - `create()`: Determina se o pedido é histórico (status `COMPLETED` ou data `createdAt` no passado). Caso seja, força `notify = false`, impedindo qualquer registro de alerta.
+    - `createBatch()`: Força `notify: false` explicitamente para todos os pedidos importados em lote.
+    - `update()`: Impede disparos de `sendOrderAlert()` se o pedido já estava concluído, se está sendo concluído ou se sua data de criação é anterior ao momento atual (passado). Força `updateData.notify = false`.
+  - **2. Frontend Mobile (`OrderForm.tsx`):**
+    - Adicionado memo `isHistorical` verificando `isRetroactive`, status `COMPLETED` ou data no passado.
+    - Ocultado o checkbox de notificação Pushover quando em contexto histórico, substituindo-o por um indicativo visual informativo (`🔕 Alertas desativados: Pedidos históricos nunca geram notificações de emergência no celular`).
+    - No payload de submissão e no `loadOrder()`, `notify` é estritamente garantido como `false`.
+- **Validação:** Workspace compilado com sucesso (`npx nx run-many -t build`) e todos os 7 testes E2E do Playwright validados com sucesso.
+- **Documentação Atualizada:** [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-11] Promoção de Pedidos para a Barra de Navegação Inferior & Filtros Rápidos de Data
+
+- **Contexto:** Solicitação do usuário para transformar a tela de Pedidos em uma entidade de primeira classe (como Clientes, Produtos, etc.), integrando-a diretamente à barra de navegação inferior (`BottomNavigation`) e adicionando atalhos rápidos de filtro de período (Hoje, Ontem, Últimos 7 dias, Este Mês, Mês Passado, Todos).
+- **Implementações Realizadas:**
+  - **1. Barra Inferior (`BottomNavigation.tsx`):**
+    - Adicionado o item `{ path: "/orders/history", icon: "🧾", label: "Pedidos" }` logo após "Início".
+    - Ajustada a detecção de item ativo para rotas com prefixo (`startsWith`), garantindo que o botão fique destacado ao navegar pelo histórico.
+  - **2. Filtros Rápidos de Data (`OrderHistory.tsx` & `OrderHistory.css`):**
+    - Adicionada barra com chips de filtro rápido: `Hoje`, `Ontem`, `Últimos 7 dias`, `Este Mês`, `Mês Passado`, `Todos`.
+    - Ao tocar em um chip, os campos `startDate` e `endDate` são preenchidos e a listagem é filtrada instantaneamente.
+    - Estilização responsiva em linha com scroll horizontal suave (`.quick-filters-scroll`) sem quebra em telas compactas.
+    - O cabeçalho foi padronizado com as demais páginas de entidades (`🧾 Histórico de Pedidos` sem botão redundante de voltar, uma vez que a barra inferior está sempre presente).
+  - **3. Backend (`orders.service.ts`):**
+    - Ajustado o filtro de data para pedidos com status `COMPLETED` com `startDate` e `endDate`, filtrando por `completedAt` (ou `createdAt` caso `completedAt` seja nulo) para máxima precisão nos relatórios contábeis.
+  - **4. Testes Automatizados E2E (`04-history-retroactive.spec.ts`):**
+    - Adicionado teste específico validando acesso a Pedidos via clique no ícone da barra de navegação inferior e alternância entre chips de filtros rápidos de data.
+- **Validação:** Workspace compilado com sucesso (`npx nx run-many -t build`) e 8/8 testes E2E do Playwright aprovados com sucesso (23.0s).
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
 

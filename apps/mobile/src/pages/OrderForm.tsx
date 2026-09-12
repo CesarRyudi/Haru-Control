@@ -52,6 +52,18 @@ export default function OrderForm() {
     isRetroactive || isEdit
   );
 
+  const isHistorical = useMemo(() => {
+    if (isRetroactive) return true;
+    if (status === OrderStatus.COMPLETED) return true;
+    if (createdAt) {
+      const createdTime = new Date(createdAt).getTime();
+      if (!isNaN(createdTime) && createdTime < Date.now() - 10 * 60 * 1000) {
+        return true;
+      }
+    }
+    return false;
+  }, [isRetroactive, status, createdAt]);
+
   const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress, customerId, setCustomer } =
     useOrderDraft();
 
@@ -123,7 +135,14 @@ export default function OrderForm() {
         order.deliveryFee != null ? Number(order.deliveryFee) : 2
       );
       setAddress(order.address || "");
-      if (order.notify !== undefined && order.notify !== null) {
+      
+      const orderIsHistorical =
+        order.status === OrderStatus.COMPLETED ||
+        (order.createdAt && new Date(order.createdAt).getTime() < Date.now() - 10 * 60 * 1000);
+
+      if (orderIsHistorical) {
+        setNotify(false);
+      } else if (order.notify !== undefined && order.notify !== null) {
         setNotify(Boolean(order.notify));
       }
       if (order.status) {
@@ -187,7 +206,7 @@ export default function OrderForm() {
         deliveryFee: Number(deliveryFee),
         address,
         customerId,
-        notify,
+        notify: isHistorical ? false : notify,
       };
 
       if (isRetroactive || isEdit || showRetroactiveConfig) {
@@ -236,7 +255,7 @@ export default function OrderForm() {
       clear();
       setDeliveryFee(2);
       setAddress("");
-      setNotify(!isRetroactive);
+      setNotify(!isRetroactive && status !== OrderStatus.COMPLETED);
     }
   };
 
@@ -397,7 +416,13 @@ export default function OrderForm() {
               <select
                 id="order-status"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as OrderStatus)}
+                onChange={(e) => {
+                  const newStatus = e.target.value as OrderStatus;
+                  setStatus(newStatus);
+                  if (newStatus === OrderStatus.COMPLETED) {
+                    setNotify(false);
+                  }
+                }}
                 style={{
                   width: "100%",
                   padding: "8px 12px",
@@ -518,24 +543,44 @@ export default function OrderForm() {
           />
         </div>
 
-        <div className="notify-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}>
-            <input
-              type="checkbox"
-              checked={notify}
-              onChange={(e) => setNotify(e.target.checked)}
-              style={{ width: '22px', height: '22px', accentColor: '#4f46e5', cursor: 'pointer' }}
-            />
+        {isHistorical ? (
+          <div
+            style={{
+              marginTop: "16px",
+              paddingTop: "16px",
+              borderTop: "1px solid #eee",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              color: "#64748b",
+              fontSize: "14px",
+            }}
+          >
+            <span style={{ fontSize: "18px" }}>🔕</span>
             <div>
-              <div style={{ fontWeight: 600, fontSize: '15px', color: '#1e293b' }}>
-                🔔 Alerta de emergência no celular (Pushover)
-              </div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                Desmarque para pedidos presenciais de balcão ou se já estiver na cozinha
-              </div>
+              <strong style={{ color: "#475569" }}>Alertas desativados:</strong> Pedidos históricos nunca geram notificações de emergência no celular.
             </div>
-          </label>
-        </div>
+          </div>
+        ) : (
+          <div className="notify-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={notify}
+                onChange={(e) => setNotify(e.target.checked)}
+                style={{ width: '22px', height: '22px', accentColor: '#4f46e5', cursor: 'pointer' }}
+              />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '15px', color: '#1e293b' }}>
+                  🔔 Alerta de emergência no celular (Pushover)
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  Desmarque para pedidos presenciais de balcão ou se já estiver na cozinha
+                </div>
+              </div>
+            </label>
+          </div>
+        )}
       </div>
 
       <div className="form-content">

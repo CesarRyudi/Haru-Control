@@ -42,7 +42,7 @@
     - Suportar definição explícita de `status`, `createdAt` (data de criação retroativa), `completedAt` (data de conclusão), cliente, itens, preços e endereço.
     - Suporte a execução via scripts externos ou ferramentas de carga em lote, criando as baixas e vendas contábeis retroativas de forma consistente.
   - **Nova Tela de Histórico de Pedidos no App:**
-    - Nova tela (`/orders/history`) acessível pela navegação/cabeçalho, exibindo tabela/lista completa de todos os pedidos já realizados com filtros e busca.
+    - Nova tela (`/orders/history`) integrada à barra de navegação inferior (`BottomNavigation`) como entidade principal (`Pedidos`), com chips de filtros rápidos de período (Hoje, Ontem, Últimos 7 dias, Este Mês, Mês Passado, Todos).
     - Botão para **"Novo Pedido Histórico"**: formulário permitindo cadastrar pedidos passados diretamente pelo app, escolhendo data/hora de criação, conclusão e status.
   - **Edição Flexível de Pedidos:**
     - Permitir editar qualquer pedido existente (mesmo já concluído) para retificar informações (itens, valores, status, datas de criação e conclusão), prevenindo erros operacionais.

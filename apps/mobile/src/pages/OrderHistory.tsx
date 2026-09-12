@@ -18,6 +18,72 @@ export default function OrderHistory() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  type QuickFilterOption =
+    | "today"
+    | "yesterday"
+    | "last7days"
+    | "thisMonth"
+    | "lastMonth"
+    | "all"
+    | "custom";
+
+  const [activeQuickFilter, setActiveQuickFilter] =
+    useState<QuickFilterOption>("all");
+
+  const formatDateYMD = (d: Date): string => {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  const applyQuickFilter = (option: QuickFilterOption) => {
+    setActiveQuickFilter(option);
+    const today = new Date();
+
+    switch (option) {
+      case "today": {
+        const todayStr = formatDateYMD(today);
+        setStartDate(todayStr);
+        setEndDate(todayStr);
+        break;
+      }
+      case "yesterday": {
+        const yest = new Date(today);
+        yest.setDate(yest.getDate() - 1);
+        const yestStr = formatDateYMD(yest);
+        setStartDate(yestStr);
+        setEndDate(yestStr);
+        break;
+      }
+      case "last7days": {
+        const d7 = new Date(today);
+        d7.setDate(d7.getDate() - 6);
+        setStartDate(formatDateYMD(d7));
+        setEndDate(formatDateYMD(today));
+        break;
+      }
+      case "thisMonth": {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        setStartDate(formatDateYMD(firstDay));
+        setEndDate(formatDateYMD(today));
+        break;
+      }
+      case "lastMonth": {
+        const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+        setStartDate(formatDateYMD(firstDay));
+        setEndDate(formatDateYMD(lastDay));
+        break;
+      }
+      case "all": {
+        setStartDate("");
+        setEndDate("");
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
   // Toast
   const [toast, setToast] = useState<{
     message: string;
@@ -59,6 +125,7 @@ export default function OrderHistory() {
     setStatusFilter("ALL");
     setStartDate("");
     setEndDate("");
+    setActiveQuickFilter("all");
     api.get("/orders").then((res) => setOrders(res.data));
   };
 
@@ -120,10 +187,7 @@ export default function OrderHistory() {
       {/* Header */}
       <header className="history-header">
         <div className="history-header-left">
-          <button onClick={() => navigate("/")} className="btn-back-history">
-            ← Voltar
-          </button>
-          <h1>📜 Histórico de Pedidos</h1>
+          <h1>🧾 Histórico de Pedidos</h1>
         </div>
         <button
           className="btn-new-retroactive"
@@ -151,6 +215,54 @@ export default function OrderHistory() {
 
       {/* Filtros */}
       <div className="filter-card">
+        {/* Chips de Filtros Rápidos de Data */}
+        <div className="quick-filters-scroll">
+          <div className="quick-filters-row">
+            <button
+              type="button"
+              className={`quick-filter-chip ${activeQuickFilter === "today" ? "active" : ""}`}
+              onClick={() => applyQuickFilter("today")}
+            >
+              Hoje
+            </button>
+            <button
+              type="button"
+              className={`quick-filter-chip ${activeQuickFilter === "yesterday" ? "active" : ""}`}
+              onClick={() => applyQuickFilter("yesterday")}
+            >
+              Ontem
+            </button>
+            <button
+              type="button"
+              className={`quick-filter-chip ${activeQuickFilter === "last7days" ? "active" : ""}`}
+              onClick={() => applyQuickFilter("last7days")}
+            >
+              Últimos 7 dias
+            </button>
+            <button
+              type="button"
+              className={`quick-filter-chip ${activeQuickFilter === "thisMonth" ? "active" : ""}`}
+              onClick={() => applyQuickFilter("thisMonth")}
+            >
+              Este Mês
+            </button>
+            <button
+              type="button"
+              className={`quick-filter-chip ${activeQuickFilter === "lastMonth" ? "active" : ""}`}
+              onClick={() => applyQuickFilter("lastMonth")}
+            >
+              Mês Passado
+            </button>
+            <button
+              type="button"
+              className={`quick-filter-chip ${activeQuickFilter === "all" ? "active" : ""}`}
+              onClick={() => applyQuickFilter("all")}
+            >
+              Todos
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={handleSearchSubmit}>
           <div className="filter-grid">
             <div className="filter-group">
@@ -185,7 +297,10 @@ export default function OrderHistory() {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setActiveQuickFilter("custom");
+                }}
                 className="filter-input"
               />
             </div>
@@ -195,7 +310,10 @@ export default function OrderHistory() {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setActiveQuickFilter("custom");
+                }}
                 className="filter-input"
               />
             </div>

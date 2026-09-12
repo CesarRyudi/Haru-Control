@@ -119,6 +119,13 @@ export class OrdersService {
       ? createdAt || new Date()
       : undefined;
 
+    // Regra mandatória: Pedidos históricos NUNCA geram alertas.
+    const isHistorical =
+      initialStatus === OrderStatus.COMPLETED ||
+      Boolean(createdAt && createdAt.getTime() < Date.now() - 10 * 60 * 1000);
+
+    const notify = isHistorical ? false : (createOrderDto.notify ?? true);
+
     // Criar pedido e itens
     const order = await this.prisma.order.create({
       data: {
@@ -127,9 +134,7 @@ export class OrdersService {
         totalPrice,
         deliveryFee: createOrderDto.deliveryFee ?? 2,
         address: createOrderDto.address,
-        notify:
-          createOrderDto.notify ??
-          (initialStatus === OrderStatus.COMPLETED ? false : true),
+        notify,
         ...(createdAt && { createdAt }),
         ...(completedAt && { completedAt }),
         items: {
@@ -179,7 +184,10 @@ export class OrdersService {
   async createBatch(ordersDto: CreateOrderDto[]) {
     const results = [];
     for (const dto of ordersDto) {
-      const order = await this.create(dto);
+      const order = await this.create({
+        ...dto,
+        notify: false,
+      });
       results.push(order);
     }
     return {
@@ -238,7 +246,14 @@ export class OrdersService {
         const [ey, em, ed] = endDate.split("-").map(Number);
         dateFilter.lte = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       }
-      where.createdAt = dateFilter;
+      if (status === OrderStatus.COMPLETED) {
+        where.OR = [
+          { completedAt: dateFilter },
+          { completedAt: null, createdAt: dateFilter },
+        ];
+      } else {
+        where.createdAt = dateFilter;
+      }
     }
 
     if (search && search.trim()) {
@@ -473,13 +488,26 @@ export class OrdersService {
         await this.prisma.sale.deleteMany({ where: { orderId: id } });
       }
 
-      const shouldNotify =
-        updateOrderDto.notify !== undefined
+      // Regra mandatória: Pedidos históricos NUNCA geram alertas.
+      const isHistorical =
+        order.status === OrderStatus.COMPLETED ||
+        newStatus === OrderStatus.COMPLETED ||
+        Boolean(order.createdAt && new Date(order.createdAt).getTime() < Date.now() - 10 * 60 * 1000) ||
+        Boolean(updateData.createdAt && new Date(updateData.createdAt).getTime() < Date.now() - 10 * 60 * 1000);
+
+      if (isHistorical) {
+        updateData.notify = false;
+      }
+
+      const shouldNotify = isHistorical
+        ? false
+        : updateOrderDto.notify !== undefined
           ? updateOrderDto.notify
           : (order.notify ?? true);
 
-      // Se o pedido está entrando em PRODUÇÃO (PENDING) e deve notificar no celular
+      // Se o pedido está entrando em PRODUÇÃO (PENDING) e deve notificar no celular (NUNCA para históricos)
       if (
+        !isHistorical &&
         newStatus === OrderStatus.PENDING &&
         oldStatus !== OrderStatus.PENDING &&
         shouldNotify

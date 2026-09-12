@@ -7,6 +7,7 @@ export default function BottomNavigation() {
 
   const navItems = [
     { path: "/", icon: "📋", label: "Início" },
+    { path: "/orders/history", icon: "🧾", label: "Pedidos" },
     { path: "/customers", icon: "👥", label: "Clientes" },
     { path: "/products", icon: "📦", label: "Produtos" },
     { path: "/manufacturing", icon: "🏭", label: "Produção" },
@@ -16,7 +17,10 @@ export default function BottomNavigation() {
   return (
     <nav className="bottom-nav">
       {navItems.map((item) => {
-        const isActive = location.pathname === item.path;
+        const isActive =
+          item.path === "/"
+            ? location.pathname === "/"
+            : location.pathname.startsWith(item.path);
         return (
           <button
             key={item.path}
