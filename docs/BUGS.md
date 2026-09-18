@@ -11,6 +11,7 @@
 | `BUG-000` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Exemplo de Bug de Demonstração (Template) | `src/example.ts` | 2026-09-02 |
 | `BUG-001` | `[x]` Resolvido | `✅ Validado` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
 | `BUG-002` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
+| `BUG-003` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx` | 2026-09-17 |
 
 ---
 
@@ -114,5 +115,42 @@
 
 #### 5. Lições Aprendidas & Prevenção Futura
 - Medidas de blindagem preventiva adotadas para evitar regressões futuras.
+
+---
+
+### [BUG-003] Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-17
+- **Data de Implementação:** 2026-09-17
+- **Data de Validação:** 2026-09-17
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx`, `e2e/page-objects/OrderBoardPage.ts`, `e2e/specs/04-history-retroactive.spec.ts`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- O botão de "Histórico" continuava visível no topo da tela do quadro de pedidos (`OrderBoard.tsx`), ao lado do botão de "Insights", mesmo após a criação da rota dedicada e entrada na barra de navegação inferior. Além disso, a aba correspondente na barra inferior (`BottomNavigation`) estava posicionada logo no início da lista (segunda posição, rotulada provisoriamente como "Pedidos"), em vez de ocupar a última posição como aba de histórico.
+- **Passos para Reproduzir:**
+  1. Acessar a tela inicial do aplicativo (`/`).
+  2. Observar a presença simultânea do botão "Histórico" no cabeçalho superior direito e de um item na barra de navegação inferior.
+  3. Observar a ordem dos ícones na barra inferior (`Início`, `Pedidos`, `Clientes`, `Produtos`, `Produção`, `Estoque`).
+- **Comportamento Esperado:**
+  - O cabeçalho deve conter apenas os botões auxiliares pertinentes ("Insights" e "Ajuda").
+  - A barra inferior (`BottomNavigation`) deve exibir a aba `📜 Histórico` posicionada como o último item da navegação (`Início`, `Clientes`, `Produtos`, `Produção`, `Estoque`, `Histórico`).
+- **Logs / Erros de Console:** Nenhum erro de console. Problema de consistência de navegação e UI/UX.
+
+#### 2. Onde está o problema (Localização Técnica)
+- `apps/mobile/src/pages/OrderBoard.tsx`: Botão `<button className="history-btn-header">` no cabeçalho `<header className="board-header">`.
+- `apps/mobile/src/components/BottomNavigation.tsx`: Array `navItems` com o item `/orders/history` na segunda posição com label "Pedidos".
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Durante a introdução da funcionalidade de histórico de pedidos retroativos (Fase 2), o botão de atalho de topo foi implementado temporariamente para acesso rápido. Na sequência, quando o item foi inserido no `BottomNavigation`, o botão do cabeçalho não havia sido removido e a ordenação final das abas ficou no início da barra em vez de ao final.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Removido o botão redundante `history-btn-header` do cabeçalho em `OrderBoard.tsx`.
+- Reordenado o array `navItems` em `BottomNavigation.tsx`, reposicionando `{ path: "/orders/history", icon: "📜", label: "Histórico" }` como o sexto e último item.
+- Atualizados os Page Objects (`OrderBoardPage.ts`) e a suíte de testes E2E (`04-history-retroactive.spec.ts`) para interagir com a aba "Histórico" da `BottomNavigation`.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Ao promover um botão de ação de topo a entidade primária na navegação persistente inferior (Bottom Navigation), garantir a remoção imediata dos atalhos transitórios para manter a interface limpa e prevenir duplicação de pontos de entrada.
 
 ---

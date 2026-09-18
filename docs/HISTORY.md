@@ -169,6 +169,18 @@
 - **Validação:** Monorepo compilado com 100% de sucesso (`nx run-many -t build` para `types`, `utils`, `api`, `mobile`).
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
+### [2026-09-17] Resolução de BUG-003: Higienização do Cabeçalho e Reposicionamento da Aba de Histórico
 
-
-
+- **Contexto:** Remoção de botão transitório de Histórico mantido no topo do quadro de pedidos e reorganização da ordem dos itens na barra de navegação inferior (`BottomNavigation`).
+- **Implementações Realizadas:**
+  - **1. Cabeçalho de Pedidos (`OrderBoard.tsx`):**
+    - Removido o botão `<button className="history-btn-header">` ao lado do botão de Insights.
+    - Mantidos no topo apenas os botões contextuais de `📊 Insights` e `📖 Ajuda`.
+  - **2. Barra Inferior de Navegação (`BottomNavigation.tsx`):**
+    - Reposicionada a aba de histórico para a última posição da barra inferior: `Início` (📋), `Clientes` (👥), `Produtos` (📦), `Produção` (🏭), `Estoque` (📊) e `Histórico` (📜).
+    - Ajustado o rótulo de `"Pedidos"` para `"Histórico"` para distinguir claramente do quadro Kanban ativo na tela inicial.
+  - **3. Suíte de Testes E2E (`OrderBoardPage.ts` e `04-history-retroactive.spec.ts`):**
+    - Atualizado o método `goToHistory()` do Page Object para navegar pela barra inferior.
+    - Atualizados os seletores dos testes Playwright correspondentes.
+- **Validação:** Build do projeto `mobile` concluído com 100% de sucesso (`nx build mobile`).
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).

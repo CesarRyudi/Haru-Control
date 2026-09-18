@@ -5,7 +5,6 @@ export type OrderTab = "Rascunho" | "Produção" | "Em Entrega" | "Concluídos";
 export class OrderBoardPage {
   readonly page: Page;
   readonly headerTitle: Locator;
-  readonly historyButton: Locator;
   readonly insightsButton: Locator;
   readonly tabs: Locator;
   readonly boardContent: Locator;
@@ -14,7 +13,6 @@ export class OrderBoardPage {
   constructor(page: Page) {
     this.page = page;
     this.headerTitle = page.locator(".board-header h1");
-    this.historyButton = page.locator("button.history-btn-header");
     this.insightsButton = page.locator("button.insights-btn-header");
     this.tabs = page.locator(".tab-btn");
     this.boardContent = page.locator(".board-content");
@@ -61,7 +59,7 @@ export class OrderBoardPage {
   }
 
   async goToHistory() {
-    await this.historyButton.click();
+    await this.page.locator("button.bottom-nav-item", { hasText: "Histórico" }).click();
     await expect(this.page).toHaveURL(/.*\/orders\/history/);
   }
 

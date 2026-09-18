@@ -7,11 +7,11 @@ export default function BottomNavigation() {
 
   const navItems = [
     { path: "/", icon: "📋", label: "Início" },
-    { path: "/orders/history", icon: "🧾", label: "Pedidos" },
     { path: "/customers", icon: "👥", label: "Clientes" },
     { path: "/products", icon: "📦", label: "Produtos" },
     { path: "/manufacturing", icon: "🏭", label: "Produção" },
     { path: "/stock", icon: "📊", label: "Estoque" },
+    { path: "/orders/history", icon: "📜", label: "Histórico" },
   ];
 
   return (

@@ -5,6 +5,7 @@
 
 - `[x]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[✅ Resolvido e validado na prática em Dev e Produção no Coolify]*
 - `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[✅ Resolvido e validado na prática em Dev e Produção]*
+- `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
 
 ---
 

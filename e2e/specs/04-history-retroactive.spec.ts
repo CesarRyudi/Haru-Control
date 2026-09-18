@@ -29,21 +29,21 @@ test.describe("Histórico de Pedidos & Lançamento Retroativo", () => {
     await expect(foundCard).toBeVisible({ timeout: 5000 });
   });
 
-  test("deve acessar Pedidos pela barra de navegação inferior e utilizar filtros rápidos de data", async ({
+  test("deve acessar Histórico pela barra de navegação inferior e utilizar filtros rápidos de data", async ({
     orderBoard,
     page,
   }) => {
     // 1. Inicia na tela inicial
     await orderBoard.goto();
 
-    // 2. Clica no item "Pedidos" da barra inferior de navegação
-    const navPedidosButton = page.locator("button.bottom-nav-item", { hasText: "Pedidos" });
-    await expect(navPedidosButton).toBeVisible();
-    await navPedidosButton.click();
+    // 2. Clica no item "Histórico" da barra inferior de navegação
+    const navHistoryButton = page.locator("button.bottom-nav-item", { hasText: "Histórico" });
+    await expect(navHistoryButton).toBeVisible();
+    await navHistoryButton.click();
 
     // 3. Valida que navegou para o histórico de pedidos e a aba inferior está ativa
     await expect(page).toHaveURL(/.*orders\/history/);
-    await expect(navPedidosButton).toHaveClass(/active/);
+    await expect(navHistoryButton).toHaveClass(/active/);
 
     // 4. Testa os chips de filtros rápidos de data
     const chipHoje = page.locator("button.quick-filter-chip", { hasText: "Hoje" });
