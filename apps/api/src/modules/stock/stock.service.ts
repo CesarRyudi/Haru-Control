@@ -60,6 +60,37 @@ export class StockService {
     });
   }
 
+  async recordWasteBatch(
+    items: { productId: string; quantity: number }[],
+    reason: WasteReason,
+    notes?: string
+  ): Promise<void> {
+    if (!items || items.length === 0) {
+      throw new BadRequestException("Nenhum item informado para descarte");
+    }
+
+    const validItems = items.filter((item) => Number(item.quantity) > 0);
+    if (validItems.length === 0) {
+      throw new BadRequestException("Todos os itens devem ter quantidade maior que zero");
+    }
+
+    console.log("Recording waste batch:", { count: validItems.length, reason, notes });
+
+    await this.prisma.$transaction(
+      validItems.map((item) =>
+        this.prisma.ledgerEntry.create({
+          data: {
+            productId: item.productId,
+            quantity: -Math.abs(Number(item.quantity)),
+            type: LedgerOperationType.WASTE,
+            wasteReason: reason,
+            notes: notes?.trim() || null,
+          },
+        })
+      )
+    );
+  }
+
   calculateProductCost(product: any): number {
     if (!product) return 0;
     if (product.recipeItems && product.recipeItems.length > 0) {

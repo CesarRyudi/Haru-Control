@@ -184,3 +184,38 @@
     - Atualizados os seletores dos testes Playwright correspondentes.
 - **Validação:** Build do projeto `mobile` concluído com 100% de sucesso (`nx build mobile`).
 - **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-17] Refinamento de UI/UX nos Insights: Dropdown de Período e Limpeza Visual
+
+- **Contexto:** Substituição do seletor horizontal de chips por um seletor dropdown (`<select>`) responsivo e higienização visual do card de Projeção Mensal de Faturamento, removendo emojis gráficos excessivos.
+- **Implementações Realizadas:**
+  - **1. Seletor de Período (`Insights.tsx` e `Insights.css`):**
+    - Substituídos os botões/chips com scroll horizontal por um elemento `<select className="insights-period-select">` completo com opções de período (`Mês Atual`, `Hoje`, `Últimos 7 dias`, `Últimos 30 dias`, `Mês Anterior` e `Personalizado (definir datas)`).
+    - Estilização moderna com ícone de seta customizado via SVG, preenchimento confortável ao toque mobile e foco com anel lilás.
+    - Preservada a área expansível de datas personalizadas (`Data Início`, `Data Fim` e botão `Aplicar`) quando a opção `Personalizado` é selecionada.
+  - **2. Card de Projeção Mensal (`Insights.tsx` e `Insights.css`):**
+    - Removido o emoji `🔮` e o wrapper `.projection-icon`.
+    - O título e a badge de "Estimativa Run-Rate" agora alinham de maneira limpa e profissional com o valor em destaque.
+### [2026-09-17] Resolução de BUG-004 e Unificação de Pedidos, Histórico e Descartes no OrderForm
+
+- **Contexto:** Solicitação do usuário para unificar a operação de descarte de estoque no mesmo formulário de página inteira do `OrderForm`, permitindo alternar de modo ("Pedido Normal", "Pedido Histórico", "Descarte de Estoque") por um dropdown no topo esquerdo com pré-seleção por rota (`/orders/new`, `?mode=historical`, `?mode=waste`). Além disso, correção do bug de layout `BUG-004` onde as categorias de produtos limitavam a altura com rolagem interna ao conter mais de 6 produtos.
+- **Implementações Realizadas:**
+  - **1. Resolução do BUG-004 (`OrderForm.css`):**
+    - Removidas as propriedades `max-height: 70vh;` e `overflow-y: auto;` de `.order-form .products-grid`.
+    - As categorias agora expandem naturalmente no fluxo da página conforme a quantidade de produtos disponíveis.
+  - **2. Backend: Endpoint de Descarte em Lote (`apps/api`):**
+    - `StockController`: Adicionados DTOs `StockWasteBatchItemDto`, `StockWasteBatchDto` e o endpoint `@Post("waste/batch")`.
+    - `StockService`: Implementado método `recordWasteBatch` executando transação atômica (`prisma.$transaction`), registrando todas as movimentações `LedgerOperationType.WASTE` no Ledger imutável.
+  - **3. Frontend: Unificação e Modo Descarte no `OrderForm` (`OrderForm.tsx` & `OrderForm.css`):**
+    - Seletor de Modo no Cabeçalho: Dropdown no topo esquerdo alternando entre "Pedido Normal", "Pedido Histórico" e "Descarte de Estoque", inicializado dinamicamente via parâmetros da URL (`?mode=historical`, `?mode=waste`, `?retroactive=true`).
+    - Modal de Confirmação de Rascunho: Prevenção de perda acidental de dados ao trocar de modo com itens no carrinho.
+    - Exibição Completa de Produtos: No modo descarte, a lista passa a exibir todos os produtos do inventário (insumos, bases, embalagens), e oculta os preços em R$, destacando as unidades de medida (`un`, `kg`).
+    - Checkout Simplificado de Descarte: Ocultados cliente, endereço, notificação Pushover, taxa de entrega e totais financeiros. Inserido seletor de motivos (`WasteReason`) em chips interativos, campo de observações e resumo quantitativo de itens a descartar.
+    - Submissão em Lote: Disparo atômico para `POST /stock/waste/batch` com feedback e redirecionamento de volta ao Estoque.
+  - **4. Integração no Estoque (`Stock.tsx`):**
+    - Atualizado o item `🗑️ Registrar Descarte / Perda` do `FloatingActionButton` para navegar diretamente para `/orders/new?mode=waste`.
+    - Removidos modais, estados e lógica duplicada de descarte em `Stock.tsx`.
+  - **5. Atualização da Suíte de Testes E2E (`05-waste-and-insights.spec.ts`):**
+    - Adaptado o teste de ponta a ponta de descarte para seguir o novo fluxo unificado (FAB -> `/orders/new?mode=waste` -> seleção de produto e motivo -> submissão -> retorno a `/stock`).
+- **Validação:** Compilação completa de `api` e `mobile` com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).

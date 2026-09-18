@@ -7,8 +7,9 @@
 .form-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .btn-back {
@@ -25,9 +26,35 @@
   background: #f5f5f5;
 }
 
+.form-mode-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-mode-select {
+  padding: 8px 12px;
+  background: white;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.form-mode-select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
 .form-header h1 {
-  font-size: 28px;
+  font-size: 24px;
   color: #333;
+  margin: 0;
 }
 
 .form-content {
@@ -57,8 +84,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
-  max-height: 70vh;
-  overflow-y: auto;
 }
 
 .order-form .product-card {
@@ -502,3 +527,173 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Waste Mode Specific Styles */
+.waste-config-card {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.waste-config-card h3 {
+  margin: 0 0 12px 0;
+  color: #991b1b;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.waste-reason-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.waste-reason-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.waste-reason-chip {
+  background: white;
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.waste-reason-chip:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.waste-reason-chip.active {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+}
+
+.waste-notes-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1f2937;
+  resize: vertical;
+  min-height: 60px;
+  box-sizing: border-box;
+}
+
+.waste-notes-input:focus {
+  border-color: #ef4444;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.waste-summary-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.waste-summary-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+/* Confirmation Modal for Mode Switching */
+.mode-switch-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.mode-switch-modal-content {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.mode-switch-modal-content h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #1f2937;
+}
+
+.mode-switch-modal-content p {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.mode-switch-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.mode-switch-modal-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-confirm-switch {
+  background: #ef4444;
+  color: white;
+  border: none;
+}
+
+.btn-confirm-switch:hover {
+  background: #dc2626;
+}
+
+.btn-cancel-switch {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-cancel-switch:hover {
+  background: #e5e7eb;
+}
+

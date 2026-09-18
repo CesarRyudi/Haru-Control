@@ -22,37 +22,33 @@ test.describe("Módulo de Descarte & Projeção Mensal nos Insights", () => {
     await expect(wasteOption).toBeVisible();
     await wasteOption.click();
 
-    // 4. Valida exibição do modal de descarte
-    const modal = page.locator(".modal");
-    await expect(modal).toBeVisible();
-    await expect(modal.locator("h2")).toContainText("Registrar Descarte / Perda");
+    // 4. Valida navegação para a tela unificada no modo descarte
+    await expect(page).toHaveURL(/.*orders\/new\?mode=waste/);
+    const modeSelect = page.locator("select.form-mode-select");
+    await expect(modeSelect).toHaveValue("waste");
 
-    // 5. Seleciona o primeiro produto disponível
-    const productSelect = modal.locator("select.form-select");
-    await expect(productSelect).toBeVisible();
-    // Seleciona a segunda opção (primeiro produto real)
-    await productSelect.selectOption({ index: 1 });
+    // 5. Adiciona o primeiro produto da lista
+    const addBtn = page.locator(".products-grid .btn-add-wide").first();
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
 
     // 6. Seleciona motivo do descarte (ex: Falha de Forno / Preparo)
-    const reasonChip = modal.locator(".waste-reason-chip", { hasText: "Falha de Forno / Preparo" });
+    const reasonChip = page.locator(".waste-chip-btn", { hasText: "Falha de Forno / Preparo" });
     await expect(reasonChip).toBeVisible();
     await reasonChip.click();
     await expect(reasonChip).toHaveClass(/active/);
 
-    // 7. Informa quantidade e observação
-    const qtyInput = modal.locator(".number-input-container input");
-    await qtyInput.fill("2");
-
-    const notesTextarea = modal.locator("textarea.form-textarea");
+    // 7. Informa observação
+    const notesTextarea = page.locator("textarea#wasteNotes");
     await notesTextarea.fill("Perda de teste E2E - Forno descalibrado");
 
     // 8. Submete o descarte
-    const submitButton = modal.locator("button[type='submit']");
+    const submitButton = page.locator("button.btn-save-waste");
     await expect(submitButton).toContainText("Registrar Descarte");
     await submitButton.click();
 
-    // 9. Valida que o modal fechou com sucesso
-    await expect(modal).not.toBeVisible({ timeout: 5000 });
+    // 9. Valida que retornou para a tela de estoque
+    await expect(page).toHaveURL(/.*stock/, { timeout: 10000 });
   });
 
   test("deve exibir o card de Projeção Mensal e a seção de Perdas e Descartes nos Insights", async ({
@@ -70,8 +66,8 @@ test.describe("Módulo de Descarte & Projeção Mensal nos Insights", () => {
     await expect(page.locator("h1.insights-title")).toContainText("Insights & Métricas");
 
     // 3. Valida que o filtro padrão é o Mês Atual
-    const chipMesAtual = page.locator("button.insights-chip.active");
-    await expect(chipMesAtual).toContainText("Mês Atual");
+    const periodSelect = page.locator("select.insights-period-select");
+    await expect(periodSelect).toHaveValue("this_month");
 
     // 4. Valida exibição do Card de Projeção Mensal (Run-Rate)
     const projectionCard = page.locator(".insights-projection-card");

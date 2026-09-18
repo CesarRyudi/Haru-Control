@@ -12,6 +12,7 @@
 | `BUG-001` | `[x]` Resolvido | `✅ Validado` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
 | `BUG-002` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
 | `BUG-003` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx` | 2026-09-17 |
+| `BUG-004` | `[ ]` Aberto | `⏳ Pendente` | `🟢 Baixa` | Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm | `apps/mobile/src/pages/OrderForm.css` | 2026-09-17 |
 
 ---
 
@@ -152,5 +153,39 @@
 
 #### 5. Lições Aprendidas & Prevenção Futura
 - Ao promover um botão de ação de topo a entidade primária na navegação persistente inferior (Bottom Navigation), garantir a remoção imediata dos atalhos transitórios para manter a interface limpa e prevenir duplicação de pontos de entrada.
+
+---
+
+### [BUG-004] Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-17
+- **Data de Implementação:** 2026-09-17
+- **Data de Validação:** 2026-09-17
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Na tela de criação/edição de pedidos (`OrderForm`), cada categoria agrupa seus produtos dentro de um contêiner `.products-grid`. Quando uma categoria possui mais de 6 produtos, era acionado um limite fixo de altura (`max-height: 70vh`) com `overflow-y: auto`, forçando uma barra de rolagem interna minúscula e desconfortável em vez de expandir a caixa verticalmente no fluxo natural da página.
+- **Passos para Reproduzir:**
+  1. Acessar a tela de novo pedido (`/orders/new`).
+  2. Localizar uma categoria que contenha mais de 6 itens cadastrados.
+  3. Observar a presença de barra de rolagem interna na grade dessa categoria.
+- **Comportamento Esperado:** O container da categoria deve crescer dinamicamente para comportar todos os produtos de forma contínua, permitindo que a rolagem principal da página gerencie toda a visualização sem aninhamento de barras de rolagem.
+- **Logs / Erros de Console:** Nenhum erro de console reportado/observado.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Regra CSS `.order-form .products-grid` em `apps/mobile/src/pages/OrderForm.css`, que impunha `max-height: 70vh;` e `overflow-y: auto;`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Foi introduzida uma trava rígida de altura durante o desenvolvimento inicial para evitar listas longas em resoluções de desktop, desconsiderando o padrão mobile-first onde a rolagem nativa de página é muito mais ergonômica.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Removidas as propriedades `max-height: 70vh;` e `overflow-y: auto;` da classe `.order-form .products-grid` em `apps/mobile/src/pages/OrderForm.css`.
+- As caixas de categoria de produtos agora crescem organicamente para comportar qualquer quantidade de itens cadastrados, delegando o scroll à viewport vertical da aplicação.
+- Validado via compilação completa do mobile app com 100% de sucesso.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Evitar contêineres com `max-height` e rolagem vertical interna em interfaces mobile, priorizando o crescimento natural dos grids e delegando a rolagem à viewport da tela inteira.
 
 ---

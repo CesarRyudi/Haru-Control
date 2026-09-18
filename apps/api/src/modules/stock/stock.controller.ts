@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { WasteReason } from "@prisma/client";
 import { Type } from "class-transformer";
-import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
 import { StockService } from "./stock.service";
 
 export class StockInDto {
@@ -38,6 +38,29 @@ export class StockWasteDto {
   notes?: string;
 }
 
+export class StockWasteBatchItemDto {
+  @IsString()
+  productId: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  quantity: number;
+}
+
+export class StockWasteBatchDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockWasteBatchItemDto)
+  items: StockWasteBatchItemDto[];
+
+  @IsEnum(WasteReason)
+  reason: WasteReason;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
 @Controller("stock")
 export class StockController {
   constructor(private readonly stockService: StockService) {}
@@ -59,6 +82,16 @@ export class StockController {
     await this.stockService.recordWaste(
       dto.productId,
       dto.quantity,
+      dto.reason,
+      dto.notes
+    );
+    return { success: true };
+  }
+
+  @Post("waste/batch")
+  async recordWasteBatch(@Body() dto: StockWasteBatchDto) {
+    await this.stockService.recordWasteBatch(
+      dto.items,
       dto.reason,
       dto.notes
     );

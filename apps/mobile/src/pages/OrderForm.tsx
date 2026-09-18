@@ -1,4 +1,10 @@
-import { Customer, OrderStatus } from "@haru-control/types";
+import {
+  Customer,
+  OrderStatus,
+  WasteReason,
+  WASTE_REASON_LABELS,
+  WASTE_REASON_ICONS,
+} from "@haru-control/types";
 import { NumberInput } from "@haru-control/ui";
 import { formatCurrency } from "@haru-control/utils";
 import { useEffect, useState, useMemo } from "react";
@@ -8,11 +14,15 @@ import { useOrderDraft } from "../store/useOrderDraft";
 import CustomerFormModal from "../components/CustomerFormModal";
 import "./OrderForm.css";
 
+export type FormMode = "normal" | "historical" | "waste";
+
 interface Product {
   id: string;
   name: string;
   unit: string;
   price: number;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
   category?: { name: string; price?: number };
 }
 
@@ -29,7 +39,22 @@ export default function OrderForm() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const isEdit = !!id;
-  const isRetroactive = searchParams.get("retroactive") === "true";
+  const isRetroactiveParam = searchParams.get("retroactive") === "true";
+  const modeParam = searchParams.get("mode");
+
+  const initialMode = useMemo<FormMode>(() => {
+    if (modeParam === "waste") return "waste";
+    if (modeParam === "historical" || isRetroactiveParam) return "historical";
+    return "normal";
+  }, [modeParam, isRetroactiveParam]);
+
+  const [formMode, setFormMode] = useState<FormMode>(initialMode);
+  const [pendingMode, setPendingMode] = useState<FormMode | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
+
+  // Waste state
+  const [wasteReason, setWasteReason] = useState<WasteReason>(WasteReason.EXPIRED);
+  const [wasteNotes, setWasteNotes] = useState<string>("");
 
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -40,20 +65,21 @@ export default function OrderForm() {
   const [loading, setLoading] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [deliveryFee, setDeliveryFee] = useState<number>(2);
-  const [notify, setNotify] = useState<boolean>(!isRetroactive);
+  const [notify, setNotify] = useState<boolean>(!isRetroactiveParam && initialMode !== "historical");
 
   // Data e status para pedidos retroativos ou edição
   const [status, setStatus] = useState<OrderStatus>(
-    isRetroactive ? OrderStatus.COMPLETED : OrderStatus.DRAFT
+    initialMode === "historical" ? OrderStatus.COMPLETED : OrderStatus.DRAFT
   );
   const [createdAt, setCreatedAt] = useState<string>(toDateTimeLocal(new Date()));
   const [completedAt, setCompletedAt] = useState<string>(toDateTimeLocal(new Date()));
   const [showRetroactiveConfig, setShowRetroactiveConfig] = useState<boolean>(
-    isRetroactive || isEdit
+    initialMode === "historical" || isEdit
   );
 
   const isHistorical = useMemo(() => {
-    if (isRetroactive) return true;
+    if (formMode === "historical") return true;
+    if (isRetroactiveParam) return true;
     if (status === OrderStatus.COMPLETED) return true;
     if (createdAt) {
       const createdTime = new Date(createdAt).getTime();
@@ -62,20 +88,68 @@ export default function OrderForm() {
       }
     }
     return false;
-  }, [isRetroactive, status, createdAt]);
+  }, [formMode, isRetroactiveParam, status, createdAt]);
 
   const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress, customerId, setCustomer } =
     useOrderDraft();
 
+  const handleModeChange = (newMode: FormMode) => {
+    if (newMode === formMode) return;
+
+    if (items.length > 0) {
+      setPendingMode(newMode);
+      setIsConfirmModalOpen(true);
+      return;
+    }
+
+    applyMode(newMode);
+  };
+
+  const handleConfirmSwitch = () => {
+    if (pendingMode) {
+      clear();
+      applyMode(pendingMode);
+    }
+    setIsConfirmModalOpen(false);
+    setPendingMode(null);
+  };
+
+  const handleCancelSwitch = () => {
+    setIsConfirmModalOpen(false);
+    setPendingMode(null);
+  };
+
+  const applyMode = (mode: FormMode) => {
+    setFormMode(mode);
+    if (mode === "historical") {
+      setStatus(OrderStatus.COMPLETED);
+      setNotify(false);
+      setShowRetroactiveConfig(true);
+    } else if (mode === "normal") {
+      setStatus(OrderStatus.DRAFT);
+      setNotify(true);
+      setShowRetroactiveConfig(false);
+    } else if (mode === "waste") {
+      setShowRetroactiveConfig(false);
+    }
+  };
+
+  const availableProducts = useMemo(() => {
+    if (formMode === "waste") {
+      return products;
+    }
+    return products.filter((p) => p.isSellable !== false);
+  }, [products, formMode]);
+
   const groupedProducts = useMemo(() => {
     const groups: Record<string, Product[]> = {};
-    products.forEach(p => {
+    availableProducts.forEach((p) => {
       const catName = p.category?.name || "Sem Categoria";
       if (!groups[catName]) groups[catName] = [];
       groups[catName].push(p);
     });
-    
-    Object.values(groups).forEach(group => {
+
+    Object.values(groups).forEach((group) => {
       group.sort((a, b) => a.name.localeCompare(b.name));
     });
 
@@ -92,8 +166,8 @@ export default function OrderForm() {
       return a.localeCompare(b);
     });
 
-    return sortedKeys.map(key => ({ name: key, products: groups[key] }));
-  }, [products]);
+    return sortedKeys.map((key) => ({ name: key, products: groups[key] }));
+  }, [availableProducts]);
 
   useEffect(() => {
     loadProducts();
@@ -117,9 +191,7 @@ export default function OrderForm() {
 
   const loadProducts = async () => {
     try {
-      const response = await api.get("/products", {
-        params: { isSellable: true },
-      });
+      const response = await api.get("/products");
       setProducts(response.data);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
@@ -189,11 +261,39 @@ export default function OrderForm() {
 
   const handleSave = async () => {
     if (items.length === 0) {
-      alert("Adicione ao menos um produto ao pedido");
+      alert(
+        formMode === "waste"
+          ? "Adicione pelo menos um produto para registrar o descarte"
+          : "Adicione ao menos um produto ao pedido"
+      );
       return;
     }
 
     setLoading(true);
+
+    if (formMode === "waste") {
+      try {
+        await api.post("/stock/waste/batch", {
+          items: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+          reason: wasteReason,
+          notes: wasteNotes.trim() || undefined,
+        });
+
+        clear();
+        alert("Descarte de estoque registrado com sucesso!");
+        navigate("/stock");
+      } catch (error: any) {
+        console.error("Erro ao registrar descarte:", error);
+        alert(error.response?.data?.message || "Erro ao registrar descarte");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     setWarnings([]);
 
     try {
@@ -209,7 +309,7 @@ export default function OrderForm() {
         notify: isHistorical ? false : notify,
       };
 
-      if (isRetroactive || isEdit || showRetroactiveConfig) {
+      if (isHistorical || isEdit || showRetroactiveConfig) {
         payload.status = status;
         if (createdAt) {
           payload.createdAt = new Date(createdAt).toISOString();
@@ -236,7 +336,7 @@ export default function OrderForm() {
         setWarnings(response.data.warnings);
       } else {
         clear();
-        if (isRetroactive) {
+        if (isHistorical) {
           navigate("/orders/history");
         } else {
           navigate(-1);
@@ -251,11 +351,18 @@ export default function OrderForm() {
   };
 
   const handleClearOrder = () => {
-    if (confirm("Tem certeza que deseja limpar todo o pedido?")) {
+    if (
+      confirm(
+        formMode === "waste"
+          ? "Tem certeza que deseja limpar a lista de descarte?"
+          : "Tem certeza que deseja limpar todo o pedido?"
+      )
+    ) {
       clear();
       setDeliveryFee(2);
       setAddress("");
-      setNotify(!isRetroactive && status !== OrderStatus.COMPLETED);
+      setNotify(!isHistorical);
+      setWasteNotes("");
     }
   };
 
@@ -277,7 +384,7 @@ export default function OrderForm() {
 
   const handleContinueWithWarnings = () => {
     clear();
-    if (isRetroactive) {
+    if (isHistorical) {
       navigate("/orders/history");
     } else {
       navigate(-1);
@@ -286,24 +393,75 @@ export default function OrderForm() {
 
   return (
     <div className="order-form">
+      {/* Modal de confirmação ao trocar de modo com itens no carrinho */}
+      {isConfirmModalOpen && (
+        <div className="mode-switch-modal-backdrop">
+          <div className="mode-switch-modal-content">
+            <h3>⚠️ Alterar Tipo de Registro?</h3>
+            <p>
+              Você possui <strong>{items.length} {items.length === 1 ? "item" : "itens"}</strong> no rascunho atual.
+              Ao mudar para <strong>{pendingMode === "waste" ? "Descarte" : pendingMode === "historical" ? "Pedido Histórico" : "Pedido Normal"}</strong>, os itens selecionados serão limpos.
+            </p>
+            <div className="mode-switch-modal-actions">
+              <button
+                type="button"
+                className="btn-cancel-switch"
+                onClick={handleCancelSwitch}
+              >
+                Manter Modo Atual
+              </button>
+              <button
+                type="button"
+                className="btn-confirm-switch"
+                onClick={handleConfirmSwitch}
+              >
+                Sim, Limpar e Mudar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="form-header">
         <button
-          onClick={() => (isRetroactive ? navigate("/orders/history") : navigate(-1))}
+          onClick={() => {
+            if (formMode === "historical") navigate("/orders/history");
+            else if (formMode === "waste") navigate("/stock");
+            else navigate(-1);
+          }}
           className="btn-back"
         >
           ← Voltar
         </button>
+
+        {!isEdit && (
+          <div className="form-mode-select-wrapper">
+            <select
+              id="form-mode-select"
+              className="form-mode-select"
+              value={formMode}
+              onChange={(e) => handleModeChange(e.target.value as FormMode)}
+            >
+              <option value="normal">🛒 Pedido Normal</option>
+              <option value="historical">📜 Pedido Histórico</option>
+              <option value="waste">🗑️ Descarte de Estoque</option>
+            </select>
+          </div>
+        )}
+
         <h1>
           {isEdit
             ? "Editar Pedido"
-            : isRetroactive
+            : formMode === "waste"
+            ? "Descarte de Estoque"
+            : formMode === "historical"
             ? "Novo Pedido Histórico"
             : "Novo Pedido"}
         </h1>
       </header>
 
       {/* Configuração de Data e Status (Retroativo ou Edição) */}
-      {isRetroactive || isEdit || showRetroactiveConfig ? (
+      {formMode !== "waste" && (isHistorical || isEdit || showRetroactiveConfig) ? (
         <div
           className="order-details-card"
           style={{
@@ -330,7 +488,7 @@ export default function OrderForm() {
               }}
             >
               <span>📅</span> Data & Status do Pedido{" "}
-              {isRetroactive && (
+              {isHistorical && (
                 <span
                   style={{
                     fontSize: "12px",
@@ -341,11 +499,11 @@ export default function OrderForm() {
                     fontWeight: "normal",
                   }}
                 >
-                  Retroativo
+                  Histórico
                 </span>
               )}
             </h3>
-            {!isRetroactive && !isEdit && (
+            {!isHistorical && !isEdit && (
               <button
                 type="button"
                 onClick={() => setShowRetroactiveConfig(false)}
@@ -474,7 +632,7 @@ export default function OrderForm() {
             )}
           </div>
         </div>
-      ) : (
+      ) : formMode !== "waste" && !isEdit ? (
         <div style={{ marginBottom: "16px", textAlign: "right" }}>
           <button
             type="button"
@@ -492,100 +650,102 @@ export default function OrderForm() {
             ⚙️ Definir data retroativa ou status inicial
           </button>
         </div>
-      )}
+      ) : null}
 
-      <div className="order-details-card" style={{ marginBottom: '24px' }}>
-        <h3>Detalhes do Cliente</h3>
-        
-        <div className="customer-section">
-          <label>Cliente (Opcional):</label>
-          {!customerId ? (
-            <button 
-              type="button"
-              className="btn-select-customer" 
-              onClick={() => {
-                setCustomerSearch("");
-                setIsCustomerSelectModalOpen(true);
-              }}
-              style={{ width: '100%', padding: '16px', background: '#fdfdfd', border: '2px dashed #ccc', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', color: '#666', fontSize: '16px', fontWeight: 'bold', transition: 'all 0.2s' }}
-            >
-              👤 Selecionar Cliente
-            </button>
-          ) : (() => {
-            const selectedCustomer = customers.find(c => c.id === customerId);
-            return (
-              <div 
-                className="selected-customer-card" 
+      {formMode !== "waste" && (
+        <div className="order-details-card" style={{ marginBottom: '24px' }}>
+          <h3>Detalhes do Cliente</h3>
+          
+          <div className="customer-section">
+            <label>Cliente (Opcional):</label>
+            {!customerId ? (
+              <button 
+                type="button"
+                className="btn-select-customer" 
                 onClick={() => {
                   setCustomerSearch("");
                   setIsCustomerSelectModalOpen(true);
                 }}
-                style={{ background: '#f8f9fa', border: '1px solid #3498db', borderLeft: '4px solid #3498db', borderRadius: '8px', padding: '16px', cursor: 'pointer' }}
+                style={{ width: '100%', padding: '16px', background: '#fdfdfd', border: '2px dashed #ccc', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', color: '#666', fontSize: '16px', fontWeight: 'bold', transition: 'all 0.2s' }}
               >
-                <h4 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '16px' }}>{selectedCustomer?.name || 'Cliente Desconhecido'}</h4>
-                {selectedCustomer?.address && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📍 {selectedCustomer.address}</p>}
-                {!selectedCustomer?.address && selectedCustomer?.phone && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📞 {selectedCustomer.phone}</p>}
-                {selectedCustomer?.observation && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📝 {selectedCustomer.observation}</p>}
-                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#3498db', fontWeight: 'bold', textAlign: 'right' }}>Toque para trocar</p>
-              </div>
-            );
-          })()}
-        </div>
-
-        <div className="address-section">
-          <label htmlFor="address">Endereço de Entrega (Opcional):</label>
-          <textarea
-            id="address"
-            value={address || ""}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Rua, Número, Bairro, Referência..."
-            className="address-input"
-          />
-        </div>
-
-        {isHistorical ? (
-          <div
-            style={{
-              marginTop: "16px",
-              paddingTop: "16px",
-              borderTop: "1px solid #eee",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              color: "#64748b",
-              fontSize: "14px",
-            }}
-          >
-            <span style={{ fontSize: "18px" }}>🔕</span>
-            <div>
-              <strong style={{ color: "#475569" }}>Alertas desativados:</strong> Pedidos históricos nunca geram notificações de emergência no celular.
-            </div>
+                👤 Selecionar Cliente
+              </button>
+            ) : (() => {
+              const selectedCustomer = customers.find(c => c.id === customerId);
+              return (
+                <div 
+                  className="selected-customer-card" 
+                  onClick={() => {
+                    setCustomerSearch("");
+                    setIsCustomerSelectModalOpen(true);
+                  }}
+                  style={{ background: '#f8f9fa', border: '1px solid #3498db', borderLeft: '4px solid #3498db', borderRadius: '8px', padding: '16px', cursor: 'pointer' }}
+                >
+                  <h4 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '16px' }}>{selectedCustomer?.name || 'Cliente Desconhecido'}</h4>
+                  {selectedCustomer?.address && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📍 {selectedCustomer.address}</p>}
+                  {!selectedCustomer?.address && selectedCustomer?.phone && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📞 {selectedCustomer.phone}</p>}
+                  {selectedCustomer?.observation && <p style={{ margin: '4px 0', fontSize: '14px', color: '#555' }}>📝 {selectedCustomer.observation}</p>}
+                  <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#3498db', fontWeight: 'bold', textAlign: 'right' }}>Toque para trocar</p>
+                </div>
+              );
+            })()}
           </div>
-        ) : (
-          <div className="notify-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}>
-              <input
-                type="checkbox"
-                checked={notify}
-                onChange={(e) => setNotify(e.target.checked)}
-                style={{ width: '22px', height: '22px', accentColor: '#4f46e5', cursor: 'pointer' }}
-              />
+
+          <div className="address-section">
+            <label htmlFor="address">Endereço de Entrega (Opcional):</label>
+            <textarea
+              id="address"
+              value={address || ""}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Rua, Número, Bairro, Referência..."
+              className="address-input"
+            />
+          </div>
+
+          {isHistorical ? (
+            <div
+              style={{
+                marginTop: "16px",
+                paddingTop: "16px",
+                borderTop: "1px solid #eee",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                color: "#64748b",
+                fontSize: "14px",
+              }}
+            >
+              <span style={{ fontSize: "18px" }}>🔕</span>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '15px', color: '#1e293b' }}>
-                  🔔 Alerta de emergência no celular (Pushover)
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                  Desmarque para pedidos presenciais de balcão ou se já estiver na cozinha
-                </div>
+                <strong style={{ color: "#475569" }}>Alertas desativados:</strong> Pedidos históricos nunca geram notificações de emergência no celular.
               </div>
-            </label>
-          </div>
-        )}
-      </div>
+            </div>
+          ) : (
+            <div className="notify-section" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                <input
+                  type="checkbox"
+                  checked={notify}
+                  onChange={(e) => setNotify(e.target.checked)}
+                  style={{ width: '22px', height: '22px', accentColor: '#4f46e5', cursor: 'pointer' }}
+                />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '15px', color: '#1e293b' }}>
+                    🔔 Alerta de emergência no celular (Pushover)
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                    Desmarque para pedidos presenciais de balcão ou se já estiver na cozinha
+                  </div>
+                </div>
+              </label>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="form-content">
         <section className="products-section">
-          <h2>Produtos Disponíveis</h2>
+          <h2>{formMode === "waste" ? "Itens / Ingredientes para Descarte" : "Produtos Disponíveis"}</h2>
           {groupedProducts.map(group => (
             <div key={group.name} style={{ marginBottom: "20px" }}>
               <h3 style={{ borderBottom: "1px solid #ddd", paddingBottom: "5px", marginBottom: "10px", color: "#666" }}>
@@ -596,12 +756,18 @@ export default function OrderForm() {
                   <div key={product.id} className="product-card">
                     <div className="product-info">
                       <h3>{product.name}</h3>
-                      <p className="product-price">
-                        {formatCurrency(product.price)}
-                        <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
-                          / {product.unit || 'un'}
-                        </span>
-                      </p>
+                      {formMode === "waste" ? (
+                        <p className="product-price" style={{ color: "#64748b", fontSize: "0.85em" }}>
+                          Unidade: <strong>{product.unit || "un"}</strong>
+                        </p>
+                      ) : (
+                        <p className="product-price">
+                          {formatCurrency(product.price)}
+                          <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
+                            / {product.unit || 'un'}
+                          </span>
+                        </p>
+                      )}
                     </div>
                     {(() => {
                       const cartItem = items.find((i) => i.productId === product.id);
@@ -659,25 +825,35 @@ export default function OrderForm() {
         </section>
 
         <section className="cart-section">
-          <h2>Itens do Pedido</h2>
+          <h2>{formMode === "waste" ? "Itens a Descartar" : "Itens do Pedido"}</h2>
 
           {items.length === 0 ? (
-            <p className="empty-cart">Nenhum produto adicionado</p>
+            <p className="empty-cart">
+              {formMode === "waste" ? "Nenhum item selecionado para descarte" : "Nenhum produto adicionado"}
+            </p>
           ) : (
             <div className="cart-items">
               {items.map((item) => (
                   <div key={item.productId} className="cart-item">
                     <div className="item-info">
                       <h3>{item.productName}</h3>
-                      <div className="item-pricing">
-                        <p className="unit-price">
-                          {formatCurrency(item.unitPrice)} / {products.find(p => p.id === item.productId)?.unit || 'un'}
-                        </p>
-                        <p className="total-price">
-                          Total:{" "}
-                          {formatCurrency(item.unitPrice * item.quantity)}
-                        </p>
-                      </div>
+                      {formMode === "waste" ? (
+                        <div className="item-pricing">
+                          <p className="unit-price" style={{ color: "#64748b" }}>
+                            {item.quantity} {products.find(p => p.id === item.productId)?.unit || "un"} a descartar
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="item-pricing">
+                          <p className="unit-price">
+                            {formatCurrency(item.unitPrice)} / {products.find(p => p.id === item.productId)?.unit || 'un'}
+                          </p>
+                          <p className="total-price">
+                            Total:{" "}
+                            {formatCurrency(item.unitPrice * item.quantity)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <div className="item-controls">
                       <button
@@ -725,7 +901,50 @@ export default function OrderForm() {
         </section>
 
         <section className="checkout-section">
+          {formMode === "waste" ? (
+            <>
+              <div className="waste-config-card">
+                <h3>Motivo do Descarte *</h3>
+                <div className="waste-reason-chips">
+                  {(Object.keys(WASTE_REASON_LABELS) as WasteReason[]).map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      className={`waste-chip-btn ${wasteReason === reason ? "active" : ""}`}
+                      onClick={() => setWasteReason(reason)}
+                    >
+                      <span>{WASTE_REASON_ICONS[reason]}</span>
+                      <span>{WASTE_REASON_LABELS[reason]}</span>
+                    </button>
+                  ))}
+                </div>
 
+                <div className="waste-notes-field">
+                  <label htmlFor="wasteNotes">Observações adicionais (opcional):</label>
+                  <textarea
+                    id="wasteNotes"
+                    value={wasteNotes}
+                    onChange={(e) => setWasteNotes(e.target.value)}
+                    placeholder="Ex: Lote perdeu a validade, quebrou pote na bancada..."
+                    className="waste-notes-input"
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div className="waste-summary-card">
+                <div className="waste-summary-line">
+                  <span>Itens distintos a descartar:</span>
+                  <strong>{items.length}</strong>
+                </div>
+                <div className="waste-summary-line">
+                  <span>Quantidade total de unidades:</span>
+                  <strong>{items.reduce((acc, i) => acc + i.quantity, 0)}</strong>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
               <div className="delivery-fee-section">
                 <label htmlFor="deliveryFee">Taxa de Entrega:</label>
                 <NumberInput
@@ -758,63 +977,68 @@ export default function OrderForm() {
                   </strong>
                 </div>
               </div>
+            </>
+          )}
 
-              {warnings.length > 0 && (
-                <div className="warnings">
-                  <h3>⚠️ Avisos</h3>
-                  {warnings.map((warning, index) => (
-                    <p key={index} className="warning-message">
-                      {warning}
-                    </p>
-                  ))}
-                  <div className="warning-actions">
-                    <button
-                      onClick={() => setWarnings([])}
-                      className="btn-secondary"
-                    >
-                      Corrigir
-                    </button>
-                    <button
-                      onClick={handleContinueWithWarnings}
-                      className="btn-primary"
-                    >
-                      Continuar Mesmo Assim
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="order-form-actions">
+          {warnings.length > 0 && (
+            <div className="warnings">
+              <h3>⚠️ Avisos</h3>
+              {warnings.map((warning, index) => (
+                <p key={index} className="warning-message">
+                  {warning}
+                </p>
+              ))}
+              <div className="warning-actions">
                 <button
-                  onClick={handleClearOrder}
-                  disabled={loading}
-                  className="btn-clear-order"
+                  onClick={() => setWarnings([])}
+                  className="btn-secondary"
                 >
-                  Limpar Pedido
+                  Corrigir
                 </button>
-                {isEdit && (
-                  <button
-                    onClick={handleCancelOrder}
-                    disabled={loading}
-                    className="btn-cancel-order"
-                  >
-                    Cancelar Pedido
-                  </button>
-                )}
                 <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="btn-save"
+                  onClick={handleContinueWithWarnings}
+                  className="btn-primary"
                 >
-                  {loading
-                    ? "Salvando..."
-                    : isEdit
-                      ? "Atualizar Pedido"
-                      : isRetroactive
-                      ? "Salvar Pedido Histórico"
-                      : "Criar Pedido"}
+                  Continuar Mesmo Assim
                 </button>
               </div>
+            </div>
+          )}
+
+          <div className="order-form-actions">
+            <button
+              onClick={handleClearOrder}
+              disabled={loading}
+              className="btn-clear-order"
+            >
+              {formMode === "waste" ? "Limpar Descarte" : "Limpar Pedido"}
+            </button>
+            {isEdit && (
+              <button
+                onClick={handleCancelOrder}
+                disabled={loading}
+                className="btn-cancel-order"
+              >
+                Cancelar Pedido
+              </button>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className={`btn-save ${formMode === "waste" ? "btn-save-waste" : ""}`}
+              style={formMode === "waste" ? { backgroundColor: "#dc2626" } : undefined}
+            >
+              {loading
+                ? "Salvando..."
+                : formMode === "waste"
+                ? "🗑️ Registrar Descarte"
+                : isEdit
+                ? "Atualizar Pedido"
+                : isHistorical
+                ? "Salvar Pedido Histórico"
+                : "Criar Pedido"}
+            </button>
+          </div>
         </section>
       </div>
 

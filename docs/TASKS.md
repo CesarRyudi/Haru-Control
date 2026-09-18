@@ -6,6 +6,7 @@
 - `[x]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[✅ Resolvido e validado na prática em Dev e Produção no Coolify]*
 - `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[✅ Resolvido e validado na prática em Dev e Produção]*
 - `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
+- `[x]` **[BUG-004]** Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm — *[✅ Resolvido e validado na prática: remoção do max-height/overflow-y da grid para expansão natural dos produtos]*
 
 ---
 
@@ -75,6 +76,7 @@
 - `[x]` **Projeção de Faturamento Mensal na Tela de Insights:**
   - **Cálculo Linear Inicial (Run Rate):** Calcular a projeção de fechamento do mês atual através da fórmula: `(Faturamento Acumulado no Mês / Dias Decorridos até Hoje) * Total de Dias do Mês Atual`.
   - **Exibição na UI:** Exibir card destacado de métrica na tela `/insights` com o valor projetado, indicando a média diária e o número de dias restantes do mês.
+  - **Refinamento de UI/UX:** Substituição dos chips de filtro por dropdown nativo responsivo e remoção de emojis gráficos decorativos da projeção.
   - **Evolução Futura:** Deixar a arquitetura preparada para modelos preditivos mais avançados (levando em conta sazonalidade de dias da semana, quinta a domingo com maior pico de vendas).
 - `[ ]` **Previsão Estatística de Demanda e Sugestão de Produção Diária (Planejamento de Fornada):**
   - **Motor de Recomendação Baseado em Dados:**
@@ -87,12 +89,16 @@
     - Painel/cartão *"Sugestão de Fornada para Hoje"*, com botão rápido para gerar a ordem de produção em 1 toque.
 - `[x]` **Módulo de Descarte de Produtos / Insumos (Controle de Perdas & Validade):**
   - **Ledger Contábil de Descarte:**
-    - Adicionar operação `WASTE` (ou `DISCARD`) ao enum `LedgerOperationType` no Prisma.
-    - Gravar motivo do descarte (ex: *"Validade Vencida"*, *"Quebra/Avaria"*, *"Falha de Forno/Preparo"*, *"Teste/Degustação"*) e observações.
+    - Adicionar operação `WASTE` ao enum `LedgerOperationType` no Prisma.
+    - Gravar motivo do descarte (`WasteReason`: `EXPIRED`, `DAMAGE`, `BAKING_FAILURE`, `TASTING`, `OTHER`) e observações.
     - Baixar imediatamente a quantidade descartada do estoque no Ledger imutável.
-  - **Interface de Registro no Mobile (`/stock`):**
-    - Botão *"Registrar Descarte / Perda"* na tela de Estoque.
-    - Modal intuitivo para selecionar o produto/insumo, quantidade, motivo e data do descarte.
+    - Endpoint em lote na API: `POST /stock/waste/batch` com transação atômica.
+  - **Tela Unificada de Pedidos, Histórico e Descartes:**
+    - Dropdown no topo esquerdo do formulário (`OrderForm.tsx`) para alternar entre "Pedido Normal", "Pedido Histórico" e "Descarte de Estoque".
+    - Roteamento e pré-seleção automática (`/orders/new`, `?mode=historical`, `?mode=waste`).
+    - Modal de confirmação para prevenir perda de itens do rascunho ao trocar de modo com produtos no carrinho.
+    - No modo descarte: remoção de cliente, endereço, Pushover, taxas de entrega e valores monetários (R$), exibição de todos os produtos do inventário (insumos, bases, embalagens), seleção rápida de motivo e observação, e submissão em lote.
+    - Integração no FAB de Estoque para navegar diretamente para `/orders/new?mode=waste` e remoção do modal duplicado em `Stock.tsx`.
   - **Métricas e Relatórios nos Insights (`/insights`):**
     - Card de KPI com o total de perdas do mês (custo estimado em R$ e volume).
     - Gráfico com os produtos mais descartados e distribuição por motivo (ex: % validade vs % quebra), ajudando a identificar gargalos de produção e compras.

@@ -211,43 +211,23 @@ export default function Insights() {
 
       {/* Seletor de Período */}
       <div className="insights-filters-container">
-        <div className="insights-filter-chips">
-          <button
-            className={`insights-chip ${preset === "this_month" ? "active" : ""}`}
-            onClick={() => setPreset("this_month")}
+        <div className="insights-period-select-wrapper">
+          <label htmlFor="period-select" className="insights-period-label">
+            📅 Período
+          </label>
+          <select
+            id="period-select"
+            className="insights-period-select"
+            value={preset}
+            onChange={(e) => setPreset(e.target.value as PeriodPreset)}
           >
-            Mês Atual
-          </button>
-          <button
-            className={`insights-chip ${preset === "today" ? "active" : ""}`}
-            onClick={() => setPreset("today")}
-          >
-            Hoje
-          </button>
-          <button
-            className={`insights-chip ${preset === "7days" ? "active" : ""}`}
-            onClick={() => setPreset("7days")}
-          >
-            Últimos 7 dias
-          </button>
-          <button
-            className={`insights-chip ${preset === "30days" ? "active" : ""}`}
-            onClick={() => setPreset("30days")}
-          >
-            Últimos 30 dias
-          </button>
-          <button
-            className={`insights-chip ${preset === "last_month" ? "active" : ""}`}
-            onClick={() => setPreset("last_month")}
-          >
-            Mês Anterior
-          </button>
-          <button
-            className={`insights-chip ${preset === "custom" ? "active" : ""}`}
-            onClick={() => setPreset("custom")}
-          >
-            Personalizado 📅
-          </button>
+            <option value="this_month">Mês Atual</option>
+            <option value="today">Hoje</option>
+            <option value="7days">Últimos 7 dias</option>
+            <option value="30days">Últimos 30 dias</option>
+            <option value="last_month">Mês Anterior</option>
+            <option value="custom">Personalizado (definir datas)</option>
+          </select>
         </div>
 
         {preset === "custom" && (
@@ -296,12 +276,11 @@ export default function Insights() {
         </div>
       ) : metrics ? (
         <>
-          {/* 🔮 Projeção Mensal de Faturamento (Run-Rate) */}
+          {/* Projeção Mensal de Faturamento (Run-Rate) */}
           {metrics.monthlyProjection?.isCurrentMonth && (
             <div className="insights-projection-card">
               <div className="projection-header">
                 <div className="projection-title-group">
-                  <span className="projection-icon">🔮</span>
                   <div>
                     <h3 className="projection-title">Projeção Mensal de Faturamento</h3>
                     <span className="projection-badge">Estimativa Run-Rate</span>

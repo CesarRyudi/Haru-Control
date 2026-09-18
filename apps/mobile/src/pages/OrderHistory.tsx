@@ -191,7 +191,7 @@ export default function OrderHistory() {
         </div>
         <button
           className="btn-new-retroactive"
-          onClick={() => navigate("/orders/new?retroactive=true")}
+          onClick={() => navigate("/orders/new?mode=historical")}
         >
           <span>＋</span> Pedido Histórico
         </button>
