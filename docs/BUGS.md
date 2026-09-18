@@ -12,7 +12,8 @@
 | `BUG-001` | `[x]` Resolvido | `✅ Validado` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
 | `BUG-002` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
 | `BUG-003` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx` | 2026-09-17 |
-| `BUG-004` | `[ ]` Aberto | `⏳ Pendente` | `🟢 Baixa` | Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm | `apps/mobile/src/pages/OrderForm.css` | 2026-09-17 |
+| `BUG-004` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm | `apps/mobile/src/pages/OrderForm.css` | 2026-09-17 |
+| `BUG-005` | `[ ]` Aberto | `⏳ Pendente` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
 
 ---
 
@@ -185,7 +186,39 @@
 - As caixas de categoria de produtos agora crescem organicamente para comportar qualquer quantidade de itens cadastrados, delegando o scroll à viewport vertical da aplicação.
 - Validado via compilação completa do mobile app com 100% de sucesso.
 
+---
+
+### [BUG-005] Chips de seleção de motivo do descarte sem feedback visual
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-18
+- **Data de Implementação:** 2026-09-18
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Na tela de criação no modo Descarte (`OrderForm`), ao tocar nos chips de motivo do descarte ("Validade Vencida", "Quebra / Avaria", "Falha de Forno / Preparo", "Teste / Degustação", "Outro Motivo"), a interface não refletia o estado selecionado (não aplicava o fundo vermelho, texto branco ou sombra ativa), aparentando que a seleção não estava funcionando.
+- **Passos para Reproduzir:**
+  1. Acessar `/orders/new?mode=waste` ou alternar para o modo "Descarte de Estoque".
+  2. Rolar até a seção "Motivo do Descarte".
+  3. Clicar em qualquer chip de motivo (ex: "Falha de Forno / Preparo").
+  4. Observar que o botão não assume o estilo de ativo.
+- **Comportamento Esperado:** O chip selecionado deve receber imediatamente o destaque visual ativo (`.active`) com fundo vermelho, texto em branco e contraste definido.
+- **Logs / Erros de Console:** Nenhum erro de console reportado.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Incompatibilidade de nomenclatura de classes CSS entre `OrderForm.css` (que declarava `.waste-reason-chip` e `.waste-reason-chip.active`) e `OrderForm.tsx` (que renderizava os botões com a classe `.waste-chip-btn`).
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Durante a criação do formulário unificado, a classe CSS definida no arquivo de estilos divergiu ligeiramente da classe aplicada no componente JSX, impedindo a aplicação das regras de estilo e da pseudo-classe de seleção ativa.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Unificados os seletores CSS em `OrderForm.css` aplicando regras conjuntas para `.waste-reason-chip, .waste-chip-btn` e `.waste-reason-chip.active, .waste-chip-btn.active`.
+- Atualizado o JSX em `OrderForm.tsx` para passar ambas as classes (`waste-reason-chip waste-chip-btn`) e renderizar a lista via `Object.values(WasteReason)`.
+- Validado em compilação completa com 100% de sucesso.
+
 #### 5. Lições Aprendidas & Prevenção Futura
-- Evitar contêineres com `max-height` e rolagem vertical interna em interfaces mobile, priorizando o crescimento natural dos grids e delegando a rolagem à viewport da tela inteira.
+- Padronizar seletores de classes de componentes ou usar aliasing em CSS para classes variantes (`.waste-reason-chip, .waste-chip-btn`) prevenindo divergências entre estilização e JSX.
 
 ---

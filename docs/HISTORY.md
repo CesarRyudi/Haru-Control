@@ -219,3 +219,26 @@
     - Adaptado o teste de ponta a ponta de descarte para seguir o novo fluxo unificado (FAB -> `/orders/new?mode=waste` -> seleção de produto e motivo -> submissão -> retorno a `/stock`).
 - **Validação:** Compilação completa de `api` e `mobile` com 100% de sucesso (`npm run build`).
 - **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-18] Resolução de BUG-005 e Refinamentos de UX no OrderForm e Histórico
+
+- **Contexto:** Solicitação do usuário para refinamentos de ergonomia e fluxo: alternância fluida entre Pedido Normal e Pedido Histórico sem limpar o carrinho nem exigir confirmação; remoção do atalho de configuração retroativa redundante; reposicionamento do dropdown de modo abaixo do título da página; resolução do bug `BUG-005` (chips de motivo do descarte sem feedback visual); migração do botão de "Novo Pedido Histórico" para botão flutuante (`FloatingActionButton`) e aplicação do mesmo padrão de seletor dropdown de período dos Insights na tela de Histórico de Pedidos.
+- **Implementações Realizadas:**
+  - **1. Resolução do BUG-005 (`OrderForm.tsx` & `OrderForm.css`):**
+    - Unificada a nomenclatura das classes CSS (`.waste-reason-chip, .waste-chip-btn` e `.active`), restaurando o feedback visual imediato ao tocar em qualquer motivo de descarte.
+  - **2. Transição Sem Perdas entre Normal e Histórico (`OrderForm.tsx`):**
+    - `handleModeChange` agora detecta trocas diretas entre `normal` e `historical`, aplicando o novo modo sem acionar o modal de confirmação e preservando todos os itens adicionados no carrinho.
+  - **3. Higienização e Reposicionamento do Cabeçalho (`OrderForm.tsx` & `OrderForm.css`):**
+    - Removido o link `⚙️ Definir data retroativa ou status inicial` e o botão `✕ Ocultar`, visto que o modo do formulário já é controlado pelo seletor de topo.
+    - O dropdown de tipo de registro agora se posiciona diretamente abaixo do título da tela (`<h1>Novo Pedido / Novo Pedido Histórico / Descarte`), melhorando a hierarquia visual.
+  - **4. Botão Flutuante (FAB) no Histórico de Pedidos (`OrderHistory.tsx`):**
+    - Removido o botão estático `btn-new-retroactive` do cabeçalho superior.
+    - Adicionado o `FloatingActionButton` com ícone `＋` para criação de pedidos históricos na parte inferior direita da tela.
+  - **5. Dropdown de Período Padronizado no Histórico (`OrderHistory.tsx` & `OrderHistory.css`):**
+    - Substituídos os botões de chip com rolagem horizontal pelo seletor dropdown `<select className="history-period-select">` com opções: `Todos os Pedidos (Todo o Período)`, `Mês Atual`, `Hoje`, `Ontem`, `Últimos 7 dias`, `Mês Passado` e `Personalizado (definir datas)`.
+    - Quando selecionado `Personalizado`, são exibidos inputs de data início e fim dedicados.
+  - **6. Atualização de Page Objects e Testes E2E:**
+    - `OrderHistoryPage.ts`: Atualizado seletor `newHistoricalOrderButton` para apontar para `.fab-button`.
+    - `04-history-retroactive.spec.ts`: Adaptado para validar o novo dropdown `history-period-select`.
+- **Validação:** Compilação dos pacotes com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).

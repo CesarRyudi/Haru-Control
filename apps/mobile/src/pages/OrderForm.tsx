@@ -96,6 +96,17 @@ export default function OrderForm() {
   const handleModeChange = (newMode: FormMode) => {
     if (newMode === formMode) return;
 
+    // Se a troca for apenas entre Pedido Normal e Pedido Histórico, mantém os itens no rascunho sem confirmação
+    const isSwitchingBetweenOrders =
+      (formMode === "normal" && newMode === "historical") ||
+      (formMode === "historical" && newMode === "normal");
+
+    if (isSwitchingBetweenOrders) {
+      applyMode(newMode);
+      return;
+    }
+
+    // Se envolver descarte (indo para descarte ou saindo de descarte) e houver itens:
     if (items.length > 0) {
       setPendingMode(newMode);
       setIsConfirmModalOpen(true);
@@ -423,16 +434,28 @@ export default function OrderForm() {
       )}
 
       <header className="form-header">
-        <button
-          onClick={() => {
-            if (formMode === "historical") navigate("/orders/history");
-            else if (formMode === "waste") navigate("/stock");
-            else navigate(-1);
-          }}
-          className="btn-back"
-        >
-          ← Voltar
-        </button>
+        <div className="form-header-top">
+          <button
+            onClick={() => {
+              if (formMode === "historical") navigate("/orders/history");
+              else if (formMode === "waste") navigate("/stock");
+              else navigate(-1);
+            }}
+            className="btn-back"
+          >
+            ← Voltar
+          </button>
+
+          <h1>
+            {isEdit
+              ? "Editar Pedido"
+              : formMode === "waste"
+              ? "Descarte de Estoque"
+              : formMode === "historical"
+              ? "Novo Pedido Histórico"
+              : "Novo Pedido"}
+          </h1>
+        </div>
 
         {!isEdit && (
           <div className="form-mode-select-wrapper">
@@ -448,16 +471,6 @@ export default function OrderForm() {
             </select>
           </div>
         )}
-
-        <h1>
-          {isEdit
-            ? "Editar Pedido"
-            : formMode === "waste"
-            ? "Descarte de Estoque"
-            : formMode === "historical"
-            ? "Novo Pedido Histórico"
-            : "Novo Pedido"}
-        </h1>
       </header>
 
       {/* Configuração de Data e Status (Retroativo ou Edição) */}
@@ -503,21 +516,6 @@ export default function OrderForm() {
                 </span>
               )}
             </h3>
-            {!isHistorical && !isEdit && (
-              <button
-                type="button"
-                onClick={() => setShowRetroactiveConfig(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#64748b",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                }}
-              >
-                ✕ Ocultar
-              </button>
-            )}
           </div>
 
           <div
@@ -631,24 +629,6 @@ export default function OrderForm() {
               </div>
             )}
           </div>
-        </div>
-      ) : formMode !== "waste" && !isEdit ? (
-        <div style={{ marginBottom: "16px", textAlign: "right" }}>
-          <button
-            type="button"
-            onClick={() => setShowRetroactiveConfig(true)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#059669",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: "600",
-              textDecoration: "underline",
-            }}
-          >
-            ⚙️ Definir data retroativa ou status inicial
-          </button>
         </div>
       ) : null}
 
@@ -906,11 +886,11 @@ export default function OrderForm() {
               <div className="waste-config-card">
                 <h3>Motivo do Descarte *</h3>
                 <div className="waste-reason-chips">
-                  {(Object.keys(WASTE_REASON_LABELS) as WasteReason[]).map((reason) => (
+                  {Object.values(WasteReason).map((reason) => (
                     <button
                       key={reason}
                       type="button"
-                      className={`waste-chip-btn ${wasteReason === reason ? "active" : ""}`}
+                      className={`waste-reason-chip waste-chip-btn ${wasteReason === reason ? "active" : ""}`}
                       onClick={() => setWasteReason(reason)}
                     >
                       <span>{WASTE_REASON_ICONS[reason]}</span>

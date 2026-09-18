@@ -7,6 +7,7 @@
 - `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[✅ Resolvido e validado na prática em Dev e Produção]*
 - `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
 - `[x]` **[BUG-004]** Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm — *[✅ Resolvido e validado na prática: remoção do max-height/overflow-y da grid para expansão natural dos produtos]*
+- `[ ]` **[BUG-005]** Chips de seleção de motivo do descarte sem feedback visual em OrderForm — *[🟡 Implementado: unificação de classes CSS e estilo .active nos chips — ⏳ Aguardando Validação Prática]*
 
 ---
 

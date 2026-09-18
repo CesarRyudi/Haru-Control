@@ -1,5 +1,5 @@
 import { Order, OrderStatus } from "@haru-control/types";
-import { Toast } from "@haru-control/ui";
+import { FloatingActionButton, Toast } from "@haru-control/ui";
 import { formatCurrency, formatDate } from "@haru-control/utils";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -19,12 +19,12 @@ export default function OrderHistory() {
   const [endDate, setEndDate] = useState("");
 
   type QuickFilterOption =
+    | "all"
+    | "thisMonth"
     | "today"
     | "yesterday"
     | "last7days"
-    | "thisMonth"
     | "lastMonth"
-    | "all"
     | "custom";
 
   const [activeQuickFilter, setActiveQuickFilter] =
@@ -40,6 +40,18 @@ export default function OrderHistory() {
     const today = new Date();
 
     switch (option) {
+      case "all": {
+        setStartDate("");
+        setEndDate("");
+        break;
+      }
+      case "thisMonth": {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        setStartDate(formatDateYMD(firstDay));
+        setEndDate(formatDateYMD(lastDay));
+        break;
+      }
       case "today": {
         const todayStr = formatDateYMD(today);
         setStartDate(todayStr);
@@ -61,12 +73,6 @@ export default function OrderHistory() {
         setEndDate(formatDateYMD(today));
         break;
       }
-      case "thisMonth": {
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        setStartDate(formatDateYMD(firstDay));
-        setEndDate(formatDateYMD(today));
-        break;
-      }
       case "lastMonth": {
         const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
@@ -74,9 +80,12 @@ export default function OrderHistory() {
         setEndDate(formatDateYMD(lastDay));
         break;
       }
-      case "all": {
-        setStartDate("");
-        setEndDate("");
+      case "custom": {
+        if (!startDate && !endDate) {
+          const todayStr = formatDateYMD(today);
+          setStartDate(todayStr);
+          setEndDate(todayStr);
+        }
         break;
       }
       default:
@@ -189,12 +198,6 @@ export default function OrderHistory() {
         <div className="history-header-left">
           <h1>🧾 Histórico de Pedidos</h1>
         </div>
-        <button
-          className="btn-new-retroactive"
-          onClick={() => navigate("/orders/new?mode=historical")}
-        >
-          <span>＋</span> Pedido Histórico
-        </button>
       </header>
 
       {/* KPIs */}
@@ -215,53 +218,49 @@ export default function OrderHistory() {
 
       {/* Filtros */}
       <div className="filter-card">
-        {/* Chips de Filtros Rápidos de Data */}
-        <div className="quick-filters-scroll">
-          <div className="quick-filters-row">
-            <button
-              type="button"
-              className={`quick-filter-chip ${activeQuickFilter === "today" ? "active" : ""}`}
-              onClick={() => applyQuickFilter("today")}
-            >
-              Hoje
-            </button>
-            <button
-              type="button"
-              className={`quick-filter-chip ${activeQuickFilter === "yesterday" ? "active" : ""}`}
-              onClick={() => applyQuickFilter("yesterday")}
-            >
-              Ontem
-            </button>
-            <button
-              type="button"
-              className={`quick-filter-chip ${activeQuickFilter === "last7days" ? "active" : ""}`}
-              onClick={() => applyQuickFilter("last7days")}
-            >
-              Últimos 7 dias
-            </button>
-            <button
-              type="button"
-              className={`quick-filter-chip ${activeQuickFilter === "thisMonth" ? "active" : ""}`}
-              onClick={() => applyQuickFilter("thisMonth")}
-            >
-              Este Mês
-            </button>
-            <button
-              type="button"
-              className={`quick-filter-chip ${activeQuickFilter === "lastMonth" ? "active" : ""}`}
-              onClick={() => applyQuickFilter("lastMonth")}
-            >
-              Mês Passado
-            </button>
-            <button
-              type="button"
-              className={`quick-filter-chip ${activeQuickFilter === "all" ? "active" : ""}`}
-              onClick={() => applyQuickFilter("all")}
-            >
-              Todos
-            </button>
-          </div>
+        {/* Seletor de Período (Dropdown no mesmo modelo dos Insights) */}
+        <div className="history-period-select-wrapper">
+          <label htmlFor="history-period-select" className="history-period-label">
+            📅 Período de Pedidos
+          </label>
+          <select
+            id="history-period-select"
+            className="history-period-select"
+            value={activeQuickFilter}
+            onChange={(e) => applyQuickFilter(e.target.value as QuickFilterOption)}
+          >
+            <option value="all">Todos os Pedidos (Todo o Período)</option>
+            <option value="thisMonth">Mês Atual</option>
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="last7days">Últimos 7 dias</option>
+            <option value="lastMonth">Mês Passado</option>
+            <option value="custom">Personalizado (definir datas)</option>
+          </select>
         </div>
+
+        {activeQuickFilter === "custom" && (
+          <div className="history-custom-dates">
+            <div className="history-date-input-group">
+              <label>Data Início</label>
+              <input
+                type="date"
+                className="history-date-input"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="history-date-input-group">
+              <label>Data Fim</label>
+              <input
+                type="date"
+                className="history-date-input"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSearchSubmit}>
           <div className="filter-grid">
@@ -290,32 +289,6 @@ export default function OrderHistory() {
                 <option value={OrderStatus.READY}>Em Entrega</option>
                 <option value={OrderStatus.DRAFT}>Rascunho</option>
               </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Data Inicial</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  setActiveQuickFilter("custom");
-                }}
-                className="filter-input"
-              />
-            </div>
-
-            <div className="filter-group">
-              <label>Data Final</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  setActiveQuickFilter("custom");
-                }}
-                className="filter-input"
-              />
             </div>
 
             <div className="filter-actions">
@@ -419,6 +392,11 @@ export default function OrderHistory() {
           ))}
         </div>
       )}
+
+      <FloatingActionButton
+        onClick={() => navigate("/orders/new?mode=historical")}
+        icon="＋"
+      />
     </div>
   );
 }

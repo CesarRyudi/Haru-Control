@@ -45,24 +45,21 @@ test.describe("Histórico de Pedidos & Lançamento Retroativo", () => {
     await expect(page).toHaveURL(/.*orders\/history/);
     await expect(navHistoryButton).toHaveClass(/active/);
 
-    // 4. Testa os chips de filtros rápidos de data
-    const chipHoje = page.locator("button.quick-filter-chip", { hasText: "Hoje" });
-    const chip7Dias = page.locator("button.quick-filter-chip", { hasText: "Últimos 7 dias" });
-    const chipEsteMes = page.locator("button.quick-filter-chip", { hasText: "Este Mês" });
-    const chipTodos = page.locator("button.quick-filter-chip", { hasText: "Todos" });
+    // 4. Testa o seletor dropdown de período de pedidos (mesmo padrão dos Insights)
+    const periodSelect = page.locator("select.history-period-select");
+    await expect(periodSelect).toBeVisible();
+    await expect(periodSelect).toHaveValue("all");
 
-    await expect(chipHoje).toBeVisible();
-    await chipHoje.click();
-    await expect(chipHoje).toHaveClass(/active/);
+    await periodSelect.selectOption("today");
+    await expect(periodSelect).toHaveValue("today");
 
-    await chip7Dias.click();
-    await expect(chip7Dias).toHaveClass(/active/);
-    await expect(chipHoje).not.toHaveClass(/active/);
+    await periodSelect.selectOption("last7days");
+    await expect(periodSelect).toHaveValue("last7days");
 
-    await chipEsteMes.click();
-    await expect(chipEsteMes).toHaveClass(/active/);
+    await periodSelect.selectOption("thisMonth");
+    await expect(periodSelect).toHaveValue("thisMonth");
 
-    await chipTodos.click();
-    await expect(chipTodos).toHaveClass(/active/);
+    await periodSelect.selectOption("all");
+    await expect(periodSelect).toHaveValue("all");
   });
 });

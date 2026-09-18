@@ -6,10 +6,15 @@
 
 .form-header {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
   margin-bottom: 24px;
-  flex-wrap: wrap;
+}
+
+.form-header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .btn-back {
@@ -562,11 +567,12 @@
   margin-bottom: 14px;
 }
 
-.waste-reason-chip {
+.waste-reason-chip,
+.waste-chip-btn {
   background: white;
   border: 1.5px solid #d1d5db;
   color: #374151;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
@@ -577,17 +583,19 @@
   gap: 6px;
 }
 
-.waste-reason-chip:hover {
+.waste-reason-chip:hover,
+.waste-chip-btn:hover {
   background: #f3f4f6;
   border-color: #9ca3af;
 }
 
-.waste-reason-chip.active {
+.waste-reason-chip.active,
+.waste-chip-btn.active {
   background: #ef4444;
   color: white;
   border-color: #ef4444;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
 }
 
 .waste-notes-input {

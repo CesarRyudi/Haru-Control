@@ -11,7 +11,7 @@ export class OrderHistoryPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.newHistoricalOrderButton = page.locator("button.btn-new-retroactive");
+    this.newHistoricalOrderButton = page.locator(".fab-button");
     this.searchInput = page.locator("input.filter-input[placeholder*='Ex: Maria']");
     this.statusSelect = page.locator(".filter-group select.filter-select");
     this.filterButton = page.locator(".filter-actions button.btn-primary");
@@ -47,7 +47,7 @@ export class OrderHistoryPage {
 
   async openNewHistoricalOrder() {
     await this.newHistoricalOrderButton.click();
-    await expect(this.page).toHaveURL(/.*orders\/new\?retroactive=true/, { timeout: 10000 });
+    await expect(this.page).toHaveURL(/.*orders\/new(\?mode=historical|\?retroactive=true)/, { timeout: 10000 });
     await expect(this.page.locator(".order-form h1")).toContainText("Novo Pedido Histórico");
   }
 
