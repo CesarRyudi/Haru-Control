@@ -1035,12 +1035,46 @@ export class OrdersService {
       .sort((a, b) => b.totalSpent - a.totalSpent)
       .slice(0, 10);
 
+    // 9. Cálculo da Projeção Mensal (Run-Rate)
+    const now = new Date();
+    const isCurrentMonth =
+      startDateTime.getFullYear() === now.getFullYear() &&
+      startDateTime.getMonth() === now.getMonth() &&
+      startDateTime.getDate() === 1;
+
+    const totalDaysInMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0
+    ).getDate();
+    const elapsedDays = Math.max(1, now.getDate());
+    const remainingDays = Math.max(0, totalDaysInMonth - elapsedDays);
+    const dailyAverage = Number((totalRevenue / elapsedDays).toFixed(2));
+    const projectedRevenue = Number((dailyAverage * totalDaysInMonth).toFixed(2));
+
+    const monthlyProjection = {
+      isCurrentMonth,
+      projectedRevenue,
+      dailyAverage,
+      elapsedDays,
+      remainingDays,
+      totalDaysInMonth,
+    };
+
+    // 10. Métricas de Descarte e Perdas de Estoque
+    const wasteMetrics = await this.stockService.getWasteMetrics(
+      startDate || startDateTime.toISOString().split("T")[0],
+      endDate || endDateTime.toISOString().split("T")[0]
+    );
+
     return {
       period: {
         startDate: startDateTime.toISOString().split("T")[0],
         endDate: endDateTime.toISOString().split("T")[0],
       },
       summary,
+      monthlyProjection,
+      wasteMetrics,
       revenueComposition,
       dailyEvolution,
       topProductsByQuantity,

@@ -107,12 +107,14 @@ model Sale {
 }
 
 model LedgerEntry {
-    id        String              @id @default(uuid())
-    productId String              @map("product_id")
-    quantity  Decimal             @db.Decimal(10, 4)
-    type      LedgerOperationType
-    orderId   String?             @map("order_id")
-    createdAt DateTime            @default(now()) @map("created_at")
+    id          String              @id @default(uuid())
+    productId   String              @map("product_id")
+    quantity    Decimal             @db.Decimal(10, 4)
+    type        LedgerOperationType
+    wasteReason WasteReason?        @map("waste_reason")
+    notes       String?             @map("notes")
+    orderId     String?             @map("order_id")
+    createdAt   DateTime            @default(now()) @map("created_at")
 
     product Product @relation(fields: [productId], references: [id])
     order   Order?  @relation(fields: [orderId], references: [id])
@@ -129,6 +131,15 @@ enum LedgerOperationType {
     CORRECTION
     MANUFACTURING_CONSUMPTION
     MANUFACTURING_PRODUCTION
+    WASTE
+}
+
+enum WasteReason {
+    EXPIRED
+    DAMAGE
+    BAKING_FAILURE
+    TASTING
+    OTHER
 }
 
 model RecipeItem {

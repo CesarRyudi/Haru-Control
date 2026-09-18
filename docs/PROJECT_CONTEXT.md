@@ -107,7 +107,7 @@ haru-control/
 
 ## 5. Fases de Desenvolvimento e Features
 
-### 📍 FASE 1: MVP Operacional Estabilizado & Segregação de Ambientes ⏳ (Fase Atual)
+### 📍 FASE 1: MVP Operacional Estabilizado & Segregação de Ambientes ✅ (Concluído)
 _Objetivo: Estabilizar o MVP completo que já opera na prática e segregar formalmente a infraestrutura do Coolify em ambientes isolados de Produção e Desenvolvimento._
 
 - **1.1 Core Operacional do MVP (Concluído):**
@@ -119,24 +119,33 @@ _Objetivo: Estabilizar o MVP completo que já opera na prática e segregar forma
   - Cadastro de Clientes com endereço detalhado para entregas no condomínio.
   - Notificações instantâneas via Pushover.
   - Dashboard analítico de vendas e faturamento (`Insights`).
-- **1.2 Segregação de Ambientes & Pipeline de Deploy (Em Andamento):**
-  - Promover o container/banco atual do Coolify para o ambiente oficial de **Produção** (com dados reais).
-  - Criar branch dedicada/protegida para Produção.
-  - Configurar novo ambiente isolado no Coolify para **Desenvolvimento (Dev / Staging)** apontando para a branch `main`.
-  - Normalizar o pipeline de migrations do Prisma no `Dockerfile.api`, restaurando `npx prisma migrate deploy` formal sem bypasses provisórios.
+- **1.2 Segregação de Ambientes & Pipeline de Deploy (Concluído):**
+  - Aplicação atual promovida para o ambiente oficial de **Produção** no Coolify (preservando banco de dados com dados reais).
+  - Branch dedicada e isolada para Produção (`production`).
+  - Novo ambiente isolado no Coolify para **Desenvolvimento (Dev / Staging)** apontando para a branch `main` com banco de dados próprio.
+  - Pipeline de migrations do Prisma normalizado no `Dockerfile.api` com execução segura de `npx prisma migrate deploy`.
+  - Homologação operacional em nuvem validada com sucesso em ambos os ambientes.
 
 ---
 
-### 📍 FASE 2: Expansão Operacional, Automações & Relatórios 🔮 (Planejado)
-_Objetivo: Aprimorar a experiência de atendimento e enriquecer a inteligência de negócios._
+### 📍 FASE 2: Expansão Operacional, Automações & Relatórios ⏳ (Fase Atual)
+_Objetivo: Aprimorar a experiência de atendimento, agilidade mobile, automações financeiras e enriquecer a inteligência de negócios._
 
-- **2.1 Integrações & Automações:**
-  - Exportação de relatórios financeiros e de custos de insumos (DRE simplificado).
-  - Aprimoramento do Drag & Drop de pedidos com feedback tátil aprimorado no mobile.
-  - Gestão de histórico detalhado de compras de insumos com cálculo de custo médio ponderado.
-- **2.2 PWA & Impressão Térmica:**
-  - Suporte completo a Progressive Web App (PWA) instalável com service worker.
-  - Integração para impressão de comandas de pedidos em impressoras térmicas (58mm/80mm).
+- **2.1 Usabilidade Mobile & Eficiência de Pedidos (Concluído):**
+  - Navegação por gestos de deslizar (swipe) entre abas do Kanban.
+  - Comanda copiada para WhatsApp enxuta e direta.
+  - Confirmação direta no App (ACK) e controle opcional de alerta sonoro Pushover.
+  - Módulo completo de Pedidos Retroativos, tela de Histórico com atalhos de data e promoção para a barra inferior (`BottomNavigation`).
+  - Infraestrutura completa de testes E2E com Playwright e Page Objects.
+- **2.2 Próximas Funcionalidades (Em Foco):**
+  - Integração de Pix Copia e Cola dinâmico no pedido com gestão de status (`PENDING`, `PAID`, `EXPIRED`).
+  - Projeção de faturamento mensal linear (*run-rate*) na tela de Insights.
+  - Previsão estatística de demanda e planejamento de fornada diária (`/manufacturing`).
+  - Módulo contábil de descarte de produtos e perdas de insumos (`WASTE`) no Ledger.
+- **2.3 Relatórios Avançados & Impressão (Backlog):**
+  - Exportação de relatórios de margem e DRE simplificado.
+  - Histórico detalhado de compras e custo médio ponderado.
+  - Suporte a PWA instalável e impressão térmica (58mm/80mm).
 
 ---
 

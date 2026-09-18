@@ -5,100 +5,7 @@
 
 ---
 
-## 📍 Fase 1: Transição de Ambientes (Coolify Prod/Dev) & Estabilização do MVP
-
-### [2026-09-02] Baseline Inicial — Importação do Sistema de Documentação CF Docs
-
-- **Contexto:** Catalogação e estruturação oficial de governança e documentação para o projeto **Haru Control**. O sistema encontra-se com o MVP operacional completo, testado e em uso diário real na operação da loja de cookies (atendimento no condomínio e pedidos do iFood).
-- **Decisões Tomadas:**
-  - Inicialização do sistema padronizado de documentação com arquitetura Token Diet (`HARU_CONTROL_INDEX.md`, `docs/PROJECT_CONTEXT.md`, `docs/ARCHITECTURE_DECISIONS.md`, `docs/BUGS.md`, `docs/HISTORY.md`, `docs/HISTORY_ARCHIVE.md`, `docs/TASKS.md`).
-  - Estabelecimento das regras globais de governança em `.agents/AGENTS.md` (Regra de Ouro da documentação, prioridade absoluta para resolução de bugs e proibição estrita de commits/pushes sem autorização explícita).
-  - Criação das skills locais `.agents/skills/haru-control-init` (retomada inteligente de contexto) e `.agents/skills/report-bug` (triagem sequencial de bugs).
-  - Formalização das ADRs 01 a 04 cobrindo o Estoque em Ledger, Autenticação PIN/WebAuthn, Receitas/BOM e Estratégia de Deploy Coolify.
-- **Estado dos Módulos Catalogados:**
-  - `apps/api`: NestJS com módulos de `auth`, `categories`, `customers`, `manufacturing`, `notifications` (Pushover), `orders`, `products`, `stock` (Ledger).
-  - `apps/mobile`: React SPA com telas de `PinLogin`, `OrderBoard`, `OrderForm`, `Products`, `ProductRecipe`, `Stock`, `Manufacturing`, `Customers`, `Insights`, `Help`.
-  - `libs`: Shared libs `types`, `ui`, `utils`.
-  - `infra`: Dockerfiles e Coolify em uso real.
-- **Próximos Passos Imediatos:**
-  1. Planejar e executar a segregação de ambientes no Coolify: promover a instância atual com banco existente para Produção e criar uma nova instância para Desenvolvimento a partir da `main`.
-  2. Ajustar o `Dockerfile.api` para retornar ao fluxo seguro de `npx prisma migrate deploy`.
-
-### [2026-09-02] Criação da Branch Oficial de Produção
-
-- **Contexto:** Isolamento da branch de produção a partir do estado atual da `main` para permitir a segregação de ambientes no Coolify sem risco para os dados reais em operação.
-- **Decisões & Ações:**
-  - Commit e push da documentação e governança inicial na `main`.
-  - Criação da branch `production` e push para o repositório remoto (`origin/production`).
-  - Retorno do ambiente local de trabalho para a branch `main`.
-- **Próximos Passos Imediatos:**
-  - Alterar a branch da aplicação existente no Coolify de `main` para `production`.
-  - Criar o novo ambiente de desenvolvimento no Coolify conectado à `main`.
-
-### [2026-09-02] Configuração do Novo Banco de Dados de Desenvolvimento & Validação de Migrations
-
-- **Contexto:** Conexão do ambiente local e de desenvolvimento ao novo banco de dados PostgreSQL isolado criado no Coolify.
-- **Decisões & Ações:**
-  - Configuração da `DATABASE_URL` no `.env` raiz e em `apps/api/.env` apontando para a nova instância remota de Dev (`143.95.211.48:5432/postgres`).
-  - Execução de `npx prisma migrate status`: verificado com sucesso que todas as 6 migrations existentes estão 100% aplicadas e íntegras no banco novo.
-  - Verificação do `Dockerfile.api`: confirmado que a imagem já utiliza o comando seguro `npx prisma migrate deploy --schema=./apps/api/prisma/schema.prisma && node dist/apps/api/main.js`.
-- **Próximos Passos Imediatos:**
-  - Testar o fluxo operacional ponta a ponta no ambiente de desenvolvimento.
-
-### [2026-09-02] Exibição do Nome do Cliente no Card de Pedidos
-
-- **Contexto:** Solicitação para tornar o nome do cliente visível no card de pedidos (`OrderBoard`), posicionado logo abaixo do endereço em tamanho menor.
-- **Decisões & Alterações:**
-  - `libs/types/src/lib/types.ts`: Atualizada a interface `Order` com os campos opcionais `customer?: Customer | null` e `items?: any[]`.
-  - `apps/mobile/src/pages/OrderBoard.tsx`:
-    - Adicionada a renderização de `order.customer.name` com ícone de usuário (`👤`) logo abaixo do endereço no `OrderCard`.
-    - Atualizado o cabeçalho do modal de detalhes do pedido para incluir nome do cliente e endereço.
-    - Atualizada a função `handleCopyOrder` para incluir o nome do cliente na mensagem formatada da comanda.
-  - `apps/mobile/src/pages/OrderBoard.css`: Estilizada a classe `.order-customer-name` (15px, semi-bold, cor neutra balanceada) e ajustes de margem no endereço e modal.
-  - Validação de build executada com sucesso (`npx nx build mobile` e `npx nx build api`).
-
-### [2026-09-02] Criação do Script de Seed e Migração de Campos Pushover
-
-- **Contexto:** Necessidade de popular o ambiente de desenvolvimento com uma massa de dados rica e realista para validação visual e operacional do Kanban, Estoque, Manufatura e gráficos de Insights.
-- **Decisões & Implementações:**
-  - **Migration Prisma (`20260902165120_add_pushover_fields`):** Gerada e aplicada formalmente via `npx prisma migrate dev` para sincronizar os campos `pushover_receipt` e `acknowledged_at` na tabela `orders`.
-  - `apps/api/prisma/seed.ts`: Criado e executado com sucesso script automatizado de seed usando `@prisma/client`.
-    - **Restrições respeitadas:** Exclusão estrita de qualquer item contendo café ou álcool.
-    - **Categorias (5):** Cookies Clássicos, Cookies Especiais & Recheados, Cookies Sazonais, Bebidas Refrescantes & Chocolates, Insumos & Matérias-Primas.
-    - **Insumos (22):** Farinha especial, manteiga extra, chocolate belga 54% Callebaut, chocolate ao leite, chocolate branco, Nutella, pistache puro, cacau black, doce de leite artesanal, baunilha de Madagascar, embalagens kraft, etc.
-    - **Produtos Vendíveis (18):** 10 cookies artesanais e 8 bebidas (chocolates cremosos, leites aromatizados, sodas italianas, sucos e chás naturais).
-    - **Fichas Técnicas (BOM):** 55 relacionamentos de receitas (`RecipeItem`) para cálculo automatizado de consumo na manufatura.
-    - **Clientes (30):** Clientes com telefones e endereços realistas de condomínio (Torres, Blocos, Casas).
-    - **Ledger de Estoque:** Entradas de estoque inicial (`STOCK_IN`) e simulação de produções/consumos (`MANUFACTURING_PRODUCTION` / `MANUFACTURING_CONSUMPTION`).
-    - **Histórico de Pedidos & Vendas (30 dias):** 146 pedidos concluídos com registro em `Sale` e `LedgerEntry` de venda (`SALE`), com distribuição concentrada nos horários de pico (14h às 20h30) e dias de maior movimento (quinta a domingo) para a tela de Insights.
-    - **Pedidos no Kanban:** Pedidos distribuídos nas colunas ativas (4 em `PENDING`, 3 em `READY`, 2 em `DRAFT` e 2 em `CANCELLED`) com lançamentos contábeis de reserva (`RESERVE` / `RELEASE`).
-  - `package.json`: Adicionados os comandos `"seed"` e `"prisma:seed"`, além da configuração `"prisma": { "seed": "..." }`.
-
-### [2026-09-02] Resolução do BUG-001: Ajuste de CORS e Build Args do Docker
-
-- **Contexto:** Relato de erros de CORS ao acessar o frontend no ambiente de nuvem do Coolify chamando a API.
-- **Decisões & Correções:**
-  - `apps/api/src/main.ts`: Configurado `app.enableCors({ origin: true, methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', credentials: true, allowedHeaders: '...' })` para refletir dinamicamente a origem e autorizar headers de preflight.
-  - `Dockerfile.mobile`: Declaradas as diretivas `ARG VITE_API_URL` e `ENV VITE_API_URL=$VITE_API_URL` na etapa de build do Docker, garantindo que o Vite capture a URL remota da API durante `npx nx build mobile --prod`.
-  - Validação de compilação da API e do Mobile executada com sucesso.
-
-### [2026-09-08] Teste Visual de Deploy Segregado (Dev vs Prod)
-
-- **Contexto:** Validação prática do pipeline de deploy do Coolify para garantir que alterações enviadas para a branch `main` afetem exclusivamente o ambiente de Desenvolvimento (`Dev`), mantendo o ambiente de Produção (`production`) 100% inalterado.
-- **Decisões & Alterações:**
-  - `apps/mobile/src/pages/PinLogin.tsx`: Adicionado badge estilizado `DEV 🧪` ao lado do título principal "Haru Control".
-  - `apps/mobile/src/pages/OrderBoard.tsx`: Adicionado badge estilizado `DEV 🧪` ao lado do cabeçalho "Pedidos".
-  - **Isolamento de Branches:** Código commitado e mergeado na branch `main`. A branch `production` permanece intacta.
-  - Validação de build executada com sucesso (`npx nx build mobile`).
-
-### [2026-09-08] Validação do Deploy Segregado e Reversão dos Badges de Teste
-
-- **Contexto:** Teste em nuvem concluído com sucesso total. O deploy automático do Coolify na branch `main` atualizou exclusivamente o ambiente de Desenvolvimento (`Dev`), enquanto o ambiente de Produção (`production`) permaneceu 100% inalterado e isolado.
-- **Decisões & Reversão:**
-  - `apps/mobile/src/pages/PinLogin.tsx`: Removido o badge provisório `DEV 🧪`, restaurando o título limpo original `Haru Control`.
-  - `apps/mobile/src/pages/OrderBoard.tsx`: Removido o badge provisório `DEV 🧪`, restaurando o título limpo original `Pedidos`.
-  - Validação de build executada com sucesso (`npx nx build mobile`).
-  - Commit e push executados na branch `main`.
+## 📍 Fase 2: Expansão Operacional, Automações & Relatórios
 
 ### [2026-09-09] Refinamento de Backlog e Catalogação de Novas Features
 
@@ -231,5 +138,37 @@
     - Adicionado teste específico validando acesso a Pedidos via clique no ícone da barra de navegação inferior e alternância entre chips de filtros rápidos de data.
 - **Validação:** Workspace compilado com sucesso (`npx nx run-many -t build`) e 8/8 testes E2E do Playwright aprovados com sucesso (23.0s).
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-17] Implementação da Projeção de Faturamento e Módulo de Descarte de Estoque
+
+- **Contexto:** Necessidade operacional de prever o faturamento mensal (run-rate) para planejamento financeiro e compras, além de registrar formalmente perdas de produtos e insumos (quebras, falhas de forno, validade vencida, degustações) no Ledger Contábil (ADR-01) sem corrupção ou apagamento de dados.
+- **Implementações Realizadas:**
+  - **1. Banco de Dados & Prisma (`schema.prisma`):**
+    - Adicionado enum `WasteReason` (`EXPIRED`, `DAMAGE`, `BAKING_FAILURE`, `TASTING`, `OTHER`).
+    - Adicionada operação `WASTE` ao enum `LedgerOperationType`.
+    - Estendido `LedgerEntry` com os campos `wasteReason WasteReason? @map("waste_reason")` e `notes String? @map("notes")`.
+    - Criada e aplicada com sucesso a migration `20260917193214_add_stock_waste_fields`.
+  - **2. Tipos Compartilhados (`libs/types`):**
+    - Exportados `WasteReason`, `WASTE_REASON_LABELS`, `WASTE_REASON_ICONS`, `StockWasteDto`, `MonthlyProjection` e `WasteMetrics`.
+  - **3. Backend NestJS (`apps/api`):**
+    - `StockService`:
+      - `recordWaste(productId, quantity, reason, notes)`: validação estrita e lançamento negativo imutável no Ledger (`LedgerOperationType.WASTE`).
+      - `calculateProductCost(product)`: computa custo real a partir da Ficha Técnica (BOM) ou preço cadastrado.
+      - `getWasteHistory(startDate, endDate)` e `getWasteMetrics(startDate, endDate)`: agregação de volume e custo financeiro estimado de perdas, distribuição percentual por motivo e ranking de produtos com maior desperdício.
+    - `StockController`: endpoints `@Post("waste")`, `@Get("waste/history")` e `@Get("waste/metrics")`.
+    - `OrdersService.getMetrics`: adicionados cálculo da **Projeção Mensal linear (Run-Rate)** e consolidação das métricas de descarte no payload de `/orders/metrics`.
+  - **4. Frontend Mobile (`apps/mobile`):**
+    - `Stock.tsx` & `Stock.css`:
+      - Adicionada opção `🗑️ Registrar Descarte / Perda` no `FloatingActionButton`.
+      - Modal intuitivo de descarte com seleção de produto, indicador de estoque atual, seletor de motivos em chips coloridos com ícones e campo de observação.
+    - `Insights.tsx` & `Insights.css`:
+      - **Card de Projeção Mensal:** exibido dinamicamente no mês atual com valor projetado em destaque, média diária realizada, dias decorridos/restantes e barra de progresso.
+      - **Seção de Perdas & Descartes Operacionais:** KPIs de custo total e volume perdido, distribuição por motivo com barras percentuais e ranking dos produtos mais descartados.
+  - **5. Testes E2E com Playwright:**
+    - Criado spec `e2e/specs/05-waste-and-insights.spec.ts` cobrindo o fluxo de descarte via FAB e conferência da projeção e seção de perdas nos Insights.
+- **Validação:** Monorepo compilado com 100% de sucesso (`nx run-many -t build` para `types`, `utils`, `api`, `mobile`).
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+
 
 

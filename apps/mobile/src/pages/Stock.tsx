@@ -1,4 +1,5 @@
 import { FloatingActionButton, NumberInput } from "@haru-control/ui";
+import { WasteReason, WASTE_REASON_LABELS, WASTE_REASON_ICONS } from "@haru-control/types";
 import { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import "./Stock.css";
@@ -33,9 +34,11 @@ export default function Stock() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<"in" | "adjust">("in");
+  const [modalType, setModalType] = useState<"in" | "adjust" | "waste">("in");
   const [selectedProductId, setSelectedProductId] = useState("");
   const [newQuantity, setNewQuantity] = useState(0);
+  const [wasteReason, setWasteReason] = useState<WasteReason>(WasteReason.DAMAGE);
+  const [wasteNotes, setWasteNotes] = useState<string>("");
 
   useEffect(() => {
     loadData();
@@ -119,13 +122,21 @@ export default function Stock() {
     }));
   }, [stock, products, categories]);
 
-  const handleOpenModal = (type: "in" | "adjust", productId?: string, currentStock?: number) => {
+  const handleOpenModal = (
+    type: "in" | "adjust" | "waste",
+    productId?: string,
+    currentStock?: number
+  ) => {
     setModalType(type);
     setSelectedProductId(productId || "");
     if (type === "adjust") {
       setNewQuantity(currentStock ?? 0);
     } else {
       setNewQuantity(1);
+    }
+    if (type === "waste") {
+      setWasteReason(WasteReason.DAMAGE);
+      setWasteNotes("");
     }
     setIsModalOpen(true);
   };
@@ -134,12 +145,14 @@ export default function Stock() {
     setIsModalOpen(false);
     setSelectedProductId("");
     setNewQuantity(0);
+    setWasteNotes("");
+    setWasteReason(WasteReason.DAMAGE);
   };
 
   const handleProductSelectChange = (productId: string) => {
     setSelectedProductId(productId);
     if (modalType === "adjust") {
-      const s = stock.find(item => item.productId === productId);
+      const s = stock.find((item) => item.productId === productId);
       setNewQuantity(s ? s.currentStock : 0);
     }
   };
@@ -153,19 +166,38 @@ export default function Stock() {
     }
 
     try {
-      let endpoint = "";
-      let payloadQuantity = 0;
+      if (modalType === "waste") {
+        if (newQuantity <= 0) {
+          alert("Informe uma quantidade válida para descarte.");
+          return;
+        }
 
-      if (modalType === "in") {
-        endpoint = "/stock/in";
-        payloadQuantity = newQuantity;
+        await api.post("/stock/waste", {
+          productId: selectedProductId,
+          quantity: newQuantity,
+          reason: wasteReason,
+          notes: wasteNotes.trim() || undefined,
+        });
       } else {
-        endpoint = "/stock/adjust";
-        const currentStock = stock.find(s => s.productId === selectedProductId)?.currentStock || 0;
-        payloadQuantity = newQuantity - currentStock;
+        let endpoint = "";
+        let payloadQuantity = 0;
+
+        if (modalType === "in") {
+          endpoint = "/stock/in";
+          payloadQuantity = newQuantity;
+        } else {
+          endpoint = "/stock/adjust";
+          const currentStock =
+            stock.find((s) => s.productId === selectedProductId)?.currentStock || 0;
+          payloadQuantity = newQuantity - currentStock;
+        }
+
+        await api.post(endpoint, {
+          productId: selectedProductId,
+          quantity: payloadQuantity,
+        });
       }
 
-      await api.post(endpoint, { productId: selectedProductId, quantity: payloadQuantity });
       loadStock();
       handleCloseModal();
     } catch (error) {
@@ -253,7 +285,11 @@ export default function Stock() {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>
-              {modalType === "in" ? "Entrada de Estoque" : "Ajustar Estoque"}
+              {modalType === "in"
+                ? "Entrada de Estoque"
+                : modalType === "adjust"
+                ? "Ajustar Estoque"
+                : "Registrar Descarte / Perda"}
             </h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -266,11 +302,11 @@ export default function Stock() {
                 >
                   <option value="">Selecione um produto...</option>
                   {products.map((p) => {
-                    const s = stock.find(item => item.productId === p.id);
+                    const s = stock.find((item) => item.productId === p.id);
                     const cur = s ? s.currentStock : 0;
                     return (
                       <option key={p.id} value={p.id}>
-                        {p.name} (Atual: {cur} {p.unit || 'un'})
+                        {p.name} (Atual: {cur} {p.unit || "un"})
                       </option>
                     );
                   })}
@@ -278,10 +314,29 @@ export default function Stock() {
               </div>
 
               {selectedProduct && (
-                <div style={{ marginBottom: '16px', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b' }}>Estoque atual:</span>
-                  <span style={{ fontWeight: '700', fontSize: '15px', color: currentStockForSelected < 0 ? '#dc2626' : '#334155' }}>
-                    {currentStockForSelected} {selectedProduct.unit || 'un'}
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    padding: "10px 14px",
+                    background: "#f8fafc",
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ fontSize: "13px", color: "#64748b" }}>
+                    Estoque atual:
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: "700",
+                      fontSize: "15px",
+                      color: currentStockForSelected < 0 ? "#dc2626" : "#334155",
+                    }}
+                  >
+                    {currentStockForSelected} {selectedProduct.unit || "un"}
                   </span>
                 </div>
               )}
@@ -289,13 +344,15 @@ export default function Stock() {
               <div className="form-group">
                 <label>
                   {modalType === "in"
-                    ? `Quantidade a adicionar (${selectedProduct?.unit || 'un'})`
-                    : `Novo estoque total (${selectedProduct?.unit || 'un'})`}
+                    ? `Quantidade a adicionar (${selectedProduct?.unit || "un"})`
+                    : modalType === "adjust"
+                    ? `Novo estoque total (${selectedProduct?.unit || "un"})`
+                    : `Quantidade a descartar (${selectedProduct?.unit || "un"})`}
                 </label>
                 <NumberInput
                   step="any"
                   buttonStep={1}
-                  min={modalType === "in" ? 0.0001 : undefined}
+                  min={modalType === "adjust" ? undefined : 0.0001}
                   value={newQuantity}
                   onChange={(e) => setNewQuantity(parseFloat(e.target.value) || 0)}
                   showButtons
@@ -303,7 +360,49 @@ export default function Stock() {
                 />
               </div>
 
-              <div className="modal-actions" style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              {modalType === "waste" && (
+                <>
+                  <div className="form-group">
+                    <label>Motivo do Descarte</label>
+                    <div className="waste-reasons-grid">
+                      {Object.values(WasteReason).map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          className={`waste-reason-chip ${
+                            wasteReason === r ? "active" : ""
+                          }`}
+                          onClick={() => setWasteReason(r)}
+                        >
+                          <span>{WASTE_REASON_ICONS[r]}</span>
+                          <span>{WASTE_REASON_LABELS[r]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Observação (Opcional)</label>
+                    <textarea
+                      className="form-textarea"
+                      rows={2}
+                      value={wasteNotes}
+                      onChange={(e) => setWasteNotes(e.target.value)}
+                      placeholder="Ex: Queimou na fornada da tarde, lote 04..."
+                    />
+                  </div>
+                </>
+              )}
+
+              <div
+                className="modal-actions"
+                style={{
+                  marginTop: "24px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                }}
+              >
                 <button
                   type="button"
                   onClick={handleCloseModal}
@@ -311,8 +410,15 @@ export default function Stock() {
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="btn-primary">
-                  {modalType === "in" ? "Adicionar" : "Salvar"}
+                <button
+                  type="submit"
+                  className={modalType === "waste" ? "btn-danger" : "btn-primary"}
+                >
+                  {modalType === "in"
+                    ? "Adicionar"
+                    : modalType === "adjust"
+                    ? "Salvar"
+                    : "Registrar Descarte"}
                 </button>
               </div>
             </form>
@@ -331,6 +437,11 @@ export default function Stock() {
             icon: "⚖️",
             label: "Ajustar Estoque",
             onClick: () => handleOpenModal("adjust"),
+          },
+          {
+            icon: "🗑️",
+            label: "Registrar Descarte / Perda",
+            onClick: () => handleOpenModal("waste"),
           },
         ]}
       />

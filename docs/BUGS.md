@@ -9,20 +9,20 @@
 | ID | Status | Validação Prática | Severidade | Título Curto | Componente Afetado | Data |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `BUG-000` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Exemplo de Bug de Demonstração (Template) | `src/example.ts` | 2026-09-02 |
-| `BUG-001` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
-| `BUG-002` | `[x]` Implementado | `⏳ Pendente` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
+| `BUG-001` | `[x]` Resolvido | `✅ Validado` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
+| `BUG-002` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
 
 ---
 
 ## 🔍 Registro Detalhado de Bugs
 
 ### [BUG-001] Erros de CORS nas requisições da API no frontend
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `[ ]` Pendente de Validação
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🔴 Alta`
 - **Data de Registro:** 2026-09-02
 - **Data de Implementação:** 2026-09-02
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-17
 - **Componentes / Arquivos Afetados:** `apps/api/src/main.ts`, `Dockerfile.mobile`, `apps/mobile/src/services/api.ts`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -50,12 +50,12 @@
 - Declarar explicitamente `ARG` e `ENV` em Dockerfiles de SPAs (Vite/React) para variáveis de build time.
 
 ### [BUG-002] Quebra de layout e overflow no modal de pedidos históricos
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `[ ]` Pendente de Validação
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟡 Média`
 - **Data de Registro:** 2026-09-11
 - **Data de Implementação:** 2026-09-11
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-17
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderHistory.css`, `apps/mobile/src/pages/OrderForm.tsx`, `e2e/page-objects/OrderHistoryPage.ts`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)

@@ -296,6 +296,80 @@ export default function Insights() {
         </div>
       ) : metrics ? (
         <>
+          {/* 🔮 Projeção Mensal de Faturamento (Run-Rate) */}
+          {metrics.monthlyProjection?.isCurrentMonth && (
+            <div className="insights-projection-card">
+              <div className="projection-header">
+                <div className="projection-title-group">
+                  <span className="projection-icon">🔮</span>
+                  <div>
+                    <h3 className="projection-title">Projeção Mensal de Faturamento</h3>
+                    <span className="projection-badge">Estimativa Run-Rate</span>
+                  </div>
+                </div>
+                <div className="projection-highlight-val">
+                  {formatCurrency(metrics.monthlyProjection.projectedRevenue)}
+                </div>
+              </div>
+
+              <div className="projection-body">
+                <div className="projection-stats-row">
+                  <div className="stat-pill">
+                    <span className="stat-label">Média Diária:</span>
+                    <span className="stat-val">
+                      {formatCurrency(metrics.monthlyProjection.dailyAverage)}/dia
+                    </span>
+                  </div>
+                  <div className="stat-pill">
+                    <span className="stat-label">Progresso do Mês:</span>
+                    <span className="stat-val">
+                      {metrics.monthlyProjection.elapsedDays} de{" "}
+                      {metrics.monthlyProjection.totalDaysInMonth} dias (
+                      {metrics.monthlyProjection.remainingDays} restantes)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="projection-progress-container">
+                  <div className="projection-progress-bar">
+                    <div
+                      className="projection-progress-fill"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          metrics.monthlyProjection.projectedRevenue > 0
+                            ? Math.round(
+                                (metrics.summary.totalRevenue /
+                                  metrics.monthlyProjection.projectedRevenue) *
+                                  100
+                              )
+                            : 0
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="projection-progress-labels">
+                    <span>
+                      Realizado: {formatCurrency(metrics.summary.totalRevenue)}
+                    </span>
+                    <span>
+                      {metrics.monthlyProjection.projectedRevenue > 0
+                        ? `${Math.min(
+                            100,
+                            Math.round(
+                              (metrics.summary.totalRevenue /
+                                metrics.monthlyProjection.projectedRevenue) *
+                                100
+                            )
+                          )}% da projeção linear`
+                        : "0%"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 1. Cards de Resumo KPIs */}
           <div className="insights-kpi-grid">
             <div className="kpi-card revenue">
@@ -702,6 +776,109 @@ export default function Insights() {
               </table>
             ) : (
               <div className="insights-empty">Nenhum pedido vinculado a cliente no período.</div>
+            )}
+          </div>
+
+          {/* 7. Perdas & Descartes Operacionais */}
+          <div className="insights-section-card">
+            <div className="section-card-header">
+              <h2 className="section-card-title">
+                <span>🗑️</span> Perdas & Descartes Operacionais
+              </h2>
+            </div>
+
+            {metrics.wasteMetrics && metrics.wasteMetrics.totalQuantity > 0 ? (
+              <>
+                {/* Resumo de Perdas */}
+                <div className="waste-kpi-summary">
+                  <div className="waste-kpi-box">
+                    <span className="waste-kpi-label">Custo Estimado de Perdas</span>
+                    <span className="waste-kpi-val loss-val">
+                      {formatCurrency(metrics.wasteMetrics.estimatedLossCost)}
+                    </span>
+                    <span className="waste-kpi-sub">Custo de produção / insumos</span>
+                  </div>
+                  <div className="waste-kpi-box">
+                    <span className="waste-kpi-label">Volume Descartado</span>
+                    <span className="waste-kpi-val">
+                      {formatNumber(metrics.wasteMetrics.totalQuantity)} itens/un
+                    </span>
+                    <span className="waste-kpi-sub">Total de perdas no período</span>
+                  </div>
+                </div>
+
+                {/* Distribuição por Motivo */}
+                {metrics.wasteMetrics.byReason &&
+                  metrics.wasteMetrics.byReason.length > 0 && (
+                    <div className="waste-reasons-breakdown">
+                      <h3 className="sub-title">Distribuição por Motivo</h3>
+                      <div className="waste-chips-list">
+                        {metrics.wasteMetrics.byReason.map((r: any) => (
+                          <div key={r.reason} className="waste-reason-card">
+                            <div className="waste-reason-card-header">
+                              <span className="waste-reason-icon">{r.icon}</span>
+                              <span className="waste-reason-name">{r.label}</span>
+                              <span className="waste-reason-pct">
+                                {r.percentage}%
+                              </span>
+                            </div>
+                            <div className="waste-reason-card-body">
+                              <strong>{formatCurrency(r.estimatedCost)}</strong>
+                              <span>({formatNumber(r.quantity)} un)</span>
+                            </div>
+                            <div className="waste-progress-wrap">
+                              <div
+                                className="waste-progress-fill"
+                                style={{ width: `${r.percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Itens Mais Descartados */}
+                {metrics.wasteMetrics.topWastedProducts &&
+                  metrics.wasteMetrics.topWastedProducts.length > 0 && (
+                    <div className="top-wasted-section" style={{ marginTop: "20px" }}>
+                      <h3 className="sub-title">Itens com Maior Perda</h3>
+                      <div className="ranking-list">
+                        {metrics.wasteMetrics.topWastedProducts.map(
+                          (p: any, idx: number) => (
+                            <div key={p.productId} className="ranking-item">
+                              <div className="ranking-badge">{idx + 1}º</div>
+                              <div className="ranking-info">
+                                <div className="ranking-name">{p.productName}</div>
+                                <div className="ranking-meta">
+                                  Motivo frequente: <strong>{p.mainReason}</strong>
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right" }}>
+                                <div
+                                  style={{
+                                    fontWeight: 700,
+                                    color: "#dc2626",
+                                    fontSize: "14px",
+                                  }}
+                                >
+                                  {formatCurrency(p.estimatedCost)}
+                                </div>
+                                <div style={{ fontSize: "11px", color: "#64748b" }}>
+                                  {formatNumber(p.quantity)} {p.unit}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+              </>
+            ) : (
+              <div className="insights-empty">
+                Nenhum descarte ou perda registrado no período selecionado.
+              </div>
             )}
           </div>
         </>
