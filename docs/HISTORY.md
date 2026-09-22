@@ -436,6 +436,29 @@
   - Suíte completa de 12 testes E2E Playwright executada e aprovada com 100% de sucesso (27.9s).
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md), [docs/HISTORY.md](docs/HISTORY.md) e `walkthrough.md`.
 
+### [2026-09-22] Auditoria Técnica e Criação da PR #2 para Produção (`main` ➔ `production`)
+
+- **Contexto:** Solicitação do usuário para verificar a segurança de atualizar a branch de produção (`production`) com todas as modificações acumuladas na branch `main` e, caso seguro, abrir a Pull Request correspondente.
+- **Auditoria de Segurança Realizada:**
+  - **1. Análise de Conflitos e Árvore Git:**
+    - Ancestral comum validado (`9e399dc`).
+    - Verificação via `git merge-tree origin/production origin/main` confirmando **zero conflitos** de merge.
+  - **2. Análise das Migrations do Prisma (5 migrations acumuladas):**
+    - `20260909132237_add_order_notify_field`: Adiciona coluna `notify` (default `true`).
+    - `20260910025657_add_order_completed_at`: Adiciona coluna `completed_at` (nullable).
+    - `20260917193214_add_stock_waste_fields`: Cria enum `WasteReason`, adiciona valor `WASTE` em `LedgerOperationType` e colunas `notes`/`waste_reason` (nullables).
+    - `20260919155355_add_subcategories`: Cria tabela `subcategories` e adiciona chave estrangeira opcional `subcategory_id` em `products`.
+    - `20260922045012_add_product_description`: Adiciona coluna `description` (nullable) em `products`.
+    - **Veredito:** Todas as alterações são 100% aditivas e seguras, com zero risco de perda de dados ou quebra em produção.
+  - **3. Infraestrutura & Deploy Coolify:**
+    - `Dockerfile.api` executa automaticamente `npx prisma migrate deploy` no bootstrap.
+    - Zero novas variáveis de ambiente obrigatórias exigidas.
+  - **4. Integridade de Código:**
+    - Build limpo do monorepo (`npx nx run-many --target=build --all --skip-nx-cache`) passou com 100% de sucesso para todos os projetos (`types`, `utils`, `api`, `mobile`).
+- **Ação Executada:**
+  - Criada Pull Request [#2](https://github.com/CesarRyudi/Haru-Control/pull/2) no GitHub: `chore(release): sincronizar produção com melhorias operacionais da Fase 2 e correções`.
+
+
 
 
 
