@@ -81,15 +81,19 @@
   - **Exibição na UI:** Exibir card destacado de métrica na tela `/insights` com o valor projetado, indicando a média diária e o número de dias restantes do mês.
   - **Refinamento de UI/UX:** Substituição dos chips de filtro por dropdown nativo responsivo e remoção de emojis gráficos decorativos da projeção.
   - **Evolução Futura:** Deixar a arquitetura preparada para modelos preditivos mais avançados (levando em conta sazonalidade de dias da semana, quinta a domingo com maior pico de vendas).
-- `[ ]` **Previsão Estatística de Demanda e Sugestão de Produção Diária (Planejamento de Fornada):**
+- `[ ]` **Previsão Estatística de Demanda e Sugestão de Fornada Multi-Dias (Planejamento de Produção):**
+  - *Documento de Especificação detalhado:* [docs/DRAFT_SUGESTAO_FORNADA.md](docs/DRAFT_SUGESTAO_FORNADA.md)
+  - **Horizonte de Planejamento Flexível (Data Alvo):**
+    - Permitir que o operador selecione até que data pretende cobrir o estoque (ex: assar na segunda para cobrir segunda, terça e quarta).
+    - Somar a demanda histórica individual de cada dia da semana do intervalo, aplicando margem de segurança e alerta de frescor/validade (*shelf life*).
   - **Motor de Recomendação Baseado em Dados:**
-    - Analisar o histórico de vendas por dia da semana (ex: segundas vs sextas/sábados) e médias móveis ponderadas das últimas semanas.
-    - Calcular a necessidade prevista de cada produto para o dia, aplicando uma margem de segurança configurável.
-  - **Cruzamento Inteligente com Estoque e Ficha Técnica (BOM):**
-    - Subtrair os cookies já assados/disponíveis no estoque atual para sugerir a quantidade líquida exata a produzir.
-    - Alertar se há massa/ingredientes suficientes no estoque para cobrir a sugestão do dia.
-  - **Interface no App (`/manufacturing`):**
-    - Painel/cartão *"Sugestão de Fornada para Hoje"*, com botão rápido para gerar a ordem de produção em 1 toque.
+    - Analisar o histórico de vendas por dia da semana nas últimas 4 semanas via média móvel ponderada.
+    - Subtrair o saldo atual de cookies prontos em estoque para obter a necessidade líquida de produção.
+    - Ajuste opcional para tamanho de assadeira/lote de forno.
+  - **Cruzamento com Ficha Técnica (BOM):**
+    - Alertar se há massa/ingredientes suficientes no estoque para cobrir a fornada recomendada no período.
+  - **Interface Mobile-First no Estoque (`Stock.tsx`):**
+    - Painel colapsável no topo da tela com chips de atalho rápido de período (`Hoje`, `Até Amanhã`, `Até Quarta`, `Fim de Semana`, `Data Personalizada...`) e botão para lançamento rápido no Ledger contábil.
 - `[x]` **Módulo de Descarte de Produtos / Insumos (Controle de Perdas & Validade):**
   - **Ledger Contábil de Descarte:**
     - Adicionar operação `WASTE` ao enum `LedgerOperationType` no Prisma.
@@ -140,8 +144,23 @@
     - `Help.tsx`: Guia do usuário atualizado com instruções de criação e organização de categorias e subcategorias.
   - **Suíte de Testes Automatizados E2E (`e2e/`):**
     - Criação do teste de ciclo completo `06-subcategories.spec.ts` cobrindo criação, renderização na árvore e exclusão de subcategorias via mobile.
-
-
+- `[x]` **Gerador de Mensagem de Divulgação de Cookies para WhatsApp:**
+  - **Campo de Descrição no Produto (`description`):**
+    - Adicionado campo `description String?` no modelo `Product` do Prisma (`schema.prisma`) com migration `20260922045012_add_product_description`.
+    - Atualizados DTOs em `libs/types` e na API NestJS (`ProductsService`, `ProductsController`).
+    - Campo `<textarea>` para descrição/copy de divulgação no modal de produtos em `Products.tsx`.
+  - **Componente e Modal de Divulgação (`BroadcastMenuModal.tsx` & `.css`):**
+    - Saudação inicial calculada pelo horário atual (< 12h: "Bom dia", 12h-17h: "Boa tarde", >= 18h: "Boa noite") e totalmente editável.
+    - Mensagem contextual/gancho opcional (ex: sobre friozinho, chuva), completamente omitida se vazia.
+    - Seleção de produtos vendáveis (`isSellable === true`), com pré-seleção automática dos itens com estoque > 0.
+    - Agrupamento inteligente por Subcategoria/Categoria com detecção de preço uniforme (ex: `*Cookies Tradicionais R$8,00*`) ou preços variados com subgrupos de valor (ex: `*Cookies Especiais:*` ➔ `*R$11,00*` ➔ `*R$14,00*`).
+    - Formatação fiel ao modelo oficial da Haru Cookies com links do catálogo WhatsApp e texto de encomenda.
+    - Pré-visualização em tempo real da mensagem formatada no próprio modal.
+    - Cópia para o clipboard com 1 toque e toast de confirmação.
+  - **Integração na Tela de Estoque (`Stock.tsx`):**
+    - Nova ação `📢 Divulgar Cookies Disponíveis` integrada ao menu do botão flutuante (FAB).
+  - **Suíte de Testes Automatizados E2E (`e2e/`):**
+    - Criado teste `07-broadcast-menu.spec.ts` cobrindo abertura, preenchimento, preview e cópia via clipboard, com 100% de sucesso (12/12 testes passando).
 
 ---
 

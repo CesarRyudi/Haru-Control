@@ -51,6 +51,10 @@ export class CreateProductDto {
   @IsBoolean()
   @IsOptional()
   isPurchasable?: boolean;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }
 
 export class UpdateProductDto {
@@ -82,6 +86,10 @@ export class UpdateProductDto {
   @IsBoolean()
   @IsOptional()
   isPurchasable?: boolean;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }
 
 @Controller("products")

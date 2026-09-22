@@ -393,6 +393,51 @@
   - Suíte completa de testes Playwright E2E executada com sucesso: 11 passed (incluindo autenticação, ciclo de pedidos, swipe mobile, histórico, descarte e subcategorias).
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md), [docs/HISTORY.md](docs/HISTORY.md), `HARU_CONTROL_INDEX.md` e `walkthrough.md`.
 
+### [2026-09-22] Especificação Técnica da Sugestão de Fornada Multi-Dias (Planejamento de Produção)
+
+- **Contexto:** Alinhamento estratégico e modelagem do cálculo de previsão estatística de fornada para confeitarias artesanais. A demanda levantada pelo usuário estabeleceu que a produção precisa operar com horizonte flexível de planejamento (data alvo): em vez de calcular apenas a necessidade de hoje, o operador pode definir até que dia pretende estender a durabilidade da produção (ex: assar na segunda para cobrir segunda, terça e quarta-feira).
+- **Especificações Formalizadas no Rascunho ([docs/DRAFT_SUGESTAO_FORNADA.md](docs/DRAFT_SUGESTAO_FORNADA.md)):**
+  - **1. Horizonte Temporal Multi-Dias ($D_{\text{início}}$ a $D_{\text{alvo}}$):** Identificação dos dias no intervalo e soma das previsões pontuais de cada dia da semana individual (segundas, terças, etc.), respeitando a sazonalidade semanal.
+  - **2. Algoritmo de Média Móvel Ponderada:** Ponderação decrescente das últimas 4 semanas para capturar aceleração ou queda de vendas em cada produto específico.
+  - **3. Dedução de Estoque Físico e Necessidade Líquida:** Abatimento automático dos cookies já prontos em estoque e arredondamento para tamanho de assadeira/bandeja (batch size).
+  - **4. Alerta de Validade (*Shelf Life*):** Verificação de prazo máximo de frescor (ex: 4 dias) com aviso caso a data alvo exceda o tempo ideal de consumo.
+  - **5. Interface Mobile no Estoque (`Stock.tsx`):** Card colapsável com atalhos rápidos de período (`Hoje`, `Até Amanhã`, `Até Quarta`, `Fim de Semana`, `Personalizado`) e botão de 1 toque para lançamento direto de entrada no Ledger Contábil (`LedgerOperationType.IN`).
+- **Documentação Atualizada:** [docs/DRAFT_SUGESTAO_FORNADA.md](docs/DRAFT_SUGESTAO_FORNADA.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-22] Implementação do Gerador de Mensagem de Divulgação de Cookies para WhatsApp
+
+- **Contexto:** Necessidade operacional de gerar rapidamente uma mensagem padronizada e atraente para divulgação no WhatsApp dos cookies e produtos atualmente disponíveis no estoque da Haru Cookies, com suporte a saudações por horário, gancho contextual opcional e agrupamento por famílias de produtos.
+- **Implementações Realizadas:**
+  - **1. Banco de Dados & Prisma (`apps/api/prisma/schema.prisma`):**
+    - Adicionado o campo `description String?` no modelo `Product`, permitindo que cada cookie tenha sua copy/descrição de venda gravada no catálogo.
+    - Gerada e aplicada com sucesso a migration `20260922045012_add_product_description`.
+    - Script de semente (`seed.ts`) atualizado com descrições realistas dos cookies artesanais e bebidas.
+  - **2. Tipos Compartilhados (`libs/types/src/lib/types.ts`):**
+    - Adicionado `description?: string | null;` na interface `Product` e nos DTOs `CreateProductDto`, `UpdateProductDto`.
+  - **3. Backend NestJS (`apps/api/src/modules/products/`):**
+    - `ProductsController` e `ProductsService` atualizados para receber, validar (`@IsOptional() @IsString()`) e persistir `description` na criação e atualização de produtos.
+  - **4. Frontend Mobile - Gestão de Produtos (`Products.tsx`):**
+    - Adicionado campo `<textarea>` para a descrição/copy de divulgação no modal de criação e edição de produtos.
+  - **5. Componente Modal de Divulgação (`BroadcastMenuModal.tsx` & `.css`):**
+    - **Saudação Inteligente:** Campo editável pré-preenchido conforme o horário (< 12h: "Bom dia", 12h às 17h: "Boa tarde", >= 18h: "Boa noite").
+    - **Gancho Contextual:** Campo editável opcional (ex: citação de clima/chuva, datas especiais) que é completamente ignorado se mantido vazio, sem gerar linhas em branco adicionais.
+    - **Checklist de Seleção:** Exibe apenas produtos vendáveis (`isSellable === true`), com pré-seleção automática dos itens com saldo positivo em estoque (`currentStock > 0`), botões rápidos para marcar/desmarcar e badges de saldo.
+    - **Agrupamento & Formatação WhatsApp:** Agrupa produtos por Subcategoria/Categoria. Caso os produtos tenham preço uniforme (ex: `*Cookies Tradicionais R$8,00*`), exibe o valor no título da seção. Se os preços variarem dentro da subcategoria (ex: `*Cookies Especiais:*`), agrupa por faixas de preço (`*R$11,00*`, `*R$14,00*`). Cada item exibe `*{nome}* - {descrição}`.
+    - **Rodapé Padronizado:** Inclui avisos de entrega, encomenda e o link oficial do catálogo (`https://wa.me/c/5511976952264`).
+    - **Pré-visualização em Tempo Real & Cópia:** Caixa de preview ao vivo do texto final formatado e botão com cópia segura para a área de transferência (`navigator.clipboard` com fallback) e toast de feedback.
+  - **6. Integração na Tela de Estoque (`Stock.tsx`):**
+    - Adicionada a ação `📢 Divulgar Cookies Disponíveis` no topo do menu do `FloatingActionButton`.
+    - Renderização do `BroadcastMenuModal` e do feedback visual via componente `Toast`.
+  - **7. Suíte de Testes Automatizados E2E com Playwright (`e2e/`):**
+    - Criado teste `07-broadcast-menu.spec.ts` validando o fluxo completo de ponta a ponta (acesso via FAB, preenchimento, preview reativo e cópia com toast).
+    - Ajustado o tratamento assíncrono de aviso de estoque negativo em `OrderFormPage.ts` e `OrderHistoryPage.ts` (`waitFor`).
+- **Validação:**
+  - Build do monorepo (`npm run build`) concluído com 100% de sucesso para todos os 4 pacotes (`types`, `utils`, `api`, `mobile`).
+  - Suíte completa de 12 testes E2E Playwright executada e aprovada com 100% de sucesso (27.9s).
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md), [docs/HISTORY.md](docs/HISTORY.md) e `walkthrough.md`.
+
+
+
 
 
 

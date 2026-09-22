@@ -34,6 +34,7 @@ export default function Products() {
     subcategoryId: "",
     isSellable: false,
     isPurchasable: false,
+    description: "",
   });
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -83,10 +84,11 @@ export default function Products() {
         subcategoryId: product.subcategoryId || "",
         isSellable: product.isSellable || false,
         isPurchasable: product.isPurchasable || false,
+        description: product.description || "",
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false });
+      setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false, description: "" });
     }
     setIsModalOpen(true);
   };
@@ -94,7 +96,7 @@ export default function Products() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
-    setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false });
+    setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false, description: "" });
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -135,6 +137,7 @@ export default function Products() {
         unit: formData.unit.trim() || "un",
         categoryId: formData.categoryId || undefined,
         subcategoryId: formData.subcategoryId || undefined,
+        description: formData.description?.trim() || null,
       };
       if (editingProduct) {
         await api.patch(`/products/${editingProduct.id}`, dataToSend);
@@ -577,6 +580,25 @@ export default function Products() {
                   onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                   showButtons
                   required
+                />
+              </div>
+              <div className="form-group">
+                <label>Descrição / Texto de Divulgação (Opcional)</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Ex: Massa tradicional com gotas de chocolate belga 🍪"
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                  }}
                 />
               </div>
               <div className="form-group" style={{ display: 'flex', gap: '16px', margin: '16px 0', flexDirection: 'column' }}>

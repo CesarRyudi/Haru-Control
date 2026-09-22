@@ -1,7 +1,8 @@
-import { FloatingActionButton, NumberInput } from "@haru-control/ui";
+import { FloatingActionButton, NumberInput, Toast } from "@haru-control/ui";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import BroadcastMenuModal from "../components/BroadcastMenuModal";
 import "./Stock.css";
 
 import { Category, Subcategory, Product } from "@haru-control/types";
@@ -22,6 +23,8 @@ export default function Stock() {
   const [modalType, setModalType] = useState<"in" | "adjust">("in");
   const [selectedProductId, setSelectedProductId] = useState("");
   const [newQuantity, setNewQuantity] = useState(0);
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -58,6 +61,12 @@ export default function Stock() {
       console.error("Erro ao carregar estoque:", error);
     }
   };
+
+  const stockQuantityMap = useMemo(() => {
+    const map = new Map<string, number>();
+    stock.forEach((item) => map.set(item.productId, item.currentStock));
+    return map;
+  }, [stock]);
 
   const groupedStock = useMemo(() => {
     const stockMap = new Map<string, StockItem>();
@@ -512,6 +521,11 @@ export default function Stock() {
       <FloatingActionButton
         menuItems={[
           {
+            icon: "📢",
+            label: "Divulgar Cookies Disponíveis",
+            onClick: () => setIsBroadcastModalOpen(true),
+          },
+          {
             icon: "📥",
             label: "Entrada de Estoque",
             onClick: () => handleOpenModal("in"),
@@ -528,6 +542,25 @@ export default function Stock() {
           },
         ]}
       />
+
+      <BroadcastMenuModal
+        isOpen={isBroadcastModalOpen}
+        onClose={() => setIsBroadcastModalOpen(false)}
+        products={products}
+        categories={categories}
+        stockMap={stockQuantityMap}
+        onCopied={() => {
+          setToast({ message: "Cardápio copiado para a área de transferência!", type: "success" });
+        }}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

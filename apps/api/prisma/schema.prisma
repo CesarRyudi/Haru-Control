@@ -16,6 +16,7 @@ model Product {
     subcategoryId String?  @map("subcategory_id")
     isSellable    Boolean  @default(false) @map("is_sellable")
     isPurchasable Boolean  @default(false) @map("is_purchasable")
+    description   String?
     createdAt     DateTime @default(now()) @map("created_at")
     updatedAt     DateTime @updatedAt @map("updated_at")
 

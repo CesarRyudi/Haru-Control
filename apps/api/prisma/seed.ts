@@ -170,6 +170,7 @@ async function main() {
       price: 14.0,
       categoryId: catCookies.id,
       subcategoryId: subClassicos.id,
+      description: 'Massa tradicional com gotas de chocolate belga 54% 🍪',
     },
     {
       name: 'Cookie Double Chocolate Intenso',
@@ -177,6 +178,7 @@ async function main() {
       price: 15.0,
       categoryId: catCookies.id,
       subcategoryId: subClassicos.id,
+      description: 'Massa de cacau 100% com chocolate ao leite e meio-amargo',
     },
     {
       name: 'Cookie Triplo Chocolate Belga',
@@ -184,6 +186,7 @@ async function main() {
       price: 16.0,
       categoryId: catCookies.id,
       subcategoryId: subClassicos.id,
+      description: 'O queridinho, uma combinação da nossa massa de cacau com chocolates ao leite, meio-amargo e branco',
     },
     {
       name: 'Cookie Churros & Doce de Leite',
@@ -191,6 +194,7 @@ async function main() {
       price: 15.0,
       categoryId: catCookies.id,
       subcategoryId: subClassicos.id,
+      description: 'Massa com canela e generoso recheio de doce de leite artesanal',
     },
     // Cookies Especiais & Recheados
     {
@@ -199,6 +203,7 @@ async function main() {
       price: 17.0,
       categoryId: catCookies.id,
       subcategoryId: subEspeciais.id,
+      description: 'Massa aveludada red velvet com recheio cremoso de cream cheese',
     },
     {
       name: 'Cookie Nutella & Leite Ninho',
@@ -206,6 +211,7 @@ async function main() {
       price: 18.0,
       categoryId: catCookies.id,
       subcategoryId: subEspeciais.id,
+      description: 'Nossa massa de cacau 100%, com gotas de chocolate ao leite, recheado de Nutella!',
     },
     {
       name: 'Cookie Doce de Leite & Flor de Sal',
@@ -213,6 +219,7 @@ async function main() {
       price: 16.0,
       categoryId: catCookies.id,
       subcategoryId: subEspeciais.id,
+      description: 'Massa tradicional com doce de leite artesanal e toque de flor de sal',
     },
     {
       name: 'Cookie Pistache Supremo & Choc Branco',
@@ -220,6 +227,7 @@ async function main() {
       price: 21.0,
       categoryId: catCookies.id,
       subcategoryId: subEspeciais.id,
+      description: 'Massa especial com brigadeiro de pistache e chocolate branco nobre',
     },
     {
       name: 'Cookie Dark & White Black Cacau',
@@ -227,6 +235,7 @@ async function main() {
       price: 16.0,
       categoryId: catCookies.id,
       subcategoryId: subEspeciais.id,
+      description: 'Cacau black intenso com generosos pedaços de chocolate branco',
     },
     // Cookies Sazonais
     {
@@ -235,6 +244,7 @@ async function main() {
       price: 18.0,
       categoryId: catCookies.id,
       subcategoryId: subSazonais.id,
+      description: 'Massa de cenoura artesanal com recheio vulcão de brigadeiro',
     },
     // Bebidas Artesanais
     {
@@ -296,6 +306,7 @@ async function main() {
         price: item.price,
         categoryId: item.categoryId,
         subcategoryId: (item as any).subcategoryId || null,
+        description: (item as any).description || null,
         isPurchasable: false,
         isSellable: true,
       },

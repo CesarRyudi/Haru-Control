@@ -18,6 +18,7 @@ export class ProductsService {
         subcategoryId: data.subcategoryId,
         isSellable: data.isSellable,
         isPurchasable: data.isPurchasable,
+        description: data.description,
       },
       include: {
         category: true,

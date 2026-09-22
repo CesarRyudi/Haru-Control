@@ -68,10 +68,13 @@ export class OrderFormPage {
   async submit() {
     await this.saveButton.click();
 
-    // Se aparecer modal de warning de estoque negativo, clica em continuar mesmo assim
+    // Se aparecer warning de estoque negativo, clica em continuar mesmo assim
     const warningButton = this.page.locator("button.btn-primary", { hasText: "Continuar Mesmo Assim" });
-    if (await warningButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+    try {
+      await warningButton.waitFor({ state: "visible", timeout: 2500 });
       await warningButton.click();
+    } catch {
+      // Sem warning, segue normalmente
     }
 
     // Redireciona para o Kanban após salvar

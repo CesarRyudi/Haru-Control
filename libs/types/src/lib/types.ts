@@ -37,6 +37,7 @@ export interface Product {
   subcategoryId?: string | null;
   isSellable?: boolean;
   isPurchasable?: boolean;
+  description?: string | null;
   category?: Category | null;
   subcategory?: Subcategory | null;
   createdAt: Date;
@@ -153,6 +154,7 @@ export interface CreateProductDto {
   subcategoryId?: string;
   isSellable?: boolean;
   isPurchasable?: boolean;
+  description?: string;
 }
 
 export interface UpdateProductDto {
@@ -163,6 +165,7 @@ export interface UpdateProductDto {
   subcategoryId?: string;
   isSellable?: boolean;
   isPurchasable?: boolean;
+  description?: string;
 }
 
 export interface CreateOrderItemDto {

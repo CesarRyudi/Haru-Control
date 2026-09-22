@@ -44,5 +44,5 @@ Para garantir que a próxima sessão seja eficiente e economize tokens:
 - **Fase atual:** Fase 2 — Expansão Operacional, Automações & Relatórios
 - **Produção / Deploy:** Coolify (Ambientes 100% isolados e validados: `production` para Produção com dados reais e `main` para Desenvolvimento)
 - **Fases Concluídas:** Fase 1 (MVP Operacional Core & Segregação de Ambientes Coolify Prod vs Dev)
-- **Funcionalidades em Foco (Fase 2):** Pix Copia e Cola Dinâmico com gestão de status, Projeção Mensal de Faturamento nos Insights, Sugestão de Fornada Diária (BOM + Estoque) e Módulo de Descarte de Produtos/Insumos (Ledger `WASTE`).
+- **Funcionalidades em Foco (Fase 2):** Pix Copia e Cola Dinâmico com gestão de status, Projeção Mensal de Faturamento nos Insights, Sugestão de Fornada Multi-Dias (BOM + Estoque) e Módulo de Descarte de Produtos/Insumos (Ledger `WASTE`).
 - **Infra / Stack Base:** Monorepo Nx (NestJS 10 + Prisma 5 + PostgreSQL 15 + React 18 + Vite 5 + Zustand + Pushover + Playwright E2E + Coolify)

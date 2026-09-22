@@ -75,6 +75,15 @@ export class OrderHistoryPage {
     await expect(saveBtn).toBeVisible();
     await saveBtn.click();
 
+    // Se aparecer warning de estoque negativo, clica em continuar mesmo assim
+    const warningButton = this.page.locator("button.btn-primary", { hasText: "Continuar Mesmo Assim" });
+    try {
+      await warningButton.waitFor({ state: "visible", timeout: 2500 });
+      await warningButton.click();
+    } catch {
+      // Sem warning, segue normalmente
+    }
+
     // Aguarda retorno para a listagem do histórico
     await expect(this.page).toHaveURL(/.*orders\/history/, { timeout: 10000 });
     await expect(this.newHistoricalOrderButton).toBeVisible({ timeout: 10000 });
