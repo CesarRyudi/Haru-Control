@@ -27,6 +27,12 @@ export class OrdersController {
     return this.ordersService.createBatch(orders);
   }
 
+  @Patch("batch/status")
+  updateBatchStatus(@Body() body: { ids: string[]; status: OrderStatus }) {
+    const ids = Array.isArray(body?.ids) ? body.ids : [];
+    return this.ordersService.updateBatchStatus(ids, body.status);
+  }
+
   @Get()
   findAll(
     @Query("status") status?: OrderStatus,

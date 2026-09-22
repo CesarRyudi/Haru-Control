@@ -1085,4 +1085,23 @@ export class OrdersService {
       topCustomers,
     };
   }
+
+  async updateBatchStatus(ids: string[], newStatus: OrderStatus) {
+    if (!ids || ids.length === 0) return { count: 0, results: [] };
+
+    const results = [];
+    for (const id of ids) {
+      try {
+        if (newStatus === OrderStatus.COMPLETED) {
+          results.push(await this.complete(id));
+        } else {
+          results.push(await this.update(id, { status: newStatus }));
+        }
+      } catch (e) {
+        console.error(`Erro ao atualizar pedido ${id} para ${newStatus} no lote:`, e);
+      }
+    }
+    return { count: results.length, results };
+  }
 }
+

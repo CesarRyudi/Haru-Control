@@ -14,6 +14,8 @@
 | `BUG-003` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx` | 2026-09-17 |
 | `BUG-004` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm | `apps/mobile/src/pages/OrderForm.css` | 2026-09-17 |
 | `BUG-005` | `[ ]` Aberto | `⏳ Pendente` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
+| `BUG-006` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
+| `BUG-007` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
 
 ---
 
@@ -222,3 +224,99 @@
 - Padronizar seletores de classes de componentes ou usar aliasing em CSS para classes variantes (`.waste-reason-chip, .waste-chip-btn`) prevenindo divergências entre estilização e JSX.
 
 ---
+
+### [BUG-006] Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-19
+- **Data de Implementação:** 2026-09-19
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- 1. Ao abrir o drawer do carrinho no `OrderForm`, dependendo da área tocada ou rolada no mobile (especialmente no overlay, cabeçalho, rodapé ou ao alcançar os limites da lista de itens), a página de pedidos ao fundo rola indevidamente (scroll chaining / vazamento de rolagem).
+- 2. O rodapé do drawer exibia apenas o subtotal dos itens, sem discriminar o valor da taxa de entrega e sem somá-lo ao total consolidado do pedido.
+- 3. O botão flutuante e cabeçalho exibiam um emoji de sacola de compras (`🛍️`) em vez de um ícone de carrinho de compras (`🛒`).
+- **Passos para Reproduzir:**
+  1. No formulário de novo pedido (`/orders/new`), adicionar 1 ou mais itens.
+  2. Tocar no botão de ver carrinho para abrir o drawer.
+  3. Deslizar o dedo sobre o backdrop, cabeçalho ou rodapé do drawer; a página ao fundo rola.
+  4. Observar que o rodapé do drawer não inclui o valor da taxa de entrega nem no botão de finalização.
+- **Comportamento Esperado:**
+  - O scroll do corpo da página deve ficar estritamente bloqueado enquanto o drawer estiver aberto.
+  - O rodapé do drawer deve discriminar Subtotal, Taxa de Entrega e Total final consolidado.
+  - O ícone do botão e do drawer deve ser um carrinho de compras (`🛒`).
+- **Logs / Erros de Console:** Nenhum erro de console reportado.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Ausência de trava de overflow/touch no body (`overflow: hidden; touch-action: none;`) durante a montagem do drawer em `OrderForm.tsx`.
+- Ausência de `overscroll-behavior: contain` e contenção de eventos `touchmove` nas camadas do drawer em `OrderForm.css`.
+- Omissão da variável de estado `deliveryFee` no cálculo do resumo do drawer em `OrderForm.tsx`.
+- Uso de `🛍️` em vez de `🛒` em `OrderForm.tsx`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Na primeira versão da barra flutuante e do drawer, o foco foi na transição visual e no IntersectionObserver, sem aplicar os mecanismos de lock de scroll em touch devices e omitindo a taxa de entrega que estava presente apenas no formulário final.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Bloqueio de Scroll no Body:** Adicionado `useEffect` em `OrderForm.tsx` que aplica `document.body.style.overflow = "hidden"` e `document.body.style.touchAction = "none"` enquanto `isCartDrawerOpen` estiver ativo, restaurando os valores originais ao fechar.
+- **Prevenção de Eventos Touch e Overscroll:** Adicionados `onTouchMove` com `preventDefault` condicional no overlay e `stopPropagation` no sheet. Em `OrderForm.css`, inseridas propriedades `overscroll-behavior: contain; touch-action: none;` no overlay, cabeçalho e rodapé, e `touch-action: pan-y; -webkit-overflow-scrolling: touch;` na lista de itens.
+- **Discriminação da Taxa de Entrega e Total Consolidado:** Inserido bloco `.cart-drawer-pricing-summary` exibindo Subtotal, Taxa de Entrega e Total (`totalCartPrice + deliveryFee`), atualizando também o valor exibido no botão `btn-drawer-checkout`.
+- **Ícone Autêntico de Carrinho:** Substituído o emoji `🛍️` por `🛒` no botão flutuante e no título do drawer.
+- **Validação:** Compilação do monorepo (`npm run build`) e 10 testes E2E Playwright executados com 100% de sucesso.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Sempre aplicar lock no body (`document.body.style.overflow = "hidden"`) e `overscroll-behavior: contain` com bloqueio de eventos de toque em modais e bottom sheets mobile.
+
+---
+
+### [BUG-007] Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-19
+- **Data de Implementação:** 2026-09-19
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- 1. Ao realizar o gesto de long-press (500ms) em um card de pedido para acionar a seleção no mobile, o navegador dispara a seleção nativa de texto / lupa sobre os textos do card.
+- 2. A barra de abas (`Rascunho`, `Em Preparo`, `Concluídos`) exibe um scroll horizontal indesejado em telas mobile, mesmo havendo espaço suficiente para acomodar as 3 abas uniformemente na largura da tela.
+- 3. O container da coluna do Kanban ultrapassa a altura da tela mesmo com zero pedidos, gerando scroll vertical desnecessário contra a barra de navegação inferior (`BottomNavigation`).
+- 4. A barra flutuante de ações em lote (`.batch-action-bar`) colidia visualmente atrás do botão flutuante de adicionar pedido (FAB).
+- **Passos para Reproduzir:**
+  1. Acessar o Quadro de Pedidos (`/orders`).
+  2. Pressionar e segurar um card por mais de 500ms; notar a caixa de seleção nativa de texto.
+  3. Observar a rolagem horizontal na barra de abas em telas menores.
+  4. Observar que a tela rola verticalmente mesmo sem pedidos na coluna.
+- **Comportamento Esperado:**
+  - O texto do card de pedidos não deve ser selecionável via long-press (`user-select: none`).
+  - As 3 abas devem preencher proporcionalmente 100% da largura da tela sem scroll lateral (`flex: 1`).
+  - O container da coluna deve se ajustar naturalmente à altura da tela e expandir apenas quando o conteúdo de pedidos demandar.
+  - A seleção e transição em lote de pedidos deve ser controlada diretamente no cabeçalho da coluna (checkbox na esquerda e botões na direita), eliminando a barra flutuante conflitante.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Falta de `user-select: none; -webkit-user-select: none;` na classe `.order-card`.
+- Padding fixo e ausência de `flex: 1` nas classes `.board-tabs` e `.tab-btn`.
+- Regra rígida de `height: 100vh` em `.order-board` somada ao `paddingBottom: 80px` do `AppLayout`.
+- Posição flutuante fixa de `.batch-action-bar` sobrepondo o `FloatingActionButton`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Primeira iteração da feature de seleção em lote que utilizou long-press padrão sem supressão de seleção do browser e uma barra flutuante inferior sem prever a sobreposição com o botão flutuante de novo pedido.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Supressão de Seleção de Texto:** Aplicado `user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;` em `.order-card` e filhos no `OrderBoard.css`, impedindo que o long-press dispare a lupa/seleção de texto nativa do sistema operacional.
+- **Abas 100% Responsivas sem Scroll Lateral:** Redefinidas `.board-tabs` e `.tab-btn` com `width: 100%; overflow-x: hidden;` e `flex: 1; min-width: 0;`, distribuindo uniformemente as 3 abas em qualquer largura de tela mobile sem barra de rolagem lateral.
+- **Ajuste de Altura e Eliminação do Scroll Desnecessário:** Substituído `height: 100vh; overflow: hidden;` por `min-height: calc(100vh - 80px); box-sizing: border-box;` em `.order-board` e `.board-column` com `height: fit-content;`. O container agora fica contido na tela quando vazio e só expande conforme a quantidade de pedidos adicionados.
+- **Ações em Lote Integradas no Cabeçalho:**
+  - Eliminada a `.batch-action-bar` flutuante inferior.
+  - No cabeçalho da coluna (`.column-header`): adicionado checkbox "Selecionar Todos" à esquerda do título, e botões dinâmicos de transição de status em massa à direita (`🍳 Em Preparo`, `✅ Concluir` e `✕ Cancelar`) quando há pedidos selecionados.
+- **Validação:** Compilação com 100% de sucesso (`npm run build`) e suíte Playwright E2E 100% verde (10 passed).
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Sempre aplicar `user-select: none` em elementos com manipuladores de gestos touch/long-press.
+- Integrar ações contextuais de listas diretamente no cabeçalho da seção quando já existirem outros elementos flutuantes na tela.
+
+---
+
+

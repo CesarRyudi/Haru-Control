@@ -125,18 +125,18 @@ export default function Help() {
             <li><strong>🔄 Itens de Produção Interna / Intermediários:</strong> Podem ser fabricados pela loja (têm receita própria) e usados como ingredientes de outros produtos (ex: <em>Cookie Congelado</em>, <em>Massa Base</em>, <em>Molhos</em>).</li>
           </ul>
 
-          <h4 className="help-section-title">✨ Criando Categorias:</h4>
+          <h4 className="help-section-title">✨ Criando Categorias e Subcategorias:</h4>
           <ol className="help-list">
-            <li>Na tela de <strong>Produtos</strong>, toque no botão flutuante <strong>＋</strong> e selecione <strong>"📁 Nova Categoria"</strong>.</li>
-            <li>Informe o <strong>Nome</strong> da categoria (ex: <em>Temakis</em>, <em>Sobremesas</em>, <em>Insumos Básicos</em>).</li>
-            <li>(Opcional) Defina um <strong>Preço Padrão</strong>: produtos associados a essa categoria puxarão esse preço automaticamente.</li>
+            <li><strong>Categoria Macro:</strong> Na tela de <strong>Produtos</strong>, toque no botão flutuante <strong>＋</strong> e selecione <strong>"📁 Nova Categoria"</strong> (ex: <em>Cookies</em>, <em>Insumos & Matérias-Primas</em>, <em>Bebidas</em>).</li>
+            <li><strong>Subcategoria:</strong> Toque em <strong>"➕ Subcategoria"</strong> no cabeçalho da categoria ou no botão flutuante <strong>"📂 Nova Subcategoria"</strong> (ex: sob <em>Cookies</em>: <em>Clássicos</em>, <em>Especiais & Recheados</em>; sob <em>Insumos</em>: <em>Chocolates</em>, <em>Laticínios</em>).</li>
+            <li>(Opcional) Defina um <strong>Preço Padrão</strong>: produtos associados à categoria ou subcategoria puxarão esse preço sugerido automaticamente.</li>
             <li>Toque em <strong>"Salvar"</strong>.</li>
           </ol>
 
           <h4 className="help-section-title">✨ Criando um Produto:</h4>
           <ol className="help-list">
             <li>Toque no botão flutuante <strong>＋</strong> e selecione <strong>"➕ Novo Produto"</strong>.</li>
-            <li>Preencha o <strong>Nome</strong>, selecione a <strong>Categoria</strong> e defina o <strong>Preço</strong>.</li>
+            <li>Preencha o <strong>Nome</strong>, selecione a <strong>Categoria</strong> e a <strong>Subcategoria</strong> (opcional), e defina o <strong>Preço</strong>.</li>
             <li>Marque as opções correspondentes: <em>"Pode ser vendido"</em> e/ou <em>"Pode ser comprado"</em>.</li>
             <li>Toque em <strong>"Salvar"</strong>.</li>
           </ol>

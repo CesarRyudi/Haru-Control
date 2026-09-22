@@ -13,12 +13,14 @@ model Product {
     unit          String   @default("Un")
     price         Decimal  @db.Decimal(10, 2)
     categoryId    String?  @map("category_id")
+    subcategoryId String?  @map("subcategory_id")
     isSellable    Boolean  @default(false) @map("is_sellable")
     isPurchasable Boolean  @default(false) @map("is_purchasable")
     createdAt     DateTime @default(now()) @map("created_at")
     updatedAt     DateTime @updatedAt @map("updated_at")
 
     category      Category?     @relation(fields: [categoryId], references: [id])
+    subcategory   Subcategory?  @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
     orderItems    OrderItem[]
     ledgerEntries LedgerEntry[]
     recipeItems   RecipeItem[]  @relation("ParentProduct")
@@ -35,9 +37,25 @@ model Category {
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")
 
-    products Product[]
+    products      Product[]
+    subcategories Subcategory[]
 
     @@map("categories")
+}
+
+model Subcategory {
+    id          String   @id @default(uuid())
+    name        String
+    categoryId  String   @map("category_id")
+    price       Decimal? @db.Decimal(10, 2)
+    observation String?
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    products    Product[]
+
+    @@map("subcategories")
 }
 
 model Customer {

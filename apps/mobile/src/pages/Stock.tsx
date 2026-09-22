@@ -4,23 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./Stock.css";
 
-interface Category {
-  id: string;
-  name: string;
-  price?: number;
-  observation?: string;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  unit: string;
-  price: number;
-  categoryId?: string;
-  category?: Category;
-  isSellable?: boolean;
-  isPurchasable?: boolean;
-}
+import { Category, Subcategory, Product } from "@haru-control/types";
 
 interface StockItem {
   productId: string;
@@ -76,49 +60,98 @@ export default function Stock() {
   };
 
   const groupedStock = useMemo(() => {
-    const groups: Record<string, { category?: Category; items: { product: Product; stockItem: StockItem }[] }> = {};
-
-    categories.forEach(cat => {
-      groups[cat.name] = { category: cat, items: [] };
-    });
-
     const stockMap = new Map<string, StockItem>();
     stock.forEach(item => stockMap.set(item.productId, item));
 
-    products.forEach(p => {
-      const catName = p.category?.name || "Sem Categoria";
-      if (!groups[catName]) {
-        groups[catName] = { category: p.category, items: [] };
+    const categoryMap: Record<string, {
+      category?: Category;
+      hasSubcategories: boolean;
+      subgroups: Record<string, { id: string; subcategory?: Subcategory; name: string; items: { product: Product; stockItem: StockItem }[] }>;
+      directItems: { product: Product; stockItem: StockItem }[];
+    }> = {};
+
+    categories.forEach(cat => {
+      const hasSubs = Boolean(cat.subcategories && cat.subcategories.length > 0);
+      const subMap: Record<string, { id: string; subcategory?: Subcategory; name: string; items: { product: Product; stockItem: StockItem }[] }> = {};
+      if (hasSubs) {
+        cat.subcategories!.forEach(sub => {
+          subMap[sub.id] = { id: sub.id, subcategory: sub, name: sub.name, items: [] };
+        });
+        subMap["none"] = { id: "none", subcategory: undefined, name: "Outros / Sem Subcategoria", items: [] };
       }
+      categoryMap[cat.id] = {
+        category: cat,
+        hasSubcategories: hasSubs,
+        subgroups: subMap,
+        directItems: [],
+      };
+    });
+
+    categoryMap["none"] = {
+      category: undefined,
+      hasSubcategories: false,
+      subgroups: {},
+      directItems: [],
+    };
+
+    products.forEach(p => {
+      const catId = p.categoryId && categoryMap[p.categoryId] ? p.categoryId : "none";
+      const catGroup = categoryMap[catId];
       const sItem = stockMap.get(p.id) || { productId: p.id, productName: p.name, currentStock: 0 };
-      groups[catName].items.push({ product: p, stockItem: sItem });
+      const entry = { product: p, stockItem: sItem };
+
+      if (catGroup.hasSubcategories) {
+        const subId = p.subcategoryId && catGroup.subgroups[p.subcategoryId] ? p.subcategoryId : "none";
+        catGroup.subgroups[subId].items.push(entry);
+      } else {
+        catGroup.directItems.push(entry);
+      }
     });
 
-    Object.values(groups).forEach(group => {
-      group.items.sort((a, b) => a.product.name.localeCompare(b.product.name));
+    Object.values(categoryMap).forEach(catGroup => {
+      catGroup.directItems.sort((a, b) => a.product.name.localeCompare(b.product.name));
+      Object.values(catGroup.subgroups).forEach(sub => {
+        sub.items.sort((a, b) => a.product.name.localeCompare(b.product.name));
+      });
     });
 
-    const sortedKeys = Object.keys(groups).filter(key => {
-      if (key === "Sem Categoria" && groups[key].items.length === 0) return false;
+    const sortedCatIds = Object.keys(categoryMap).filter(id => {
+      if (id === "none") {
+        return categoryMap["none"].directItems.length > 0;
+      }
       return true;
     }).sort((a, b) => {
-      if (a === "Sem Categoria") return 1;
-      if (b === "Sem Categoria") return -1;
-
-      const catA = groups[a].category;
-      const catB = groups[b].category;
+      if (a === "none") return 1;
+      if (b === "none") return -1;
+      const catA = categoryMap[a].category;
+      const catB = categoryMap[b].category;
       const priceA = catA?.price != null ? Number(catA.price) : Infinity;
       const priceB = catB?.price != null ? Number(catB.price) : Infinity;
-
       if (priceA !== priceB) return priceA - priceB;
-      return a.localeCompare(b);
+      return (catA?.name || "").localeCompare(catB?.name || "");
     });
 
-    return sortedKeys.map(key => ({
-      name: key,
-      category: groups[key].category,
-      items: groups[key].items,
-    }));
+    return sortedCatIds.map(id => {
+      const catGroup = categoryMap[id];
+      const validSubgroups = Object.values(catGroup.subgroups).filter(sub => {
+        if (!sub.subcategory && sub.items.length === 0) return false;
+        return true;
+      });
+
+      const totalCount = catGroup.hasSubcategories
+        ? validSubgroups.reduce((sum, s) => sum + s.items.length, 0)
+        : catGroup.directItems.length;
+
+      return {
+        id,
+        name: catGroup.category?.name || "Sem Categoria",
+        category: catGroup.category,
+        hasSubcategories: catGroup.hasSubcategories,
+        subgroups: validSubgroups,
+        directItems: catGroup.directItems,
+        totalCount,
+      };
+    });
   }, [stock, products, categories]);
 
   const handleOpenModal = (
@@ -188,6 +221,47 @@ export default function Stock() {
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const currentStockForSelected = stock.find(s => s.productId === selectedProductId)?.currentStock ?? 0;
 
+  const renderStockCard = ({ product, stockItem }: { product: Product; stockItem: StockItem }) => (
+    <div
+      key={product.id}
+      className={`product-card ${stockItem.currentStock < 0 ? "negative-card" : ""}`}
+      onClick={() => handleOpenModal("in", product.id)}
+      style={{ cursor: "pointer" }}
+    >
+      <div className="product-info">
+        <h3>{product.name}</h3>
+        <p className={`product-stock-qty ${stockItem.currentStock < 0 ? "negative-qty" : ""}`}>
+          {stockItem.currentStock}
+          <span className="product-unit">
+            {" "}{product.unit || 'un'}
+          </span>
+        </p>
+        <div className="product-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px', fontSize: '0.8em', justifyContent: 'center' }}>
+          {stockItem.currentStock < 0 && (
+            <span style={{ background: '#fee2e2', color: '#dc2626', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              ⚠️ Negativo
+            </span>
+          )}
+          {stockItem.warnings && stockItem.warnings.length > 0 && stockItem.warnings.map((warning, index) => (
+            <span key={index} style={{ background: '#fffbeb', color: '#b45309', padding: '2px 6px', borderRadius: '4px' }}>
+              ⚠️ {warning}
+            </span>
+          ))}
+          {product.isSellable && (
+            <span style={{ background: '#e0f7fa', color: '#006064', padding: '2px 6px', borderRadius: '4px' }}>
+              🛒 Venda
+            </span>
+          )}
+          {product.isPurchasable && (
+            <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>
+              📦 Compra
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="stock-page">
       <header className="page-header">
@@ -201,58 +275,38 @@ export default function Stock() {
           </p>
         ) : (
           groupedStock.map(group => (
-            <div key={group.name} className="stock-category-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0 10px', borderBottom: '2px solid #eee', paddingBottom: '5px' }}>
+            <div key={group.id} className="stock-category-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '24px 0 10px', borderBottom: '2px solid #eee', paddingBottom: '5px' }}>
                 <h2 className="category-title" style={{ margin: 0, border: 'none', padding: 0 }}>
                   {group.name}
                 </h2>
               </div>
-              {group.items.length === 0 ? (
+              {group.totalCount === 0 ? (
                 <p style={{ color: '#999', fontSize: '14px', fontStyle: 'italic', padding: '8px 0 16px' }}>
                   Nenhum item nesta categoria.
                 </p>
+              ) : group.hasSubcategories ? (
+                group.subgroups.map(subgroup => (
+                  <div key={subgroup.id} className="subcategory-group">
+                    <div className="subcategory-header">
+                      <h3 className="subcategory-title">
+                        {subgroup.subcategory ? `🏷️ ${subgroup.name}` : `📦 ${subgroup.name}`}
+                      </h3>
+                    </div>
+                    {subgroup.items.length === 0 ? (
+                      <p style={{ color: '#aaa', fontSize: '13px', fontStyle: 'italic', margin: '4px 0 12px' }}>
+                        Nenhum item nesta subcategoria.
+                      </p>
+                    ) : (
+                      <div className="products-grid stock-products-grid">
+                        {subgroup.items.map(renderStockCard)}
+                      </div>
+                    )}
+                  </div>
+                ))
               ) : (
                 <div className="products-grid stock-products-grid">
-                  {group.items.map(({ product, stockItem }) => (
-                    <div
-                      key={product.id}
-                      className={`product-card ${stockItem.currentStock < 0 ? "negative-card" : ""}`}
-                      onClick={() => handleOpenModal("adjust", product.id, stockItem.currentStock)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div className="product-info">
-                        <h3>{product.name}</h3>
-                        <p className={`product-stock-qty ${stockItem.currentStock < 0 ? "negative-qty" : ""}`}>
-                          {stockItem.currentStock}
-                          <span className="product-unit">
-                            {" "}{product.unit || 'un'}
-                          </span>
-                        </p>
-                        <div className="product-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px', fontSize: '0.8em', justifyContent: 'center' }}>
-                          {stockItem.currentStock < 0 && (
-                            <span style={{ background: '#fee2e2', color: '#dc2626', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                              ⚠️ Negativo
-                            </span>
-                          )}
-                          {stockItem.warnings && stockItem.warnings.length > 0 && stockItem.warnings.map((warning, index) => (
-                            <span key={index} style={{ background: '#fffbeb', color: '#b45309', padding: '2px 6px', borderRadius: '4px' }}>
-                              ⚠️ {warning}
-                            </span>
-                          ))}
-                          {product.isSellable && (
-                            <span style={{ background: '#e0f7fa', color: '#006064', padding: '2px 6px', borderRadius: '4px' }}>
-                              🛒 Venda
-                            </span>
-                          )}
-                          {product.isPurchasable && (
-                            <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>
-                              📦 Compra
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {group.directItems.map(renderStockCard)}
                 </div>
               )}
             </div>
@@ -331,7 +385,59 @@ export default function Stock() {
                   showButtons
                   required
                 />
+                {modalType === "in" && (
+                  <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                    {[1, 5, 10, 20].map((inc) => (
+                      <button
+                        key={inc}
+                        type="button"
+                        onClick={() => setNewQuantity((prev) => (prev || 0) + inc)}
+                        style={{
+                          flex: 1,
+                          padding: "6px 0",
+                          background: "#f1f5f9",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          color: "#334155",
+                          cursor: "pointer",
+                        }}
+                      >
+                        +{inc}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {selectedProduct && modalType === "in" && (
+                <div
+                  style={{
+                    marginBottom: "16px",
+                    padding: "10px 14px",
+                    background: "#f0fdf4",
+                    borderRadius: "8px",
+                    border: "1px solid #bbf7d0",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ fontSize: "13px", color: "#166534" }}>
+                    Novo saldo previsto:
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: "700",
+                      fontSize: "15px",
+                      color: "#15803d",
+                    }}
+                  >
+                    {(Number(currentStockForSelected) + Number(newQuantity || 0))} {selectedProduct.unit || "un"}
+                  </span>
+                </div>
+              )}
 
               <div
                 className="modal-actions"
@@ -353,8 +459,50 @@ export default function Stock() {
                   type="submit"
                   className="btn-primary"
                 >
-                  {modalType === "in" ? "Adicionar" : "Salvar"}
+                  {modalType === "in" ? "➕ Confirmar Entrada" : "Salvar Ajuste"}
                 </button>
+              </div>
+
+              <div style={{ marginTop: "16px", textAlign: "center" }}>
+                {modalType === "in" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalType("adjust");
+                      setNewQuantity(currentStockForSelected);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#64748b",
+                      fontSize: "12px",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                    }}
+                  >
+                    ⚖️ Precisa corrigir o saldo total? Fazer balanço/ajuste
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalType("in");
+                      setNewQuantity(1);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#4f46e5",
+                      fontSize: "12px",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                    }}
+                  >
+                    📥 Voltar para Entrada de Estoque
+                  </button>
+                )}
               </div>
             </form>
           </div>

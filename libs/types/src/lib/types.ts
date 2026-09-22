@@ -7,11 +7,38 @@ export enum OrderStatus {
   CANCELLED = "CANCELLED",
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  price?: number | null;
+  observation?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  subcategories?: Subcategory[];
+}
+
+export interface Subcategory {
+  id: string;
+  name: string;
+  categoryId: string;
+  price?: number | null;
+  observation?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  category?: Category;
+}
+
 export interface Product {
   id: string;
   name: string;
   unit: string;
   price: number;
+  categoryId?: string | null;
+  subcategoryId?: string | null;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
+  category?: Category | null;
+  subcategory?: Subcategory | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,16 +119,50 @@ export interface LedgerEntry {
 }
 
 // DTOs
+export interface CreateCategoryDto {
+  name: string;
+  price?: number;
+  observation?: string;
+}
+
+export interface UpdateCategoryDto {
+  name?: string;
+  price?: number;
+  observation?: string;
+}
+
+export interface CreateSubcategoryDto {
+  name: string;
+  categoryId: string;
+  price?: number;
+  observation?: string;
+}
+
+export interface UpdateSubcategoryDto {
+  name?: string;
+  categoryId?: string;
+  price?: number;
+  observation?: string;
+}
+
 export interface CreateProductDto {
   name: string;
   unit: string;
   price: number;
+  categoryId?: string;
+  subcategoryId?: string;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
 }
 
 export interface UpdateProductDto {
   name?: string;
   unit?: string;
   price?: number;
+  categoryId?: string;
+  subcategoryId?: string;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
 }
 
 export interface CreateOrderItemDto {

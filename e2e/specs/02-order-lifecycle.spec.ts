@@ -32,11 +32,11 @@ test.describe("Ciclo de Vida do Pedido (Mobile)", () => {
     const orderCard = page.locator(".order-card", { hasText: testAddress });
     await expect(orderCard).toBeVisible({ timeout: 10000 });
 
-    // 6. Avança de Rascunho para Em Produção
+    // 6. Avança de Rascunho para Em Preparo
     await orderCard.locator("button.btn-advance").click();
 
-    // 7. Acessa a aba Produção e valida confirmação (ACK)
-    await orderBoard.changeTab("Produção");
+    // 7. Acessa a aba Em Preparo e valida confirmação (ACK)
+    await orderBoard.changeTab("Em Preparo");
     const producingCard = page.locator(".order-card", { hasText: testAddress });
     await expect(producingCard).toBeVisible({ timeout: 10000 });
 
@@ -47,20 +47,13 @@ test.describe("Ciclo de Vida do Pedido (Mobile)", () => {
       await expect(producingCard.locator(".ack-confirmed")).toBeVisible();
     }
 
-    // 8. Avança para Em Entrega
-    await producingCard.locator("button.btn-advance").click();
+    // 8. Conclui o pedido diretamente a partir de Em Preparo
+    await producingCard.locator("button.btn-advance", { hasText: "Concluir" }).click();
 
-    // 9. Acessa a aba Em Entrega
-    await orderBoard.changeTab("Em Entrega");
-    const deliveringCard = page.locator(".order-card", { hasText: testAddress });
-    await expect(deliveringCard).toBeVisible({ timeout: 10000 });
-
-    // 10. Conclui o pedido
-    await deliveringCard.locator("button.btn-advance", { hasText: "Concluir" }).click();
-
-    // 11. Valida que o pedido foi para Concluídos
+    // 9. Valida que o pedido foi para Concluídos
     await orderBoard.changeTab("Concluídos");
     const completedCard = page.locator(".order-card", { hasText: testAddress });
     await expect(completedCard).toBeVisible({ timeout: 10000 });
+
   });
 });

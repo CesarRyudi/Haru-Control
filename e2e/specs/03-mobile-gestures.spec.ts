@@ -7,11 +7,8 @@ test.describe("Navegação Mobile & Gestos de Swipe", () => {
   }) => {
     await orderBoard.goto();
 
-    await orderBoard.changeTab("Produção");
-    await expect(page.locator(".tab-btn", { hasText: "Produção" })).toHaveClass(/active/);
-
-    await orderBoard.changeTab("Em Entrega");
-    await expect(page.locator(".tab-btn", { hasText: "Em Entrega" })).toHaveClass(/active/);
+    await orderBoard.changeTab("Em Preparo");
+    await expect(page.locator(".tab-btn", { hasText: "Em Preparo" })).toHaveClass(/active/);
 
     await orderBoard.changeTab("Concluídos");
     await expect(page.locator(".tab-btn", { hasText: "Concluídos" })).toHaveClass(/active/);
@@ -29,7 +26,7 @@ test.describe("Navegação Mobile & Gestos de Swipe", () => {
 
     const boardContent = page.locator(".board-content");
 
-    // 1. Deslizar para a esquerda (swipe left: deltaX < 0) -> Deve avançar para 'Produção'
+    // 1. Deslizar para a esquerda (swipe left: deltaX < 0) -> Deve avançar para 'Em Preparo'
     await boardContent.dispatchEvent("touchstart", {
       touches: [{ identifier: 0, clientX: 300, clientY: 300 }],
     });
@@ -37,7 +34,7 @@ test.describe("Navegação Mobile & Gestos de Swipe", () => {
       changedTouches: [{ identifier: 0, clientX: 100, clientY: 300 }],
     });
 
-    await expect(page.locator(".tab-btn", { hasText: "Produção" })).toHaveClass(/active/, { timeout: 3000 });
+    await expect(page.locator(".tab-btn", { hasText: "Em Preparo" })).toHaveClass(/active/, { timeout: 3000 });
 
     // 2. Deslizar para a direita (swipe right: deltaX > 0) -> Deve retroceder para 'Rascunho'
     await boardContent.dispatchEvent("touchstart", {

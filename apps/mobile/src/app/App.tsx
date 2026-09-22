@@ -56,7 +56,7 @@ function App() {
         <Route path="/orders/:id/edit" element={<OrderForm />} />
         <Route path="/products" element={<AppLayout><Products /></AppLayout>} />
         <Route path="/products/:id/recipe" element={<AppLayout><ProductRecipe /></AppLayout>} />
-        <Route path="/manufacturing" element={<AppLayout><Manufacturing /></AppLayout>} />
+        <Route path="/manufacturing" element={<Navigate to="/stock" replace />} />
         <Route path="/stock" element={<AppLayout><Stock /></AppLayout>} />
         <Route path="/customers" element={<AppLayout><Customers /></AppLayout>} />
         <Route path="/help" element={<AppLayout><Help /></AppLayout>} />

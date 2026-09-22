@@ -8,6 +8,8 @@
 - `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
 - `[x]` **[BUG-004]** Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm — *[✅ Resolvido e validado na prática: remoção do max-height/overflow-y da grid para expansão natural dos produtos]*
 - `[ ]` **[BUG-005]** Chips de seleção de motivo do descarte sem feedback visual em OrderForm — *[🟡 Implementado: unificação de classes CSS e estilo .active nos chips — ⏳ Aguardando Validação Prática]*
+- `[ ]` **[BUG-006]** Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto — *[🟡 Implementado: bloqueio de scroll/touch no body, inclusão de taxa de entrega e total no drawer, ícone alterado para 🛒 — ⏳ Aguardando Validação Prática]*
+- `[ ]` **[BUG-007]** Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban — *[🟡 Implementado: user-select none nos cards, abas 100% width, container fit-content e ações de lote no cabeçalho da coluna — ⏳ Aguardando Validação Prática]*
 
 ---
 
@@ -103,6 +105,43 @@
   - **Métricas e Relatórios nos Insights (`/insights`):**
     - Card de KPI com o total de perdas do mês (custo estimado em R$ e volume).
     - Gráfico com os produtos mais descartados e distribuição por motivo (ex: % validade vs % quebra), ajudando a identificar gargalos de produção e compras.
+- `[x]` **Remoção da Página de Produção e Simplificação do Fluxo:**
+  - Desativar a rota `/manufacturing` e remover a aba "Produção" da barra de navegação inferior (`BottomNavigation.tsx`).
+  - O fluxo de fabricação será absorvido diretamente pela rotina de entrada de estoque dos produtos acabados.
+- `[x]` **Barra Flutuante de Carrinho no Formulário de Pedidos (`OrderForm`):**
+  - Adicionar uma barra flutuante inferior (floating bar) que surge automaticamente quando itens são adicionados ao carrinho.
+  - Exibir resumo rápido (quantidade total de itens, subtotal e botão para abrir drawer com itens ou rolar para checkout).
+  - Gaveta inferior (drawer sheet) interativa com controles de quantidade e fechamento/continuação para o checkout.
+- `[x]` **Entrada Rápida de Estoque pelo Modal de Item (`Stock.tsx`):**
+  - Transformar o modal disparado ao clicar no item do estoque para focar primariamente em **Dar Entrada no Estoque** (ex: registrar nova fornada/produção) no Ledger contábil, em vez de exigir ajuste manual corretivo.
+  - Botões de incremento rápido (+1, +5, +10, +20), preview de novo saldo estimado em tempo real e link secundário para balanço/ajuste de inventário.
+- `[x]` **Ocultação do Estágio "Em Entrega" e Renomeação para "Em Preparo" no Kanban (`OrderBoard.tsx`):**
+  - Renomear a coluna e aba "Em Produção" para **"Em Preparo"**.
+  - Ocultar a coluna/aba "Em Entrega" no frontend, preservando o enum no banco de dados e agrupando os pedidos `READY` existentes na coluna "Em Preparo".
+- `[x]` **Seleção Múltipla e Transição de Pedidos em Lote no Kanban:**
+  - Adicionar modo de seleção múltipla de pedidos na coluna ativa (via checkbox nos cards ou long-press de 500ms).
+  - Opção de "Selecionar Todos" da coluna no cabeçalho.
+  - Barra de ações em lote flutuante (Bottom Action Bar) com contador de selecionados e botão para avançar todos para o próximo estágio simultaneamente (`PATCH /orders/batch/status`).
+- `[x]` **Hierarquia de Subcategorias nos Produtos, Estoque e Pedidos:**
+  - **Modelagem de Dados e Banco de Dados (`schema.prisma`):**
+    - Criação da tabela/modelo `Subcategory` (`id`, `name`, `categoryId`, `price`, `observation`, `createdAt`, `updatedAt`).
+    - Relação 1:N entre `Category` e `Subcategory` (com `onDelete: Cascade`), e adição de `subcategoryId` opcional no modelo `Product` (com `onDelete: SetNull`).
+    - Geração e aplicação da migration `20260919155355_add_subcategories` no banco de dados.
+    - Sincronização do script de povoamento (`seed.ts`) mapeando subcategorias para insumos e cookies vendíveis.
+  - **Tipos Compartilhados e API NestJS (`libs/types` & `apps/api`):**
+    - Interfaces `Category` e `Subcategory`, DTOs (`CreateSubcategoryDto`, `UpdateSubcategoryDto`, `CreateProductDto`, `UpdateProductDto`) em `libs/types`.
+    - Módulo `SubcategoriesModule` (`subcategories.controller.ts`, `subcategories.service.ts`) com CRUD completo.
+    - Atualização do `CategoriesService` (inclusão de subcategorias no `findAll` e desassociação segura de produtos) e `ProductsService` (suporte a `subcategoryId` e include relacional).
+  - **Interface Mobile-First (`apps/mobile`):**
+    - `Products.tsx`: Agrupamento hierárquico Categoria ➔ Subcategoria ➔ Produtos; modal de cadastro/edição/exclusão de subcategoria; seletores encadeados com preço padrão sugerido herdado; menu FAB com ação direta "📂 Nova Subcategoria".
+    - `Stock.tsx`: Agrupamento visual por Categoria e Subcategoria com preservação da ação rápida de entrada (`+1`/toque no card).
+    - `OrderForm.tsx`: Agrupamento por Categoria e Subcategoria na grade de seleção de itens nos modos de venda e descarte.
+    - `Manufacturing.tsx` & `ProductRecipe.tsx`: Seletores `<select>` organizados com `<optgroup label="Categoria > Subcategoria">`.
+    - `Help.tsx`: Guia do usuário atualizado com instruções de criação e organização de categorias e subcategorias.
+  - **Suíte de Testes Automatizados E2E (`e2e/`):**
+    - Criação do teste de ciclo completo `06-subcategories.spec.ts` cobrindo criação, renderização na árvore e exclusão de subcategorias via mobile.
+
+
 
 ---
 

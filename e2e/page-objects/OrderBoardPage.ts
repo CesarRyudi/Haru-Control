@@ -1,6 +1,6 @@
 import { Page, Locator, expect } from "@playwright/test";
 
-export type OrderTab = "Rascunho" | "Produção" | "Em Entrega" | "Concluídos";
+export type OrderTab = "Rascunho" | "Em Preparo" | "Concluídos";
 
 export class OrderBoardPage {
   readonly page: Page;

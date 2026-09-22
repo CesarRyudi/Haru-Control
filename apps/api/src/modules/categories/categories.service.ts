@@ -13,6 +13,11 @@ export class CategoriesService {
 
   findAll() {
     return this.prisma.category.findMany({
+      include: {
+        subcategories: {
+          orderBy: { name: 'asc' },
+        },
+      },
       orderBy: { name: 'asc' },
     });
   }
@@ -21,13 +26,18 @@ export class CategoriesService {
     return this.prisma.category.update({
       where: { id },
       data,
+      include: {
+        subcategories: {
+          orderBy: { name: 'asc' },
+        },
+      },
     });
   }
 
   async remove(id: string) {
     await this.prisma.product.updateMany({
       where: { categoryId: id },
-      data: { categoryId: null },
+      data: { categoryId: null, subcategoryId: null },
     });
     return this.prisma.category.delete({
       where: { id },

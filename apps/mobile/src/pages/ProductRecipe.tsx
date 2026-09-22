@@ -1,16 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { FloatingActionButton, NumberInput } from "@haru-control/ui";
 import { getCompatibleUnits, convertQuantity, normalizeUnit } from "@haru-control/utils";
+import { Product } from "@haru-control/types";
 import "./Products.css";
-
-interface Product {
-  id: string;
-  name: string;
-  unit: string;
-  isPurchasable: boolean;
-}
 
 interface RecipeItem {
   id: string;
@@ -53,6 +47,19 @@ export default function ProductRecipe() {
       console.error("Erro ao carregar dados:", error);
     }
   };
+
+  const groupedAvailableProducts = useMemo(() => {
+    const groups: Record<string, Product[]> = {};
+    availableProducts.forEach(p => {
+      let groupName = p.category?.name || "Sem Categoria";
+      if (p.subcategory?.name) {
+        groupName += ` > ${p.subcategory.name}`;
+      }
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(p);
+    });
+    return groups;
+  }, [availableProducts]);
 
   const handleOpenModal = () => {
     const firstProduct = availableProducts[0];
@@ -196,8 +203,12 @@ export default function ProductRecipe() {
                   required
                 >
                   <option value="" disabled>Selecione...</option>
-                  {availableProducts.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (Estoque em {p.unit || 'un'})</option>
+                  {Object.entries(groupedAvailableProducts).map(([groupName, groupItems]) => (
+                    <optgroup key={groupName} label={groupName}>
+                      {groupItems.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} (Estoque em {p.unit || 'un'})</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

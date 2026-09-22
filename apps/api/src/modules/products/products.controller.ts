@@ -40,6 +40,10 @@ export class CreateProductDto {
   @IsOptional()
   categoryId?: string;
 
+  @IsString()
+  @IsOptional()
+  subcategoryId?: string;
+
   @IsBoolean()
   @IsOptional()
   isSellable?: boolean;
@@ -66,6 +70,10 @@ export class UpdateProductDto {
   @IsString()
   @IsOptional()
   categoryId?: string;
+
+  @IsString()
+  @IsOptional()
+  subcategoryId?: string;
 
   @IsBoolean()
   @IsOptional()

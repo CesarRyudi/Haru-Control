@@ -196,6 +196,7 @@
   - **2. Card de Projeção Mensal (`Insights.tsx` e `Insights.css`):**
     - Removido o emoji `🔮` e o wrapper `.projection-icon`.
     - O título e a badge de "Estimativa Run-Rate" agora alinham de maneira limpa e profissional com o valor em destaque.
+
 ### [2026-09-17] Resolução de BUG-004 e Unificação de Pedidos, Histórico e Descartes no OrderForm
 
 - **Contexto:** Solicitação do usuário para unificar a operação de descarte de estoque no mesmo formulário de página inteira do `OrderForm`, permitindo alternar de modo ("Pedido Normal", "Pedido Histórico", "Descarte de Estoque") por um dropdown no topo esquerdo com pré-seleção por rota (`/orders/new`, `?mode=historical`, `?mode=waste`). Além disso, correção do bug de layout `BUG-004` onde as categorias de produtos limitavam a altura com rolagem interna ao conter mais de 6 produtos.
@@ -242,3 +243,156 @@
     - `04-history-retroactive.spec.ts`: Adaptado para validar o novo dropdown `history-period-select`.
 - **Validação:** Compilação dos pacotes com 100% de sucesso (`npm run build`).
 - **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-18] Suporte a Acesso Mobile em Rede Local (Wi-Fi)
+
+- **Contexto:** Necessidade de rodar e testar o aplicativo diretamente no smartphone conectado na mesma rede Wi-Fi da máquina de desenvolvimento.
+- **Implementações Realizadas:**
+  - **1. Frontend Mobile (`apps/mobile/src/services/api.ts`):**
+    - Atualizada a função de resolução da `baseURL` do Axios para detectar dinamicamente `window.location.hostname`.
+    - Ao abrir a aplicação no celular via IP da máquina (ex: `http://192.168.15.7:4200`), as requisições para a API agora apontam automaticamente para `http://192.168.15.7:3000` em vez de falharem no `localhost` interno do celular.
+  - **2. Subida dos Serviços em Segundo Plano:**
+    - Servidores ativos e escutando em `0.0.0.0`: API NestJS na porta `3000` e Vite Mobile na porta `4200`.
+    - Acesso disponível em `http://192.168.15.7:4200`.
+- **Documentação Atualizada:** [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-19] Planejamento e Catalogação de Novas Demandas Operacionais
+
+- **Contexto:** Alinhamento estratégico com o usuário para otimizações operacionais de alto impacto no fluxo da cozinha e atendimento:
+- **Funcionalidades Mapeadas e Adicionadas ao Backlog Ativo ([docs/TASKS.md](docs/TASKS.md)):**
+  - **1. Remoção da Página de Produção:** Simplificação do fluxo operacional eliminando `/manufacturing` e a aba na barra inferior, transferindo o registro de fabricação para a entrada de estoque de produto acabado.
+  - **2. Barra Flutuante de Carrinho no `OrderForm`:** Indicador inferior flutuante com resumo de itens e total ao adicionar produtos ao carrinho, acelerando a visualização antes do checkout.
+  - **3. Entrada de Estoque via Modal do Item (`Stock.tsx`):** Redirecionamento do modal de toque rápido no card de estoque para registrar primariamente entrada/produção de produtos no Ledger, deixando o ajuste manual apenas para conferências pontuais de inventário.
+  - **4. Ocultação do Estágio "Em Entrega" e Renomeação para "Em Preparo":** Simplificação do fluxo visual do Kanban (avançando direto de Em Preparo para Concluído) mantendo compatibilidade do enum no backend.
+  - **5. Movimentação de Pedidos em Lote no Kanban:** Suporte a seleção múltipla de cards (via checkbox/long-press), opção "Selecionar Todos" e barra flutuante de ações para transição em massa de status.
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-19] Implementação das 5 Otimizações Operacionais (Remoção Produção, Drawer Carrinho, Entrada Estoque, Coluna Preparo e Ações em Lote)
+
+- **Contexto:** Execução das demandas operacionais alinhadas com o usuário para dinamizar o atendimento e a gestão da cozinha no Haru Control: eliminação de telas desnecessárias, agilização na montagem de pedidos, facilidade na entrada de fornadas no estoque e movimentação em lote de comandas.
+- **Implementações Realizadas:**
+  - **1. Remoção da Página de Produção e Redirecionamento (`BottomNavigation.tsx`, `App.tsx`):**
+    - Removida a aba `/manufacturing` da barra de navegação inferior, mantendo 5 abas equilibradas (`Início`, `Clientes`, `Produtos`, `Estoque`, `Histórico`).
+    - Configurado redirecionamento transparente de `/manufacturing` para `/stock` no React Router.
+  - **2. Barra Flutuante de Carrinho e Gaveta Deslizante no OrderForm (`OrderForm.tsx` & `OrderForm.css`):**
+    - Barra inferior flutuante (`.floating-cart-bar`) exibindo total de itens e valor acumulado (ou unidades no modo descarte).
+    - Gaveta inferior deslizante (Drawer Bottom Sheet) interativa com lista detalhada de itens, botões rápidos de incremento/decremento (`-`, `+`), remoção e avanço direto para o checkout.
+    - Ocultação automática (fade out) via `IntersectionObserver` quando a seção de finalização/checkout entra no viewport.
+  - **3. Entrada Rápida de Estoque por Toque no Card (`Stock.tsx` & `Stock.css`):**
+    - Modal ao clicar no card de estoque agora abre primariamente no modo de Entrada (`IN` / Produção) no Ledger contábil.
+    - Botões rápidos de incremento (`+1`, `+5`, `+10`, `+20`) e previsão do novo saldo em tempo real.
+    - Link secundário para ajuste manual / inventário caso seja necessária retificação de balanço.
+  - **4. Simplificação do Kanban - "Em Preparo" e Avanço Direto (`OrderBoard.tsx` & `OrderBoard.css`):**
+    - Renomeada a aba e coluna de "Produção" para **"Em Preparo"**.
+    - Ocultada a coluna "Em Entrega", mantendo pedidos com status `READY` agrupados na coluna "Em Preparo" para não sumirem da visualização.
+    - Transição direta: pedidos em "Em Preparo" avançam imediatamente para "Concluído" com 1 toque.
+  - **5. Seleção Múltipla e Transição de Pedidos em Lote (`OrderBoard.tsx`, `orders.service.ts`, `orders.controller.ts`):**
+    - Backend: Implementado endpoint `@Patch("batch/status")` com transação atômica (`updateBatchStatus`), aplicando baixas e vendas caso o status de destino seja `COMPLETED`.
+    - Frontend: Suporte a seleção individual via checkbox, long-press de 500ms no card e botão "Selecionar Todos" no cabeçalho da coluna ativa.
+    - Barra flutuante de ações em lote (`.batch-action-bar`) com contador e botões dedicados de avanço coletivo de status.
+  - **6. Atualização da Suíte de Testes E2E (`e2e/`):**
+    - Adaptados Page Objects e testes Playwright (`OrderBoardPage.ts`, `02-order-lifecycle.spec.ts`, `03-mobile-gestures.spec.ts`) para a nova estrutura de 3 abas e transição direta.
+- **Validação:** Compilação completa do monorepo com 100% de sucesso (`npm run build`) e suíte Playwright E2E 100% verde (10 passed).
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-19] Resolução do BUG-006: Contenção de Scroll no Drawer do Carrinho, Taxa de Entrega e Ícone 🛒
+
+- **Contexto:** Relatado pelo usuário que, ao interagir com o drawer do carrinho no `OrderForm`, o fundo da página de pedidos se movia; faltava a exibição da taxa de entrega e o total no drawer; e o ícone utilizado no botão era uma sacola de compras (`🛍️`) em vez de um carrinho (`🛒`).
+- **Implementações Realizadas:**
+  - **1. Bloqueio Estrito de Scroll no Body (`OrderForm.tsx`):**
+    - Adicionado `useEffect` vinculado a `isCartDrawerOpen` que aplica `document.body.style.overflow = "hidden"` e `document.body.style.touchAction = "none"`, restaurando o comportamento padrão ao desmontar ou fechar o drawer.
+  - **2. Contenção de Eventos Touch e Overscroll (`OrderForm.tsx` & `OrderForm.css`):**
+    - Adicionado `onTouchMove` no overlay e `stopPropagation` no container do drawer.
+    - Aplicadas as regras CSS `overscroll-behavior: contain; touch-action: none;` no overlay, cabeçalho e rodapé, e `touch-action: pan-y; -webkit-overflow-scrolling: touch;` na lista de itens para isolar o scroll internamente.
+  - **3. Exibição da Taxa de Entrega e Total Consolidado (`OrderForm.tsx` & `OrderForm.css`):**
+    - Adicionado bloco `.cart-drawer-pricing-summary` discriminando Subtotal, Taxa de Entrega (`deliveryFee`) e Total consolidado.
+    - Atualizado o rótulo do botão de finalização para exibir o valor total com a entrega inclusa: `Finalizar Pedido (${formatCurrency(totalCartPrice + deliveryFee)}) ↓`.
+  - **4. Padronização de Ícone para Carrinho de Compras (`OrderForm.tsx`):**
+    - Substituído o emoji `🛍️` por `🛒` no botão flutuante e no título do drawer.
+- **Validação:** Compilação do monorepo (`npm run build`) com 100% de sucesso e suíte Playwright E2E 100% verde (10 passed).
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-19] Resolução do BUG-007 e Refinamento do Carrinho e Seleção em Lote
+
+- **Contexto:** Solicitação de refinamentos ergonômicos e correção de comportamento no Quadro de Pedidos e no formulário de pedidos:
+  - No carrinho (`OrderForm`): adição de controle interativo com botões `+`/`-` e input numérico para ajuste dinâmico da taxa de entrega diretamente no drawer, e campo de observações para o modo descarte.
+  - No Quadro de Pedidos (`OrderBoard`): eliminação da seleção nativa de texto no long-press (`user-select: none`); abas ocupando 100% da tela sem rolagem horizontal; remoção da barra flutuante inferior (`.batch-action-bar`) que cobria o FAB; inclusão de checkbox de seleção no cabeçalho e nos cards; e botões contextuais de avanço em lote no cabeçalho da coluna (`🍳 Em Preparo` e `✅ Concluir`).
+  - Ajuste de altura do container do Kanban para `min-height: calc(100vh - 80px)` e `.board-column` com `height: fit-content;`, eliminando o overflow e rolagem fantasma contra o `BottomNavigation`.
+- **Implementações Realizadas:**
+  - **1. Edição da Taxa de Entrega no Drawer (`OrderForm.tsx` & `OrderForm.css`):**
+    - Adicionado seletor numérico com botões `-` e `+` de incremento (`0.50`) e input direto no drawer, mantendo o total consolidado sincronizado em tempo real.
+    - Adicionado campo de observação de linha única no modo descarte no drawer (`wasteNotes`).
+  - **2. Desativação de Seleção de Texto em Cards (`OrderBoard.css`):**
+    - Inserido `user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;` na classe `.order-card` e seus filhos, prevenindo ativação acidental da lupa e seleção de texto no long-press touch.
+  - **3. Abas do Kanban sem Rolagem Lateral (`OrderBoard.css`):**
+    - `.board-tabs` e `.tab-btn` atualizados com `width: 100%; flex: 1; min-width: 0;`, garantindo que as 3 abas caibam perfeitamente na viewport em qualquer dispositivo mobile sem scrollbar horizontal.
+  - **4. Ajuste de Altura e Fim da Rolagem Excessiva (`OrderBoard.css`):**
+    - Substituído `height: 100vh; overflow: hidden;` por `min-height: calc(100vh - 80px); box-sizing: border-box;` e `.board-column` com `height: fit-content;`.
+    - Quando vazia, a coluna ocupa apenas o espaço do empty-state sem ultrapassar a tela; quando contém pedidos, expande naturalmente acompanhando o scroll da página.
+  - **5. Ações em Lote no Cabeçalho da Coluna (`OrderBoard.tsx` & `OrderBoard.css`):**
+    - Checkboxes contextuais: ocultos no estado padrão para manter a interface limpa, surgindo nos cards e no cabeçalho somente quando o modo de seleção é ativado via long-press (500ms).
+    - Botões de lote no topo direito: `🍳 Em Preparo`, `✅ Concluir` e `✕ Cancelar`.
+    - Remoção completa da barra flutuante inferior que colidia com o FAB de novos pedidos.
+- **Validação:** Compilação de todos os pacotes com 100% de sucesso (`npm run build`) e suíte Playwright E2E 100% verde (10 passed).
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-09-19] Refinamento dos Botões de Transição e Criação Direta de Pedido via Drawer
+
+- **Contexto:** Solicitação do usuário para:
+  1. Remover emojis dos botões de mover pedidos para outras etapas no cabeçalho das colunas do Kanban.
+  2. Transformar o botão principal da gaveta deslizante (Drawer do carrinho em `OrderForm`) em um disparador direto para salvar/criar o pedido, eliminando o comportamento intermediário de apenas rolar a página para o formulário no rodapé.
+- **Implementações Realizadas:**
+  - **1. Limpeza Tipográfica nos Botões de Ação em Lote (`OrderBoard.tsx`):**
+    - Removidos os emojis decorativos `🍳`, `✅` e `📝` dos botões de transição em massa no cabeçalho da coluna (`Em Preparo (N)`, `Concluir (N)` e `Rascunho (N)`).
+  - **2. Criação Imediata e Ações no Drawer (`OrderForm.tsx` & `OrderForm.css`):**
+    - Botão `.btn-drawer-checkout` agora invoca diretamente `handleSave()`, criando o pedido ou registrando o descarte imediatamente com feedback de carregamento (`Salvando...`).
+    - Exibe o valor total consolidado no próprio botão: `Criar Pedido (${formatCurrency(totalCartPrice + deliveryFee)})`.
+    - **Cor Verde Padronizada:** O botão de criar pedido no drawer agora utiliza o mesmo verde padrão da finalização do pedido (`#2ecc71`, hover `#27ae60`), mantendo a identidade visual familiar.
+    - **Botão Limpar Pedido no Drawer:** Inserido o botão `.btn-drawer-clear` ("Limpar Pedido" ou "Limpar Descarte"), executando `handleClearOrder()` e fechando o drawer após confirmação.
+    - Fechamento suave do drawer em caso de sucesso (`setIsCartDrawerOpen(false)`) e redirecionamento de tela; caso ocorram warnings de estoque, fecha a gaveta e foca nos avisos para confirmação.
+    - Estilização adicionada no CSS para `.cart-drawer-actions`, `.btn-drawer-clear`, `.btn-drawer-checkout:disabled` e variante `.btn-drawer-waste` para modo descarte.
+### [2026-09-19] Implementação de Subcategorias Hierárquicas nos Produtos, Estoque e Pedidos
+
+- **Contexto:** Com o cadastramento de ingredientes, insumos e embalagens como produtos no inventário interno, tornou-se fundamental organizar o catálogo em uma hierarquia de dois níveis (**Categoria Macro ➔ Subcategoria Opcional**). As categorias atuam como grandes agrupadores (ex: `Cookies`, `Insumos & Matérias-Primas`, `Bebidas`, `Embalagens`), enquanto as subcategorias organizam famílias de produtos (ex: dentro de `Cookies`: `Clássicos`, `Especiais & Recheados`, `Sazonais`).
+- **Implementações Realizadas:**
+  - **1. Banco de Dados & Prisma (`apps/api/prisma/schema.prisma`):**
+    - Criado o modelo `Subcategory` com campos: `id`, `name`, `price` (preço padrão sugerido opcional), `observation`, `categoryId`, `createdAt` e `updatedAt`.
+    - Estabelecido relacionamento 1:N entre `Category` e `Subcategory` com `onDelete: Cascade`.
+    - Adicionada chave estrangeira opcional `subcategoryId` no modelo `Product` com `onDelete: SetNull`.
+    - Gerada e aplicada com sucesso a migration `20260919155355_add_subcategories` no banco de dados.
+    - Atualizado o script de seed (`seed.ts`) vinculando subcategorias realistas aos insumos e aos cookies vendíveis.
+  - **2. Tipos Compartilhados (`libs/types/src/lib/types.ts`):**
+    - Criadas as interfaces `Category` e `Subcategory` (com relacionamento de lista de subcategorias).
+    - Criados os DTOs `CreateSubcategoryDto`, `UpdateSubcategoryDto`, `CreateCategoryDto`, `UpdateCategoryDto`.
+    - Atualizado o modelo `Product` e seus DTOs (`CreateProductDto`, `UpdateProductDto`) para incluir `subcategoryId` e relação com `Subcategory`.
+  - **3. Backend API NestJS (`apps/api/src/`):**
+    - **Novo Módulo `SubcategoriesModule` (`subcategories.controller.ts`, `subcategories.service.ts`):** CRUD completo (`GET /subcategories`, `GET /subcategories/:id`, `POST /subcategories`, `PUT /subcategories/:id`, `DELETE /subcategories/:id`), ordenação alfabética e validação de existência de categoria vinculada.
+    - **`CategoriesService`:** `findAll` agora inclui subcategorias ordenadas; exclusão desassocia produtos de ambas as chaves (`categoryId: null`, `subcategoryId: null`).
+    - **`ProductsService`:** `findAll` e `findOne` incluem `category` e `subcategory`; criação e atualização aceitam e persistem `subcategoryId`.
+    - Registrado `SubcategoriesModule` em `app.module.ts`.
+  - **4. Frontend Mobile-First (`apps/mobile/src/`):**
+    - **`Products.tsx` & `Products.css`:**
+      - Agrupamento visual hierárquico: Categoria ➔ Subcategoria ➔ Grid de Cards.
+      - Quando uma categoria não tem subcategorias (ou produtos sem subcategoria), os cards renderizam diretamente sob o cabeçalho da categoria, mantendo a tela limpa sem subtítulos vazios.
+      - Modal de gerenciamento de subcategorias (criar, editar, excluir).
+      - Modal de produtos com selects encadeados (Categoria filtra Subcategorias válidas) e auto-preenchimento do preço sugerido ao selecionar uma subcategoria precificada.
+      - Menu FAB atualizado com ação dedicada `📂 Nova Subcategoria`.
+    - **`Stock.tsx` & `Stock.css`:**
+      - Agrupamento de estoque atualizado para a hierarquia Categoria ➔ Subcategoria ➔ Cards de saldo.
+      - Ação de toque rápido no card para entrada contábil imediata (`+1`) preservada intacta.
+    - **`OrderForm.tsx`:**
+      - Agrupamento de produtos na grade de seleção de pedidos (tanto no modo normal quanto descarte) organizado por Categoria e Subcategoria.
+    - **`Manufacturing.tsx` & `ProductRecipe.tsx`:**
+      - Dropdowns `<select>` organizados com `<optgroup label="Categoria > Subcategoria">` para localização rápida de produtos finais e ingredientes.
+    - **`Help.tsx`:**
+      - Seção de ajuda e manual de uso atualizado com o novo conceito de categorias e subcategorias.
+  - **5. Suíte de Testes Automatizados E2E com Playwright (`e2e/`):**
+    - Criado teste `06-subcategories.spec.ts` cobrindo navegação via barra inferior, abertura do modal de subcategoria pelo FAB, cadastro de nova subcategoria, validação de renderização no DOM e exclusão com diálogo nativo.
+- **Validação:**
+  - Build do monorepo (`npm run build`) concluído com 100% de sucesso para todos os 4 projetos (`types`, `utils`, `mobile`, `api`).
+  - Suíte completa de testes Playwright E2E executada com sucesso: 11 passed (incluindo autenticação, ciclo de pedidos, swipe mobile, histórico, descarte e subcategorias).
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md), [docs/HISTORY.md](docs/HISTORY.md), `HARU_CONTROL_INDEX.md` e `walkthrough.md`.
+
+
+
+

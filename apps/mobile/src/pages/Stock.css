@@ -313,3 +313,28 @@
 .btn-danger:hover {
   background: #dc2626;
 }
+
+/* Subcategories Styling */
+.stock-page .subcategory-group {
+  margin: 16px 0 20px 4px;
+  border-left: 3px solid #e2e8f0;
+  padding-left: 12px;
+}
+
+.stock-page .subcategory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-top: 4px;
+}
+
+.stock-page .subcategory-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

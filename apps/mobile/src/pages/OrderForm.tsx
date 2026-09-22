@@ -4,10 +4,13 @@ import {
   WasteReason,
   WASTE_REASON_LABELS,
   WASTE_REASON_ICONS,
+  Product,
+  Category,
+  Subcategory,
 } from "@haru-control/types";
 import { NumberInput } from "@haru-control/ui";
 import { formatCurrency } from "@haru-control/utils";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useOrderDraft } from "../store/useOrderDraft";
@@ -15,16 +18,6 @@ import CustomerFormModal from "../components/CustomerFormModal";
 import "./OrderForm.css";
 
 export type FormMode = "normal" | "historical" | "waste";
-
-interface Product {
-  id: string;
-  name: string;
-  unit: string;
-  price: number;
-  isSellable?: boolean;
-  isPurchasable?: boolean;
-  category?: { name: string; price?: number };
-}
 
 const toDateTimeLocal = (date?: string | Date | null): string => {
   if (!date) return "";
@@ -76,6 +69,37 @@ export default function OrderForm() {
   const [showRetroactiveConfig, setShowRetroactiveConfig] = useState<boolean>(
     initialMode === "historical" || isEdit
   );
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [isBottomInView, setIsBottomInView] = useState(false);
+  const bottomCheckoutRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const target = bottomCheckoutRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsBottomInView(entry.isIntersecting);
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  // Bloqueia a rolagem do body no mobile enquanto o drawer do carrinho estiver aberto
+  useEffect(() => {
+    if (!isCartDrawerOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [isCartDrawerOpen]);
 
   const isHistorical = useMemo(() => {
     if (formMode === "historical") return true;
@@ -92,6 +116,16 @@ export default function OrderForm() {
 
   const { items, addItem, updateItem, removeItem, clear, getTotalPrice, address, setAddress, customerId, setCustomer } =
     useOrderDraft();
+
+  const totalCartQuantity = useMemo(
+    () => items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0),
+    [items]
+  );
+  const totalCartPrice = useMemo(
+    () => items.reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0), 0),
+    [items]
+  );
+
 
   const handleModeChange = (newMode: FormMode) => {
     if (newMode === formMode) return;
@@ -153,31 +187,93 @@ export default function OrderForm() {
   }, [products, formMode]);
 
   const groupedProducts = useMemo(() => {
-    const groups: Record<string, Product[]> = {};
+    const categoryMap: Record<string, {
+      id: string;
+      name: string;
+      category?: Category | null;
+      hasSubcategories: boolean;
+      subgroups: Record<string, { id: string; name: string; subcategory?: Subcategory | null; products: Product[] }>;
+      directProducts: Product[];
+    }> = {};
+
     availableProducts.forEach((p) => {
+      const catId = p.category?.id || "none";
       const catName = p.category?.name || "Sem Categoria";
-      if (!groups[catName]) groups[catName] = [];
-      groups[catName].push(p);
+
+      if (!categoryMap[catId]) {
+        categoryMap[catId] = {
+          id: catId,
+          name: catName,
+          category: p.category,
+          hasSubcategories: false,
+          subgroups: {},
+          directProducts: [],
+        };
+      }
+
+      if (p.subcategory) {
+        categoryMap[catId].hasSubcategories = true;
+      }
     });
 
-    Object.values(groups).forEach((group) => {
-      group.sort((a, b) => a.name.localeCompare(b.name));
+    availableProducts.forEach((p) => {
+      const catId = p.category?.id || "none";
+      const catGroup = categoryMap[catId];
+
+      if (catGroup.hasSubcategories) {
+        const subId = p.subcategory?.id || "none";
+        const subName = p.subcategory?.name || "Outros / Sem Subcategoria";
+        if (!catGroup.subgroups[subId]) {
+          catGroup.subgroups[subId] = {
+            id: subId,
+            name: subName,
+            subcategory: p.subcategory,
+            products: [],
+          };
+        }
+        catGroup.subgroups[subId].products.push(p);
+      } else {
+        catGroup.directProducts.push(p);
+      }
     });
 
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
-      if (a === "Sem Categoria") return 1;
-      if (b === "Sem Categoria") return -1;
+    Object.values(categoryMap).forEach((catGroup) => {
+      catGroup.directProducts.sort((a, b) => a.name.localeCompare(b.name));
+      Object.values(catGroup.subgroups).forEach((sub) => {
+        sub.products.sort((a, b) => a.name.localeCompare(b.name));
+      });
+    });
 
-      const catA = groups[a][0]?.category;
-      const catB = groups[b][0]?.category;
+    const sortedCatIds = Object.keys(categoryMap).sort((a, b) => {
+      if (a === "none") return 1;
+      if (b === "none") return -1;
+
+      const catA = categoryMap[a].category;
+      const catB = categoryMap[b].category;
       const priceA = catA?.price != null ? Number(catA.price) : Infinity;
       const priceB = catB?.price != null ? Number(catB.price) : Infinity;
 
       if (priceA !== priceB) return priceA - priceB;
-      return a.localeCompare(b);
+      return categoryMap[a].name.localeCompare(categoryMap[b].name);
     });
 
-    return sortedKeys.map((key) => ({ name: key, products: groups[key] }));
+    return sortedCatIds.map((id) => {
+      const catGroup = categoryMap[id];
+      const sortedSubgroups = Object.values(catGroup.subgroups).sort((a, b) => {
+        if (a.id === "none") return 1;
+        if (b.id === "none") return -1;
+        return a.name.localeCompare(b.name);
+      });
+
+      return {
+        id,
+        name: catGroup.name,
+        category: catGroup.category,
+        hasSubcategories: catGroup.hasSubcategories,
+        subgroups: sortedSubgroups,
+        directProducts: catGroup.directProducts,
+      };
+    });
   }, [availableProducts]);
 
   useEffect(() => {
@@ -294,6 +390,7 @@ export default function OrderForm() {
         });
 
         clear();
+        setIsCartDrawerOpen(false);
         alert("Descarte de estoque registrado com sucesso!");
         navigate("/stock");
       } catch (error: any) {
@@ -345,8 +442,13 @@ export default function OrderForm() {
 
       if (response.data.warnings && response.data.warnings.length > 0) {
         setWarnings(response.data.warnings);
+        setIsCartDrawerOpen(false);
+        setTimeout(() => {
+          bottomCheckoutRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 150);
       } else {
         clear();
+        setIsCartDrawerOpen(false);
         if (isHistorical) {
           navigate("/orders/history");
         } else {
@@ -374,6 +476,7 @@ export default function OrderForm() {
       setAddress("");
       setNotify(!isHistorical);
       setWasteNotes("");
+      setIsCartDrawerOpen(false);
     }
   };
 
@@ -401,6 +504,74 @@ export default function OrderForm() {
       navigate(-1);
     }
   };
+
+  const renderOrderProductCard = (product: Product) => (
+    <div key={product.id} className="product-card">
+      <div className="product-info">
+        <h3>{product.name}</h3>
+        {formMode === "waste" ? (
+          <p className="product-price" style={{ color: "#64748b", fontSize: "0.85em" }}>
+            Unidade: <strong>{product.unit || "un"}</strong>
+          </p>
+        ) : (
+          <p className="product-price">
+            {formatCurrency(product.price)}
+            <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
+              / {product.unit || 'un'}
+            </span>
+          </p>
+        )}
+      </div>
+      {(() => {
+        const cartItem = items.find((i) => i.productId === product.id);
+        if (cartItem) {
+          return (
+            <div className="item-controls" style={{ margin: "0", justifyContent: "center" }}>
+              <button
+                onClick={() => {
+                  if (cartItem.quantity <= 1) {
+                    removeItem(product.id);
+                  } else {
+                    updateItem(product.id, cartItem.quantity - 1);
+                  }
+                }}
+                className="btn-qty"
+              >
+                -
+              </button>
+              <NumberInput
+                value={cartItem.quantity}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (val > 0) {
+                    updateItem(product.id, val);
+                  } else {
+                    removeItem(product.id);
+                  }
+                }}
+                className="qty-input"
+                min="1"
+              />
+              <button
+                onClick={() => updateItem(product.id, cartItem.quantity + 1)}
+                className="btn-qty"
+              >
+                +
+              </button>
+            </div>
+          );
+        }
+        return (
+          <button
+            onClick={() => handleAddProduct(product)}
+            className="btn-add-wide"
+          >
+            Adicionar
+          </button>
+        );
+      })()}
+    </div>
+  );
 
   return (
     <div className="order-form">
@@ -726,85 +897,32 @@ export default function OrderForm() {
       <div className="form-content">
         <section className="products-section">
           <h2>{formMode === "waste" ? "Itens / Ingredientes para Descarte" : "Produtos Disponíveis"}</h2>
-          {groupedProducts.map(group => (
-            <div key={group.name} style={{ marginBottom: "20px" }}>
-              <h3 style={{ borderBottom: "1px solid #ddd", paddingBottom: "5px", marginBottom: "10px", color: "#666" }}>
+          {groupedProducts.map((group) => (
+            <div key={group.id} style={{ marginBottom: "24px" }}>
+              <h3 style={{ borderBottom: "2px solid #e2e8f0", paddingBottom: "6px", marginBottom: "12px", color: "#334155", fontSize: "1.15rem" }}>
                 {group.name}
               </h3>
-              <div className="products-grid">
-                {group.products.map((product) => (
-                  <div key={product.id} className="product-card">
-                    <div className="product-info">
-                      <h3>{product.name}</h3>
-                      {formMode === "waste" ? (
-                        <p className="product-price" style={{ color: "#64748b", fontSize: "0.85em" }}>
-                          Unidade: <strong>{product.unit || "un"}</strong>
-                        </p>
-                      ) : (
-                        <p className="product-price">
-                          {formatCurrency(product.price)}
-                          <span style={{ fontSize: '0.75em', fontWeight: 'normal', color: '#666', marginLeft: '4px' }}>
-                            / {product.unit || 'un'}
-                          </span>
-                        </p>
-                      )}
+              {group.hasSubcategories ? (
+                group.subgroups.map((subgroup) => (
+                  <div key={subgroup.id} style={{ marginBottom: "16px", paddingLeft: "8px", borderLeft: "3px solid #e2e8f0" }}>
+                    <h4 style={{ margin: "0 0 10px 4px", color: "#64748b", fontSize: "0.95rem", fontWeight: 600 }}>
+                      🏷️ {subgroup.name}
+                    </h4>
+                    <div className="products-grid">
+                      {subgroup.products.map(renderOrderProductCard)}
                     </div>
-                    {(() => {
-                      const cartItem = items.find((i) => i.productId === product.id);
-                      if (cartItem) {
-                        return (
-                          <div className="item-controls" style={{ margin: "0", justifyContent: "center" }}>
-                            <button
-                              onClick={() => {
-                                if (cartItem.quantity <= 1) {
-                                  removeItem(product.id);
-                                } else {
-                                  updateItem(product.id, cartItem.quantity - 1);
-                                }
-                              }}
-                              className="btn-qty"
-                            >
-                              -
-                            </button>
-                            <NumberInput
-                              value={cartItem.quantity}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                if (val > 0) {
-                                  updateItem(product.id, val);
-                                } else {
-                                  removeItem(product.id);
-                                }
-                              }}
-                              className="qty-input"
-                              min="1"
-                            />
-                            <button
-                              onClick={() => updateItem(product.id, cartItem.quantity + 1)}
-                              className="btn-qty"
-                            >
-                              +
-                            </button>
-                          </div>
-                        );
-                      }
-                      return (
-                        <button
-                          onClick={() => handleAddProduct(product)}
-                          className="btn-add-wide"
-                        >
-                          Adicionar
-                        </button>
-                      );
-                    })()}
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="products-grid">
+                  {group.directProducts.map(renderOrderProductCard)}
+                </div>
+              )}
             </div>
           ))}
         </section>
 
-        <section className="cart-section">
+        <section className="cart-section" ref={bottomCheckoutRef}>
           <h2>{formMode === "waste" ? "Itens a Descartar" : "Itens do Pedido"}</h2>
 
           {items.length === 0 ? (
@@ -1098,6 +1216,240 @@ export default function OrderForm() {
         />
       )}
 
+      {/* Barra Flutuante de Carrinho */}
+      {items.length > 0 && !isBottomInView && (
+        <div
+          className="floating-cart-bar"
+          onClick={() => setIsCartDrawerOpen(true)}
+        >
+          <div className="floating-cart-left">
+            <span className="floating-cart-badge">{totalCartQuantity}</span>
+            <div className="floating-cart-text">
+              <span className="floating-cart-title">
+                {formMode === "waste"
+                  ? `${totalCartQuantity} ${totalCartQuantity === 1 ? "item" : "itens"} a descartar`
+                  : `${totalCartQuantity} ${totalCartQuantity === 1 ? "item" : "itens"}`}
+              </span>
+              {formMode !== "waste" && (
+                <span className="floating-cart-price">
+                  {formatCurrency(totalCartPrice)}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="floating-cart-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCartDrawerOpen(true);
+            }}
+          >
+            {formMode === "waste" ? "Revisar" : "Ver Carrinho"} 🛒
+          </button>
+        </div>
+      )}
+
+      {/* Drawer Inferior do Carrinho */}
+      {isCartDrawerOpen && (
+        <div
+          className="cart-drawer-overlay"
+          onClick={() => setIsCartDrawerOpen(false)}
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <div
+            className="cart-drawer-sheet"
+            onClick={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            <div className="cart-drawer-header">
+              <div className="cart-drawer-title">
+                <span>{formMode === "waste" ? "🗑️" : "🛒"}</span>
+                <h3>
+                  {formMode === "waste"
+                    ? "Itens a Descartar"
+                    : "Resumo do Carrinho"}
+                </h3>
+                <span className="cart-drawer-count">
+                  ({totalCartQuantity} {totalCartQuantity === 1 ? "item" : "itens"})
+                </span>
+              </div>
+              <button
+                type="button"
+                className="cart-drawer-close"
+                onClick={() => setIsCartDrawerOpen(false)}
+                title="Fechar gaveta"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="cart-drawer-items">
+              {items.map((item) => {
+                const p = products.find((prod) => prod.id === item.productId);
+                return (
+                  <div key={item.productId} className="cart-drawer-item">
+                    <div className="cart-drawer-item-info">
+                      <h4>{item.productName}</h4>
+                      {formMode === "waste" ? (
+                        <span className="cart-drawer-unit">
+                          {item.quantity} {p?.unit || "un"} a descartar
+                        </span>
+                      ) : (
+                        <div className="cart-drawer-prices">
+                          <span className="cart-drawer-unit-price">
+                            {formatCurrency(item.unitPrice)} / {p?.unit || "un"}
+                          </span>
+                          <span className="cart-drawer-subtotal">
+                            Total: {formatCurrency(item.unitPrice * item.quantity)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="cart-drawer-controls">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (item.quantity <= 1) {
+                            removeItem(item.productId);
+                          } else {
+                            updateItem(item.productId, item.quantity - 1);
+                          }
+                        }}
+                        className="btn-qty"
+                      >
+                        -
+                      </button>
+                      <NumberInput
+                        value={item.quantity}
+                        onChange={(e) =>
+                          updateItem(
+                            item.productId,
+                            parseInt(e.target.value) || 1
+                          )
+                        }
+                        className="qty-input"
+                        min="1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateItem(item.productId, item.quantity + 1)
+                        }
+                        className="btn-qty"
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.productId)}
+                        className="btn-remove"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="cart-drawer-footer">
+              {formMode !== "waste" ? (
+                <div className="cart-drawer-pricing-summary">
+                  <div className="cart-drawer-row">
+                    <span>Subtotal:</span>
+                    <span>{formatCurrency(totalCartPrice)}</span>
+                  </div>
+                  <div className="cart-drawer-row cart-drawer-delivery-row">
+                    <label htmlFor="drawer-delivery-fee">Taxa de Entrega:</label>
+                    <div className="cart-drawer-fee-control">
+                      <button
+                        type="button"
+                        className="btn-drawer-fee-step"
+                        onClick={() =>
+                          setDeliveryFee(Math.max(0, Number((deliveryFee - 0.5).toFixed(2))))
+                        }
+                      >
+                        -
+                      </button>
+                      <NumberInput
+                        id="drawer-delivery-fee"
+                        step="any"
+                        buttonStep={0.5}
+                        min="0"
+                        value={deliveryFee}
+                        onChange={(e) =>
+                          setDeliveryFee(parseFloat(e.target.value) || 0)
+                        }
+                        className="drawer-fee-input"
+                      />
+                      <button
+                        type="button"
+                        className="btn-drawer-fee-step"
+                        onClick={() =>
+                          setDeliveryFee(Number((deliveryFee + 0.5).toFixed(2)))
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="cart-drawer-total-row">
+                    <span>Total:</span>
+                    <strong>{formatCurrency(totalCartPrice + Number(deliveryFee))}</strong>
+                  </div>
+                </div>
+              ) : (
+                <div className="cart-drawer-waste-notes">
+                  <label htmlFor="drawer-waste-notes" className="cart-drawer-notes-label">
+                    Observação do descarte (opcional):
+                  </label>
+                  <input
+                    id="drawer-waste-notes"
+                    type="text"
+                    value={wasteNotes}
+                    onChange={(e) => setWasteNotes(e.target.value)}
+                    placeholder="Ex: Lote perdeu a validade, quebrou pote..."
+                    className="cart-drawer-notes-input"
+                  />
+                </div>
+              )}
+              <div className="cart-drawer-actions">
+                <button
+                  type="button"
+                  className="btn-drawer-clear"
+                  onClick={handleClearOrder}
+                  disabled={loading}
+                >
+                  {formMode === "waste" ? "Limpar Descarte" : "Limpar Pedido"}
+                </button>
+                <button
+                  type="button"
+                  className={`btn-drawer-checkout ${formMode === "waste" ? "btn-drawer-waste" : ""}`}
+                  onClick={handleSave}
+                  disabled={loading || items.length === 0}
+                >
+                  {loading
+                    ? "Salvando..."
+                    : formMode === "waste"
+                    ? "Registrar Descarte"
+                    : isEdit
+                    ? "Atualizar Pedido"
+                    : isHistorical
+                    ? "Salvar Pedido Histórico"
+                    : `Criar Pedido (${formatCurrency(totalCartPrice + Number(deliveryFee))})`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+

@@ -65,6 +65,7 @@ haru-control/
 │   │       └── modules/
 │   │           ├── auth/                     # Autenticação por PIN e WebAuthn
 │   │           ├── categories/               # CRUD de Categorias
+│   │           ├── subcategories/            # CRUD de Subcategorias hierárquicas
 │   │           ├── customers/                # Gestão e histórico de Clientes
 │   │           ├── manufacturing/            # Produção de receitas e baixa de insumos
 │   │           ├── notifications/            # Integração com API Pushover
