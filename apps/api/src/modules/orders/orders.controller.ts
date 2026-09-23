@@ -21,13 +21,37 @@ export class OrdersController {
     return this.ordersService.create(createOrderDto);
   }
 
+  @Post("batch")
+  createBatch(@Body() body: any) {
+    const orders = Array.isArray(body) ? body : (body.orders || []);
+    return this.ordersService.createBatch(orders);
+  }
+
+  @Patch("batch/status")
+  updateBatchStatus(@Body() body: { ids: string[]; status: OrderStatus }) {
+    const ids = Array.isArray(body?.ids) ? body.ids : [];
+    return this.ordersService.updateBatchStatus(ids, body.status);
+  }
+
   @Get()
   findAll(
     @Query("status") status?: OrderStatus,
     @Query("date") date?: string,
-    @Query("excludeStatus") excludeStatus?: OrderStatus | OrderStatus[]
+    @Query("excludeStatus") excludeStatus?: OrderStatus | OrderStatus[],
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("customerId") customerId?: string,
+    @Query("search") search?: string,
   ) {
-    return this.ordersService.findAll(status, date, excludeStatus);
+    return this.ordersService.findAll(
+      status,
+      date,
+      excludeStatus,
+      startDate,
+      endDate,
+      customerId,
+      search,
+    );
   }
 
   @Get("completed")

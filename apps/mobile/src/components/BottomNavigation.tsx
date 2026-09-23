@@ -9,14 +9,18 @@ export default function BottomNavigation() {
     { path: "/", icon: "📋", label: "Início" },
     { path: "/customers", icon: "👥", label: "Clientes" },
     { path: "/products", icon: "📦", label: "Produtos" },
-    { path: "/manufacturing", icon: "🏭", label: "Produção" },
     { path: "/stock", icon: "📊", label: "Estoque" },
+    { path: "/orders/history", icon: "📜", label: "Histórico" },
   ];
+
 
   return (
     <nav className="bottom-nav">
       {navItems.map((item) => {
-        const isActive = location.pathname === item.path;
+        const isActive =
+          item.path === "/"
+            ? location.pathname === "/"
+            : location.pathname.startsWith(item.path);
         return (
           <button
             key={item.path}

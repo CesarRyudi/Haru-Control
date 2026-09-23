@@ -13,12 +13,15 @@ model Product {
     unit          String   @default("Un")
     price         Decimal  @db.Decimal(10, 2)
     categoryId    String?  @map("category_id")
+    subcategoryId String?  @map("subcategory_id")
     isSellable    Boolean  @default(false) @map("is_sellable")
     isPurchasable Boolean  @default(false) @map("is_purchasable")
+    description   String?
     createdAt     DateTime @default(now()) @map("created_at")
     updatedAt     DateTime @updatedAt @map("updated_at")
 
     category      Category?     @relation(fields: [categoryId], references: [id])
+    subcategory   Subcategory?  @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
     orderItems    OrderItem[]
     ledgerEntries LedgerEntry[]
     recipeItems   RecipeItem[]  @relation("ParentProduct")
@@ -35,9 +38,25 @@ model Category {
     createdAt   DateTime @default(now()) @map("created_at")
     updatedAt   DateTime @updatedAt @map("updated_at")
 
-    products Product[]
+    products      Product[]
+    subcategories Subcategory[]
 
     @@map("categories")
+}
+
+model Subcategory {
+    id          String   @id @default(uuid())
+    name        String
+    categoryId  String   @map("category_id")
+    price       Decimal? @db.Decimal(10, 2)
+    observation String?
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+
+    category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    products    Product[]
+
+    @@map("subcategories")
 }
 
 model Customer {
@@ -62,6 +81,8 @@ model Order {
     address         String?
     pushoverReceipt String?     @map("pushover_receipt")
     acknowledgedAt  DateTime?   @map("acknowledged_at")
+    completedAt     DateTime?   @map("completed_at")
+    notify          Boolean     @default(true) @map("notify")
     createdAt       DateTime    @default(now()) @map("created_at")
     updatedAt       DateTime    @updatedAt @map("updated_at")
 
@@ -105,12 +126,14 @@ model Sale {
 }
 
 model LedgerEntry {
-    id        String              @id @default(uuid())
-    productId String              @map("product_id")
-    quantity  Decimal             @db.Decimal(10, 4)
-    type      LedgerOperationType
-    orderId   String?             @map("order_id")
-    createdAt DateTime            @default(now()) @map("created_at")
+    id          String              @id @default(uuid())
+    productId   String              @map("product_id")
+    quantity    Decimal             @db.Decimal(10, 4)
+    type        LedgerOperationType
+    wasteReason WasteReason?        @map("waste_reason")
+    notes       String?             @map("notes")
+    orderId     String?             @map("order_id")
+    createdAt   DateTime            @default(now()) @map("created_at")
 
     product Product @relation(fields: [productId], references: [id])
     order   Order?  @relation(fields: [orderId], references: [id])
@@ -127,6 +150,15 @@ enum LedgerOperationType {
     CORRECTION
     MANUFACTURING_CONSUMPTION
     MANUFACTURING_PRODUCTION
+    WASTE
+}
+
+enum WasteReason {
+    EXPIRED
+    DAMAGE
+    BAKING_FAILURE
+    TASTING
+    OTHER
 }
 
 model RecipeItem {

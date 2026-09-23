@@ -7,11 +7,39 @@ export enum OrderStatus {
   CANCELLED = "CANCELLED",
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  price?: number | null;
+  observation?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  subcategories?: Subcategory[];
+}
+
+export interface Subcategory {
+  id: string;
+  name: string;
+  categoryId: string;
+  price?: number | null;
+  observation?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  category?: Category;
+}
+
 export interface Product {
   id: string;
   name: string;
   unit: string;
   price: number;
+  categoryId?: string | null;
+  subcategoryId?: string | null;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
+  description?: string | null;
+  category?: Category | null;
+  subcategory?: Subcategory | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +62,8 @@ export interface Order {
   address: string | null;
   pushoverReceipt?: string | null;
   acknowledgedAt?: Date | string | null;
+  completedAt?: Date | string | null;
+  notify?: boolean;
   createdAt: Date;
   updatedAt: Date;
   customer?: Customer | null;
@@ -54,26 +84,88 @@ export interface Sale {
   createdAt: Date;
 }
 
+export enum WasteReason {
+  EXPIRED = "EXPIRED",
+  DAMAGE = "DAMAGE",
+  BAKING_FAILURE = "BAKING_FAILURE",
+  TASTING = "TASTING",
+  OTHER = "OTHER",
+}
+
+export const WASTE_REASON_LABELS: Record<WasteReason, string> = {
+  [WasteReason.EXPIRED]: "Validade Vencida",
+  [WasteReason.DAMAGE]: "Quebra / Avaria",
+  [WasteReason.BAKING_FAILURE]: "Falha de Forno / Preparo",
+  [WasteReason.TASTING]: "Teste / Degustação",
+  [WasteReason.OTHER]: "Outro Motivo",
+};
+
+export const WASTE_REASON_ICONS: Record<WasteReason, string> = {
+  [WasteReason.EXPIRED]: "⏳",
+  [WasteReason.DAMAGE]: "💥",
+  [WasteReason.BAKING_FAILURE]: "🔥",
+  [WasteReason.TASTING]: "🍴",
+  [WasteReason.OTHER]: "📝",
+};
+
 export interface LedgerEntry {
   id: string;
   productId: string;
   orderId: string | null;
   quantity: number;
   type: string;
+  wasteReason?: WasteReason | null;
+  notes?: string | null;
   createdAt: Date;
 }
 
 // DTOs
+export interface CreateCategoryDto {
+  name: string;
+  price?: number;
+  observation?: string;
+}
+
+export interface UpdateCategoryDto {
+  name?: string;
+  price?: number;
+  observation?: string;
+}
+
+export interface CreateSubcategoryDto {
+  name: string;
+  categoryId: string;
+  price?: number;
+  observation?: string;
+}
+
+export interface UpdateSubcategoryDto {
+  name?: string;
+  categoryId?: string;
+  price?: number;
+  observation?: string;
+}
+
 export interface CreateProductDto {
   name: string;
   unit: string;
   price: number;
+  categoryId?: string;
+  subcategoryId?: string;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
+  description?: string;
 }
 
 export interface UpdateProductDto {
   name?: string;
   unit?: string;
   price?: number;
+  categoryId?: string;
+  subcategoryId?: string;
+  isSellable?: boolean;
+  isPurchasable?: boolean;
+  description?: string;
 }
 
 export interface CreateOrderItemDto {
@@ -103,6 +195,47 @@ export interface StockAdjustDto {
   quantity: number;
 }
 
+export interface StockWasteDto {
+  productId: string;
+  quantity: number;
+  reason: WasteReason;
+  notes?: string;
+}
+
+export interface MonthlyProjection {
+  isCurrentMonth: boolean;
+  projectedRevenue: number;
+  dailyAverage: number;
+  elapsedDays: number;
+  remainingDays: number;
+  totalDaysInMonth: number;
+}
+
+export interface WasteMetricsItem {
+  reason: WasteReason;
+  label: string;
+  icon: string;
+  quantity: number;
+  estimatedCost: number;
+  percentage: number;
+}
+
+export interface TopWastedProduct {
+  productId: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+  estimatedCost: number;
+  mainReason: string;
+}
+
+export interface WasteMetrics {
+  totalQuantity: number;
+  estimatedLossCost: number;
+  byReason: WasteMetricsItem[];
+  topWastedProducts: TopWastedProduct[];
+}
+
 // Response types
 export interface StockSnapshot {
   productId: string;
@@ -120,6 +253,8 @@ export interface OrderResponse {
   address?: string | null;
   pushoverReceipt?: string | null;
   acknowledgedAt?: Date | string | null;
+  completedAt?: Date | string | null;
+  notify?: boolean;
   createdAt: Date;
   updatedAt: Date;
   warnings?: string[];

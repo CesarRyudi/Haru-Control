@@ -6,6 +6,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { StockModule } from './modules/stock/stock.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { SubcategoriesModule } from './modules/subcategories/subcategories.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { ManufacturingModule } from './modules/manufacturing/manufacturing.module';
 
@@ -18,6 +19,7 @@ import { ManufacturingModule } from './modules/manufacturing/manufacturing.modul
     AuthModule,
     ProductsModule,
     CategoriesModule,
+    SubcategoriesModule,
     OrdersModule,
     StockModule,
     CustomersModule,

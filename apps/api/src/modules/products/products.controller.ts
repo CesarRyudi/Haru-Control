@@ -40,6 +40,10 @@ export class CreateProductDto {
   @IsOptional()
   categoryId?: string;
 
+  @IsString()
+  @IsOptional()
+  subcategoryId?: string;
+
   @IsBoolean()
   @IsOptional()
   isSellable?: boolean;
@@ -47,6 +51,10 @@ export class CreateProductDto {
   @IsBoolean()
   @IsOptional()
   isPurchasable?: boolean;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }
 
 export class UpdateProductDto {
@@ -67,6 +75,10 @@ export class UpdateProductDto {
   @IsOptional()
   categoryId?: string;
 
+  @IsString()
+  @IsOptional()
+  subcategoryId?: string;
+
   @IsBoolean()
   @IsOptional()
   isSellable?: boolean;
@@ -74,6 +86,10 @@ export class UpdateProductDto {
   @IsBoolean()
   @IsOptional()
   isPurchasable?: boolean;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }
 
 @Controller("products")

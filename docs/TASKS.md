@@ -3,13 +3,19 @@
 ## 🐛 Bugs Prioritários (BUGS.md)
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
-- `[ ]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[🟡 Implementado: CORS dinâmico e ARG de build no Dockerfile — ⏳ Aguardando Validação Prática]*
+- `[x]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[✅ Resolvido e validado na prática em Dev e Produção no Coolify]*
+- `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[✅ Resolvido e validado na prática em Dev e Produção]*
+- `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
+- `[x]` **[BUG-004]** Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm — *[✅ Resolvido e validado na prática: remoção do max-height/overflow-y da grid para expansão natural dos produtos]*
+- `[ ]` **[BUG-005]** Chips de seleção de motivo do descarte sem feedback visual em OrderForm — *[🟡 Implementado: unificação de classes CSS e estilo .active nos chips — ⏳ Aguardando Validação Prática]*
+- `[ ]` **[BUG-006]** Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto — *[🟡 Implementado: bloqueio de scroll/touch no body, inclusão de taxa de entrega e total no drawer, ícone alterado para 🛒 — ⏳ Aguardando Validação Prática]*
+- `[ ]` **[BUG-007]** Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban — *[🟡 Implementado: user-select none nos cards, abas 100% width, container fit-content e ações de lote no cabeçalho da coluna — ⏳ Aguardando Validação Prática]*
 
 ---
 
-## 🎯 Fase 1: Transição de Ambientes (Coolify Prod/Dev) & Fechamento do MVP
+## 🎯 Fase 1: Transição de Ambientes (Coolify Prod/Dev) & Fechamento do MVP *(Concluída ✅)*
 
-- `[ ]` **Segregação de Ambientes & Infraestrutura no Coolify:**
+- `[x]` **Segregação de Ambientes & Infraestrutura no Coolify:**
   - `[x]` Renomear/reconfigurar a aplicação atual no Coolify para **Produção** (preservando banco de dados com dados reais).
   - `[x]` Criar e publicar branch de produção no Git (`production`).
   - `[x]` Criar nova aplicação e novo banco de dados PostgreSQL isolado no Coolify para **Desenvolvimento**.
@@ -18,19 +24,151 @@
   - `[x]` Limpar comandos provisórios do `Dockerfile.api` (garantido `npx prisma migrate deploy`).
   - `[x]` Garantir que o container execute estritamente `npx prisma migrate deploy` no bootstrap.
   - `[x]` Validar execução e idempotência das migrations no novo banco de desenvolvimento.
-- `[ ]` **Validação Operacional & Fechamento da Fase 1:**
+- `[x]` **Validação Operacional & Fechamento da Fase 1:**
   - `[x]` Criar script de seed (`apps/api/prisma/seed.ts`) com massa de dados realista da Haru Cookies (sem café/álcool).
-  - `[ ]` Testar fluxo completo de ponta a ponta (login PIN/biometria, criação de pedido, baixa de estoque, manufatura e insights) em Dev.
-  - `[ ]` Validar que o ambiente de Produção permanece 100% íntegro e operacional.
-  - `[ ]` Arquivar o histórico da Fase 1 em `docs/HISTORY_ARCHIVE.md` e abrir a Fase 2.
+  - `[x]` Testar segregação de ambientes e deploy do Coolify via alteração visual na branch `main`.
+  - `[x]` Testar fluxo completo de ponta a ponta (login PIN/biometria, criação de pedido, baixa de estoque, manufatura e insights) em Dev.
+  - `[x]` Validar que o ambiente de Produção permanece 100% íntegro e operacional.
+  - `[x]` Arquivar o histórico da Fase 1 em `docs/HISTORY_ARCHIVE.md` e abrir a Fase 2.
+
+---
+
+## 🎯 Fase 2: Expansão Operacional, Automações & Relatórios *(Fase Ativa ⏳)*
+- `[x]` **Navegação por Swipe (Gesto de Deslizar) entre Abas de Pedidos:**
+  - Permitir alternar entre as colunas/abas (`Rascunho`, `Em Produção`, `Em Entrega`, `Concluídos`) por gesto de deslizar horizontal (swipe left/right) na tela, facilitando o uso com uma só mão (alcance do dedão na parte inferior), sem bloquear a rolagem vertical.
+- `[x]` **Ajuste e Simplificação da Mensagem Copiada do Pedido (Comanda WhatsApp):**
+  - Remover o nome do cliente da mensagem copiada ao clicar no ícone 📋 do card de pedido.
+  - Avaliar/definir se o endereço de entrega permanece como campo condicional ou se a mensagem retorna 100% ao formato original enxuto (Itens + Subtotal + Taxa de Entrega + Total + "Certo?").
+- `[x]` **Pedidos Retroativos, Tela de Histórico Geral e Edição de Pedidos:**
+  - **Endpoint Batch de Importação / Criação Retroativa:**
+    - Criar endpoint `POST /orders/batch` recebendo um array de pedidos.
+    - Suportar definição explícita de `status`, `createdAt` (data de criação retroativa), `completedAt` (data de conclusão), cliente, itens, preços e endereço.
+    - Suporte a execução via scripts externos ou ferramentas de carga em lote, criando as baixas e vendas contábeis retroativas de forma consistente.
+  - **Nova Tela de Histórico de Pedidos no App:**
+    - Nova tela (`/orders/history`) integrada à barra de navegação inferior (`BottomNavigation`) como entidade principal (`Pedidos`), com chips de filtros rápidos de período (Hoje, Ontem, Últimos 7 dias, Este Mês, Mês Passado, Todos).
+    - Botão para **"Novo Pedido Histórico"**: formulário permitindo cadastrar pedidos passados diretamente pelo app, escolhendo data/hora de criação, conclusão e status.
+  - **Edição Flexível de Pedidos:**
+    - Permitir editar qualquer pedido existente (mesmo já concluído) para retificar informações (itens, valores, status, datas de criação e conclusão), prevenindo erros operacionais.
+- `[x]` **Instituição de Testes Automatizados E2E com Playwright (Qualidade & Confiabilidade):**
+  - **Ambiente & Arquitetura de Testes E2E:**
+    - Configurado ambiente Playwright com emulação mobile-first nativa (`Pixel 7`, touch, viewport 412x915).
+    - Definição da stack em TypeScript integrado ao monorepo Nx com compartilhamento de tipos e scripts dedicados.
+    - Estrutura de fixtures de autenticação (`auth.setup.ts` gerando `e2e/.auth/user.json`) para bypass rápido de PIN em milissegundos.
+    - Configuração de `webServer` no Playwright para auto-inicialização da API e Mobile.
+  - **Page Objects (POM) & Suíte Inicial de Testes Críticos:**
+    - Criação de Page Objects das principais páginas (`LoginPage`, `OrderBoardPage`, `OrderFormPage`, `OrderHistoryPage`).
+    - Testes de ponta a ponta dos fluxos centrais: autenticação (PIN correto e inválido), criação de pedido e movimentação completa de status até conclusão com confirmação ACK, navegação por abas e gestos de swipe horizontal por toque, e cadastro de pedidos retroativos com filtros.
+  - **Automação & Execução:**
+    - Scripts de execução adicionados ao `package.json` (`test:e2e`, `test:e2e:ui`, `test:e2e:headed`, `test:e2e:codegen`) e guia completo para novos QAs em `e2e/README.md`.
+- `[ ]` **Integração de Pix Copia e Cola Dinâmico no Pedido com Gestão de Status:**
+  - **Geração de Código Pix:** Gerar código Pix "Copia e Cola" (e QR Code) com o valor exato final do pedido (produtos + taxa de entrega) e identificador único (`txid`).
+  - **Ciclo de Vida & Status do Pagamento:**
+    - Novos campos no modelo `Order` (ex: `pix_code`, `pix_txid`, `pix_status` [PENDING, PAID, EXPIRED], `pix_generated_at`, `pix_paid_at`).
+    - Registro de histórico e auditoria de quando o código foi gerado e quando o pagamento foi confirmado.
+  - **UI/UX Mobile:**
+    - Botão de ação rápida no card/modal para gerar e copiar a chave Pix com 1 toque.
+    - Opção de anexar o código Pix diretamente na mensagem formatada enviada ao cliente via WhatsApp.
+    - Badges visuais de status do Pix no card (ex: 🟡 Aguardando Pix, 🟢 Pix Pago).
+- `[x]` **Confirmação Interna de Pedidos (ACK no App) e Controle de Notificações:**
+  - **Controle Opcional de Notificação na Criação/Edição:**
+    - Adicionar checkbox no formulário do pedido (`OrderForm.tsx`): *"Enviar alerta sonoro de emergência (Pushover)"*, com **valor padrão marcado (`true`)**.
+    - Se desmarcado, enviar `notify: false` no payload da API para não disparar o alarme no celular (ideal para pedidos presenciais de balcão ou quando o confeiteiro já estiver no local).
+  - **Confirmação Direta pelo Aplicativo (ACK no App):**
+    - Permitir confirmar o recebimento do pedido diretamente pela interface do Haru Control (tanto no card quanto no modal de detalhes), gravando `acknowledgedAt: new Date()` e cancelando o alarme ativo no Pushover.
+    - Suportar confirmação interna mesmo se a notificação Pushover não tiver sido disparada, permitindo sinalizar que a cozinha já viu e está ciente do pedido.
+- `[x]` **Projeção de Faturamento Mensal na Tela de Insights:**
+  - **Cálculo Linear Inicial (Run Rate):** Calcular a projeção de fechamento do mês atual através da fórmula: `(Faturamento Acumulado no Mês / Dias Decorridos até Hoje) * Total de Dias do Mês Atual`.
+  - **Exibição na UI:** Exibir card destacado de métrica na tela `/insights` com o valor projetado, indicando a média diária e o número de dias restantes do mês.
+  - **Refinamento de UI/UX:** Substituição dos chips de filtro por dropdown nativo responsivo e remoção de emojis gráficos decorativos da projeção.
+  - **Evolução Futura:** Deixar a arquitetura preparada para modelos preditivos mais avançados (levando em conta sazonalidade de dias da semana, quinta a domingo com maior pico de vendas).
+- `[ ]` **Previsão Estatística de Demanda e Sugestão de Fornada Multi-Dias (Planejamento de Produção):**
+  - *Documento de Especificação detalhado:* [docs/DRAFT_SUGESTAO_FORNADA.md](docs/DRAFT_SUGESTAO_FORNADA.md)
+  - **Horizonte de Planejamento Flexível (Data Alvo):**
+    - Permitir que o operador selecione até que data pretende cobrir o estoque (ex: assar na segunda para cobrir segunda, terça e quarta).
+    - Somar a demanda histórica individual de cada dia da semana do intervalo, aplicando margem de segurança e alerta de frescor/validade (*shelf life*).
+  - **Motor de Recomendação Baseado em Dados:**
+    - Analisar o histórico de vendas por dia da semana nas últimas 4 semanas via média móvel ponderada.
+    - Subtrair o saldo atual de cookies prontos em estoque para obter a necessidade líquida de produção.
+    - Ajuste opcional para tamanho de assadeira/lote de forno.
+  - **Cruzamento com Ficha Técnica (BOM):**
+    - Alertar se há massa/ingredientes suficientes no estoque para cobrir a fornada recomendada no período.
+  - **Interface Mobile-First no Estoque (`Stock.tsx`):**
+    - Painel colapsável no topo da tela com chips de atalho rápido de período (`Hoje`, `Até Amanhã`, `Até Quarta`, `Fim de Semana`, `Data Personalizada...`) e botão para lançamento rápido no Ledger contábil.
+- `[x]` **Módulo de Descarte de Produtos / Insumos (Controle de Perdas & Validade):**
+  - **Ledger Contábil de Descarte:**
+    - Adicionar operação `WASTE` ao enum `LedgerOperationType` no Prisma.
+    - Gravar motivo do descarte (`WasteReason`: `EXPIRED`, `DAMAGE`, `BAKING_FAILURE`, `TASTING`, `OTHER`) e observações.
+    - Baixar imediatamente a quantidade descartada do estoque no Ledger imutável.
+    - Endpoint em lote na API: `POST /stock/waste/batch` com transação atômica.
+  - **Tela Unificada de Pedidos, Histórico e Descartes:**
+    - Dropdown no topo esquerdo do formulário (`OrderForm.tsx`) para alternar entre "Pedido Normal", "Pedido Histórico" e "Descarte de Estoque".
+    - Roteamento e pré-seleção automática (`/orders/new`, `?mode=historical`, `?mode=waste`).
+    - Modal de confirmação para prevenir perda de itens do rascunho ao trocar de modo com produtos no carrinho.
+    - No modo descarte: remoção de cliente, endereço, Pushover, taxas de entrega e valores monetários (R$), exibição de todos os produtos do inventário (insumos, bases, embalagens), seleção rápida de motivo e observação, e submissão em lote.
+    - Integração no FAB de Estoque para navegar diretamente para `/orders/new?mode=waste` e remoção do modal duplicado em `Stock.tsx`.
+  - **Métricas e Relatórios nos Insights (`/insights`):**
+    - Card de KPI com o total de perdas do mês (custo estimado em R$ e volume).
+    - Gráfico com os produtos mais descartados e distribuição por motivo (ex: % validade vs % quebra), ajudando a identificar gargalos de produção e compras.
+- `[x]` **Remoção da Página de Produção e Simplificação do Fluxo:**
+  - Desativar a rota `/manufacturing` e remover a aba "Produção" da barra de navegação inferior (`BottomNavigation.tsx`).
+  - O fluxo de fabricação será absorvido diretamente pela rotina de entrada de estoque dos produtos acabados.
+- `[x]` **Barra Flutuante de Carrinho no Formulário de Pedidos (`OrderForm`):**
+  - Adicionar uma barra flutuante inferior (floating bar) que surge automaticamente quando itens são adicionados ao carrinho.
+  - Exibir resumo rápido (quantidade total de itens, subtotal e botão para abrir drawer com itens ou rolar para checkout).
+  - Gaveta inferior (drawer sheet) interativa com controles de quantidade e fechamento/continuação para o checkout.
+- `[x]` **Entrada Rápida de Estoque pelo Modal de Item (`Stock.tsx`):**
+  - Transformar o modal disparado ao clicar no item do estoque para focar primariamente em **Dar Entrada no Estoque** (ex: registrar nova fornada/produção) no Ledger contábil, em vez de exigir ajuste manual corretivo.
+  - Botões de incremento rápido (+1, +5, +10, +20), preview de novo saldo estimado em tempo real e link secundário para balanço/ajuste de inventário.
+- `[x]` **Ocultação do Estágio "Em Entrega" e Renomeação para "Em Preparo" no Kanban (`OrderBoard.tsx`):**
+  - Renomear a coluna e aba "Em Produção" para **"Em Preparo"**.
+  - Ocultar a coluna/aba "Em Entrega" no frontend, preservando o enum no banco de dados e agrupando os pedidos `READY` existentes na coluna "Em Preparo".
+- `[x]` **Seleção Múltipla e Transição de Pedidos em Lote no Kanban:**
+  - Adicionar modo de seleção múltipla de pedidos na coluna ativa (via checkbox nos cards ou long-press de 500ms).
+  - Opção de "Selecionar Todos" da coluna no cabeçalho.
+  - Barra de ações em lote flutuante (Bottom Action Bar) com contador de selecionados e botão para avançar todos para o próximo estágio simultaneamente (`PATCH /orders/batch/status`).
+- `[x]` **Hierarquia de Subcategorias nos Produtos, Estoque e Pedidos:**
+  - **Modelagem de Dados e Banco de Dados (`schema.prisma`):**
+    - Criação da tabela/modelo `Subcategory` (`id`, `name`, `categoryId`, `price`, `observation`, `createdAt`, `updatedAt`).
+    - Relação 1:N entre `Category` e `Subcategory` (com `onDelete: Cascade`), e adição de `subcategoryId` opcional no modelo `Product` (com `onDelete: SetNull`).
+    - Geração e aplicação da migration `20260919155355_add_subcategories` no banco de dados.
+    - Sincronização do script de povoamento (`seed.ts`) mapeando subcategorias para insumos e cookies vendíveis.
+  - **Tipos Compartilhados e API NestJS (`libs/types` & `apps/api`):**
+    - Interfaces `Category` e `Subcategory`, DTOs (`CreateSubcategoryDto`, `UpdateSubcategoryDto`, `CreateProductDto`, `UpdateProductDto`) em `libs/types`.
+    - Módulo `SubcategoriesModule` (`subcategories.controller.ts`, `subcategories.service.ts`) com CRUD completo.
+    - Atualização do `CategoriesService` (inclusão de subcategorias no `findAll` e desassociação segura de produtos) e `ProductsService` (suporte a `subcategoryId` e include relacional).
+  - **Interface Mobile-First (`apps/mobile`):**
+    - `Products.tsx`: Agrupamento hierárquico Categoria ➔ Subcategoria ➔ Produtos; modal de cadastro/edição/exclusão de subcategoria; seletores encadeados com preço padrão sugerido herdado; menu FAB com ação direta "📂 Nova Subcategoria".
+    - `Stock.tsx`: Agrupamento visual por Categoria e Subcategoria com preservação da ação rápida de entrada (`+1`/toque no card).
+    - `OrderForm.tsx`: Agrupamento por Categoria e Subcategoria na grade de seleção de itens nos modos de venda e descarte.
+    - `Manufacturing.tsx` & `ProductRecipe.tsx`: Seletores `<select>` organizados com `<optgroup label="Categoria > Subcategoria">`.
+    - `Help.tsx`: Guia do usuário atualizado com instruções de criação e organização de categorias e subcategorias.
+  - **Suíte de Testes Automatizados E2E (`e2e/`):**
+    - Criação do teste de ciclo completo `06-subcategories.spec.ts` cobrindo criação, renderização na árvore e exclusão de subcategorias via mobile.
+- `[x]` **Gerador de Mensagem de Divulgação de Cookies para WhatsApp:**
+  - **Campo de Descrição no Produto (`description`):**
+    - Adicionado campo `description String?` no modelo `Product` do Prisma (`schema.prisma`) com migration `20260922045012_add_product_description`.
+    - Atualizados DTOs em `libs/types` e na API NestJS (`ProductsService`, `ProductsController`).
+    - Campo `<textarea>` para descrição/copy de divulgação no modal de produtos em `Products.tsx`.
+  - **Componente e Modal de Divulgação (`BroadcastMenuModal.tsx` & `.css`):**
+    - Saudação inicial calculada pelo horário atual (< 12h: "Bom dia", 12h-17h: "Boa tarde", >= 18h: "Boa noite") e totalmente editável.
+    - Mensagem contextual/gancho opcional (ex: sobre friozinho, chuva), completamente omitida se vazia.
+    - Seleção de produtos vendáveis (`isSellable === true`), com pré-seleção automática dos itens com estoque > 0.
+    - Agrupamento inteligente por Subcategoria/Categoria com detecção de preço uniforme (ex: `*Cookies Tradicionais R$8,00*`) ou preços variados com subgrupos de valor (ex: `*Cookies Especiais:*` ➔ `*R$11,00*` ➔ `*R$14,00*`).
+    - Formatação fiel ao modelo oficial da Haru Cookies com links do catálogo WhatsApp e texto de encomenda.
+    - Pré-visualização em tempo real da mensagem formatada no próprio modal.
+    - Cópia para o clipboard com 1 toque e toast de confirmação.
+  - **Integração na Tela de Estoque (`Stock.tsx`):**
+    - Nova ação `📢 Divulgar Cookies Disponíveis` integrada ao menu do botão flutuante (FAB).
+  - **Suíte de Testes Automatizados E2E (`e2e/`):**
+    - Criado teste `07-broadcast-menu.spec.ts` cobrindo abertura, preenchimento, preview e cópia via clipboard, com 100% de sucesso (12/12 testes passando).
 
 ---
 
 ## 🔮 Fases Futuras & Backlog
 
-### Fase 2: Expansão Operacional, Automações & Relatórios
 - `[ ]` Relatórios de margem de lucro por cookie e custo de matéria-prima (DRE simplificado).
 - `[ ]` Melhoria na fluidez do drag-and-drop no Kanban mobile (@dnd-kit).
 - `[ ]` Histórico detalhado de compras de insumos e preço médio ponderado.
 - `[ ]` Suporte a PWA instalável com service workers.
 - `[ ]` Módulo de impressão de pedidos em impressoras térmicas de balcão (58mm/80mm).
+

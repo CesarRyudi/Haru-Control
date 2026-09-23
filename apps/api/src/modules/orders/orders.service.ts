@@ -28,6 +28,8 @@ export class OrdersService {
       address: order.address,
       pushoverReceipt: order.pushoverReceipt,
       acknowledgedAt: order.acknowledgedAt,
+      completedAt: order.completedAt,
+      notify: order.notify ?? true,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items: (order.items || []).map((item: any) => ({
@@ -98,19 +100,43 @@ export class OrdersService {
       })
     );
 
-    const totalPrice = itemsWithPrices.reduce(
+    const calculatedTotal = itemsWithPrices.reduce(
       (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
       0
     );
+    const totalPrice =
+      createOrderDto.totalPrice !== undefined
+        ? Number(createOrderDto.totalPrice)
+        : calculatedTotal;
+
+    const initialStatus = createOrderDto.status || OrderStatus.DRAFT;
+    const createdAt = createOrderDto.createdAt
+      ? new Date(createOrderDto.createdAt)
+      : undefined;
+    const completedAt = createOrderDto.completedAt
+      ? new Date(createOrderDto.completedAt)
+      : initialStatus === OrderStatus.COMPLETED
+      ? createdAt || new Date()
+      : undefined;
+
+    // Regra mandatória: Pedidos históricos NUNCA geram alertas.
+    const isHistorical =
+      initialStatus === OrderStatus.COMPLETED ||
+      Boolean(createdAt && createdAt.getTime() < Date.now() - 10 * 60 * 1000);
+
+    const notify = isHistorical ? false : (createOrderDto.notify ?? true);
 
     // Criar pedido e itens
     const order = await this.prisma.order.create({
       data: {
         customerId: createOrderDto.customerId,
-        status: OrderStatus.DRAFT,
+        status: initialStatus,
         totalPrice,
         deliveryFee: createOrderDto.deliveryFee ?? 2,
         address: createOrderDto.address,
+        notify,
+        ...(createdAt && { createdAt }),
+        ...(completedAt && { completedAt }),
         items: {
           create: itemsWithPrices.map((item) => ({
             productId: item.productId,
@@ -129,20 +155,55 @@ export class OrdersService {
       },
     });
 
-    // Reservar estoque
-    await Promise.all(
-      itemsWithPrices.map((item) =>
-        this.stockService.reserveStock(item.productId, item.quantity, order.id)
-      )
-    );
+    if (initialStatus === OrderStatus.COMPLETED) {
+      // Registrar baixa contábil de venda no estoque
+      await Promise.all(
+        itemsWithPrices.map((item) =>
+          this.stockService.recordSale(item.productId, item.quantity, order.id)
+        )
+      );
+      // Criar registro de venda
+      await this.prisma.sale.create({
+        data: {
+          orderId: order.id,
+          createdAt: completedAt || createdAt || new Date(),
+        },
+      });
+    } else {
+      // Reservar estoque
+      await Promise.all(
+        itemsWithPrices.map((item) =>
+          this.stockService.reserveStock(item.productId, item.quantity, order.id)
+        )
+      );
+    }
 
     return this.formatOrder(order, warnings);
+  }
+
+  async createBatch(ordersDto: CreateOrderDto[]) {
+    const results = [];
+    for (const dto of ordersDto) {
+      const order = await this.create({
+        ...dto,
+        notify: false,
+      });
+      results.push(order);
+    }
+    return {
+      count: results.length,
+      orders: results,
+    };
   }
 
   async findAll(
     status?: OrderStatus,
     date?: string,
-    excludeStatus?: OrderStatus | OrderStatus[]
+    excludeStatus?: OrderStatus | OrderStatus[],
+    startDate?: string,
+    endDate?: string,
+    customerId?: string,
+    search?: string,
   ) {
     const where: any = {};
 
@@ -155,16 +216,60 @@ export class OrdersService {
       where.status = { notIn: excluded };
     }
 
-    if (date) {
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+    if (customerId) {
+      where.customerId = customerId;
+    }
 
-      where.createdAt = {
-        gte: startDate,
-        lte: endDate,
-      };
+    if (date) {
+      const [year, month, day] = date.split("-").map(Number);
+      const sDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const eDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+      if (status === OrderStatus.COMPLETED) {
+        where.OR = [
+          { completedAt: { gte: sDate, lte: eDate } },
+          { completedAt: null, createdAt: { gte: sDate, lte: eDate } },
+        ];
+      } else {
+        where.createdAt = {
+          gte: sDate,
+          lte: eDate,
+        };
+      }
+    } else if (startDate || endDate) {
+      const dateFilter: any = {};
+      if (startDate) {
+        const [sy, sm, sd] = startDate.split("-").map(Number);
+        dateFilter.gte = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+      }
+      if (endDate) {
+        const [ey, em, ed] = endDate.split("-").map(Number);
+        dateFilter.lte = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+      }
+      if (status === OrderStatus.COMPLETED) {
+        where.OR = [
+          { completedAt: dateFilter },
+          { completedAt: null, createdAt: dateFilter },
+        ];
+      } else {
+        where.createdAt = dateFilter;
+      }
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { id: { contains: term, mode: "insensitive" } },
+        { address: { contains: term, mode: "insensitive" } },
+        { customer: { name: { contains: term, mode: "insensitive" } } },
+        {
+          items: {
+            some: {
+              product: { name: { contains: term, mode: "insensitive" } },
+            },
+          },
+        },
+      ];
     }
 
     const orders = await this.prisma.order.findMany({
@@ -205,32 +310,38 @@ export class OrdersService {
 
   async update(id: string, updateOrderDto: UpdateOrderDto) {
     const order = await this.findOne(id);
+    const warnings: string[] = [];
 
-    if (
-      order.status === OrderStatus.COMPLETED ||
-      order.status === OrderStatus.CANCELLED
-    ) {
-      throw new BadRequestException(
-        "Não é possível editar pedido concluído ou cancelado"
-      );
+    // Se atualizando cliente, verificar existência
+    if (updateOrderDto.customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: updateOrderDto.customerId },
+      });
+      if (!customer) {
+        throw new NotFoundException(
+          `Cliente ${updateOrderDto.customerId} não encontrado`
+        );
+      }
     }
 
-    const warnings: string[] = [];
+    let itemsTotalPrice: number | undefined;
 
     // Se atualizando itens
     if (updateOrderDto.items) {
       const existingItems = order.items;
 
-      // Liberar estoque dos itens antigos
-      await Promise.all(
-        existingItems.map((item: any) =>
-          this.stockService.releaseStock(
-            item.productId,
-            item.quantity,
-            order.id
+      // Se o pedido não estava cancelado, liberar estoque dos itens antigos
+      if (order.status !== OrderStatus.CANCELLED) {
+        await Promise.all(
+          existingItems.map((item: any) =>
+            this.stockService.releaseStock(
+              item.productId,
+              item.quantity,
+              order.id
+            )
           )
-        )
-      );
+        );
+      }
 
       // Deletar itens antigos
       await this.prisma.orderItem.deleteMany({
@@ -265,12 +376,12 @@ export class OrdersService {
           return {
             productId: item.productId,
             quantity: item.quantity,
-            unitPrice: product.price,
+            unitPrice: item.unitPrice !== undefined ? item.unitPrice : product.price,
           };
         })
       );
 
-      const totalPrice = itemsWithPrices.reduce(
+      itemsTotalPrice = itemsWithPrices.reduce(
         (sum, item) => sum + Number(item.quantity) * Number(item.unitPrice),
         0
       );
@@ -283,74 +394,175 @@ export class OrdersService {
         })),
       });
 
-      // Reservar estoque dos novos itens
-      await Promise.all(
-        itemsWithPrices.map((item) =>
-          this.stockService.reserveStock(
-            item.productId,
-            item.quantity,
-            order.id
+      // Movimentar estoque conforme status de destino
+      const targetStatus = updateOrderDto.status || order.status;
+      if (targetStatus === OrderStatus.COMPLETED) {
+        await Promise.all(
+          itemsWithPrices.map((item) =>
+            this.stockService.recordSale(
+              item.productId,
+              item.quantity,
+              order.id
+            )
           )
-        )
-      );
-
-      // Atualizar total do pedido
-      await this.prisma.order.update({
-        where: { id },
-        data: { totalPrice },
-      });
+        );
+      } else if (targetStatus !== OrderStatus.CANCELLED) {
+        await Promise.all(
+          itemsWithPrices.map((item) =>
+            this.stockService.reserveStock(
+              item.productId,
+              item.quantity,
+              order.id
+            )
+          )
+        );
+      }
     }
 
-    // Se apenas atualizando status ou deliveryFee ou address
-    if (
-      updateOrderDto.status ||
-      updateOrderDto.deliveryFee !== undefined ||
-      updateOrderDto.address !== undefined
-    ) {
-      const updateData: any = {};
-      if (updateOrderDto.deliveryFee !== undefined)
-        updateData.deliveryFee = updateOrderDto.deliveryFee;
-      if (updateOrderDto.address !== undefined)
-        updateData.address = updateOrderDto.address;
+    const updateData: any = {};
+    if (updateOrderDto.customerId !== undefined) {
+      updateData.customerId = updateOrderDto.customerId;
+    }
+    if (updateOrderDto.deliveryFee !== undefined) {
+      updateData.deliveryFee = updateOrderDto.deliveryFee;
+    }
+    if (updateOrderDto.address !== undefined) {
+      updateData.address = updateOrderDto.address;
+    }
+    if (updateOrderDto.notify !== undefined) {
+      updateData.notify = updateOrderDto.notify;
+    }
+    if (updateOrderDto.createdAt !== undefined) {
+      updateData.createdAt = new Date(updateOrderDto.createdAt);
+    }
+    if (updateOrderDto.completedAt !== undefined) {
+      updateData.completedAt = updateOrderDto.completedAt ? new Date(updateOrderDto.completedAt) : null;
+    }
+    if (updateOrderDto.totalPrice !== undefined) {
+      updateData.totalPrice = updateOrderDto.totalPrice;
+    } else if (itemsTotalPrice !== undefined) {
+      updateData.totalPrice = itemsTotalPrice;
+    }
 
-      if (updateOrderDto.status) {
-        updateData.status = updateOrderDto.status;
+    if (updateOrderDto.status) {
+      const oldStatus = order.status;
+      const newStatus = updateOrderDto.status;
+      updateData.status = newStatus;
 
-        // Se o pedido está entrando em PRODUÇÃO (PENDING)
-        if (
-          updateOrderDto.status === OrderStatus.PENDING &&
-          order.status !== OrderStatus.PENDING
-        ) {
-          const receipt = await this.pushoverService.sendOrderAlert({
-            id: order.id,
-            items: order.items,
-            totalPrice: order.totalPrice,
-            deliveryFee:
-              updateOrderDto.deliveryFee !== undefined
-                ? updateOrderDto.deliveryFee
-                : order.deliveryFee,
-            address:
-              updateOrderDto.address !== undefined
-                ? updateOrderDto.address
-                : order.address,
-          });
-
-          if (receipt) {
-            updateData.pushoverReceipt = receipt;
-            updateData.acknowledgedAt = null;
-          }
+      // Se mudou para COMPLETED e antes não era COMPLETED
+      if (newStatus === OrderStatus.COMPLETED && oldStatus !== OrderStatus.COMPLETED) {
+        // Se itens não foram recriados acima, liberar reserva e registrar venda
+        if (!updateOrderDto.items) {
+          await Promise.all(
+            order.items.map((item: any) =>
+              this.stockService.releaseStock(item.productId, item.quantity, order.id)
+            )
+          );
+          await Promise.all(
+            order.items.map((item: any) =>
+              this.stockService.recordSale(item.productId, item.quantity, order.id)
+            )
+          );
         }
-        // Se o pedido está saindo de PRODUÇÃO para outro status e ainda não foi confirmado no Pushover
-        else if (
-          updateOrderDto.status !== OrderStatus.PENDING &&
-          order.status === OrderStatus.PENDING &&
-          order.pushoverReceipt &&
-          !order.acknowledgedAt
-        ) {
+
+        if (!updateData.completedAt && !order.completedAt) {
+          updateData.completedAt = new Date();
+        }
+
+        await this.prisma.sale.upsert({
+          where: { orderId: id },
+          create: {
+            orderId: id,
+            createdAt: updateData.completedAt || order.createdAt || new Date(),
+          },
+          update: {
+            createdAt: updateData.completedAt || order.createdAt || new Date(),
+          },
+        });
+
+        if (order.pushoverReceipt && !order.acknowledgedAt) {
           await this.pushoverService.cancelAlert(order.pushoverReceipt);
         }
+      } else if (oldStatus === OrderStatus.COMPLETED && newStatus !== OrderStatus.COMPLETED) {
+        // Se estava concluído e agora mudou para outro status
+        await this.prisma.sale.deleteMany({ where: { orderId: id } });
       }
 
+      // Regra mandatória: Pedidos históricos NUNCA geram alertas.
+      const isHistorical =
+        order.status === OrderStatus.COMPLETED ||
+        newStatus === OrderStatus.COMPLETED ||
+        Boolean(order.createdAt && new Date(order.createdAt).getTime() < Date.now() - 10 * 60 * 1000) ||
+        Boolean(updateData.createdAt && new Date(updateData.createdAt).getTime() < Date.now() - 10 * 60 * 1000);
+
+      if (isHistorical) {
+        updateData.notify = false;
+      }
+
+      const shouldNotify = isHistorical
+        ? false
+        : updateOrderDto.notify !== undefined
+          ? updateOrderDto.notify
+          : (order.notify ?? true);
+
+      // Se o pedido está entrando em PRODUÇÃO (PENDING) e deve notificar no celular (NUNCA para históricos)
+      if (
+        !isHistorical &&
+        newStatus === OrderStatus.PENDING &&
+        oldStatus !== OrderStatus.PENDING &&
+        shouldNotify
+      ) {
+        const receipt = await this.pushoverService.sendOrderAlert({
+          id: order.id,
+          items: order.items,
+          totalPrice:
+            updateData.totalPrice !== undefined
+              ? updateData.totalPrice
+              : order.totalPrice,
+          deliveryFee:
+            updateData.deliveryFee !== undefined
+              ? updateData.deliveryFee
+              : order.deliveryFee,
+          address:
+            updateData.address !== undefined
+              ? updateData.address
+              : order.address,
+        });
+
+        if (receipt) {
+          updateData.pushoverReceipt = receipt;
+          updateData.acknowledgedAt = null;
+        }
+      } else if (
+        newStatus !== OrderStatus.PENDING &&
+        oldStatus === OrderStatus.PENDING &&
+        order.pushoverReceipt &&
+        !order.acknowledgedAt
+      ) {
+        await this.pushoverService.cancelAlert(order.pushoverReceipt);
+      }
+    }
+
+    // Se completado e alterou completedAt ou createdAt, sincronizar Sale.createdAt
+    if (
+      (order.status === OrderStatus.COMPLETED || updateData.status === OrderStatus.COMPLETED) &&
+      (updateData.completedAt || updateData.createdAt)
+    ) {
+      const saleDate =
+        updateData.completedAt ||
+        updateData.createdAt ||
+        order.completedAt ||
+        order.createdAt;
+
+      if (saleDate) {
+        await this.prisma.sale.updateMany({
+          where: { orderId: id },
+          data: { createdAt: saleDate },
+        });
+      }
+    }
+
+    if (Object.keys(updateData).length > 0) {
       await this.prisma.order.update({
         where: { id },
         data: updateData,
@@ -395,15 +607,22 @@ export class OrdersService {
       )
     );
 
-    // Criar registro de venda
-    await this.prisma.sale.create({
-      data: { orderId: id },
+    const now = new Date();
+
+    // Criar ou atualizar registro de venda
+    await this.prisma.sale.upsert({
+      where: { orderId: id },
+      create: { orderId: id, createdAt: now },
+      update: { createdAt: now },
     });
 
-    // Atualizar status do pedido
+    // Atualizar status do pedido com data de conclusão
     const completedOrder = await this.prisma.order.update({
       where: { id },
-      data: { status: OrderStatus.COMPLETED },
+      data: {
+        status: OrderStatus.COMPLETED,
+        completedAt: now,
+      },
       include: {
         items: {
           include: {
@@ -816,12 +1035,46 @@ export class OrdersService {
       .sort((a, b) => b.totalSpent - a.totalSpent)
       .slice(0, 10);
 
+    // 9. Cálculo da Projeção Mensal (Run-Rate)
+    const now = new Date();
+    const isCurrentMonth =
+      startDateTime.getFullYear() === now.getFullYear() &&
+      startDateTime.getMonth() === now.getMonth() &&
+      startDateTime.getDate() === 1;
+
+    const totalDaysInMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0
+    ).getDate();
+    const elapsedDays = Math.max(1, now.getDate());
+    const remainingDays = Math.max(0, totalDaysInMonth - elapsedDays);
+    const dailyAverage = Number((totalRevenue / elapsedDays).toFixed(2));
+    const projectedRevenue = Number((dailyAverage * totalDaysInMonth).toFixed(2));
+
+    const monthlyProjection = {
+      isCurrentMonth,
+      projectedRevenue,
+      dailyAverage,
+      elapsedDays,
+      remainingDays,
+      totalDaysInMonth,
+    };
+
+    // 10. Métricas de Descarte e Perdas de Estoque
+    const wasteMetrics = await this.stockService.getWasteMetrics(
+      startDate || startDateTime.toISOString().split("T")[0],
+      endDate || endDateTime.toISOString().split("T")[0]
+    );
+
     return {
       period: {
         startDate: startDateTime.toISOString().split("T")[0],
         endDate: endDateTime.toISOString().split("T")[0],
       },
       summary,
+      monthlyProjection,
+      wasteMetrics,
       revenueComposition,
       dailyEvolution,
       topProductsByQuantity,
@@ -832,4 +1085,23 @@ export class OrdersService {
       topCustomers,
     };
   }
+
+  async updateBatchStatus(ids: string[], newStatus: OrderStatus) {
+    if (!ids || ids.length === 0) return { count: 0, results: [] };
+
+    const results = [];
+    for (const id of ids) {
+      try {
+        if (newStatus === OrderStatus.COMPLETED) {
+          results.push(await this.complete(id));
+        } else {
+          results.push(await this.update(id, { status: newStatus }));
+        }
+      } catch (e) {
+        console.error(`Erro ao atualizar pedido ${id} para ${newStatus} no lote:`, e);
+      }
+    }
+    return { count: results.length, results };
+  }
 }
+

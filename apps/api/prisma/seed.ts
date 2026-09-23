@@ -13,31 +13,43 @@ async function main() {
   await prisma.ledgerEntry.deleteMany();
   await prisma.recipeItem.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.subcategory.deleteMany();
   await prisma.category.deleteMany();
   await prisma.customer.deleteMany();
   console.log('✅ Banco de dados limpo com sucesso.\n');
 
-  // 2. Criação de Categorias
-  console.log('📂 Criando categorias...');
-  const catClassicos = await prisma.category.create({
+  // 2. Criação de Categorias e Subcategorias
+  console.log('📂 Criando categorias e subcategorias...');
+  const catCookies = await prisma.category.create({
     data: {
-      name: 'Cookies Clássicos',
+      name: 'Cookies',
+      price: null,
+      observation: 'Cookies artesanais frescos e recheados.',
+    },
+  });
+
+  const subClassicos = await prisma.subcategory.create({
+    data: {
+      name: 'Clássicos',
+      categoryId: catCookies.id,
       price: 14.0,
       observation: 'Receitas tradicionais com massas amanteigadas e chocolates nobres.',
     },
   });
 
-  const catEspeciais = await prisma.category.create({
+  const subEspeciais = await prisma.subcategory.create({
     data: {
-      name: 'Cookies Especiais & Recheados',
+      name: 'Especiais & Recheados',
+      categoryId: catCookies.id,
       price: 17.0,
       observation: 'Cookies com recheios generosos e combinações exclusivas.',
     },
   });
 
-  const catSazonais = await prisma.category.create({
+  const subSazonais = await prisma.subcategory.create({
     data: {
-      name: 'Cookies Sazonais',
+      name: 'Sazonais',
+      categoryId: catCookies.id,
       price: 18.0,
       observation: 'Edições limitadas e sabores comemorativos.',
     },
@@ -55,36 +67,80 @@ async function main() {
     data: {
       name: 'Insumos & Matérias-Primas',
       price: null,
-      observation: 'Ingredientes e embalagens para controle interno de produção.',
+      observation: 'Ingredientes para controle interno de produção.',
     },
   });
-  console.log('✅ 5 Categorias criadas.\n');
+
+  const subSecos = await prisma.subcategory.create({
+    data: {
+      name: 'Farinhas & Secos',
+      categoryId: catInsumos.id,
+    },
+  });
+
+  const subChocolates = await prisma.subcategory.create({
+    data: {
+      name: 'Chocolates & Cacau',
+      categoryId: catInsumos.id,
+    },
+  });
+
+  const subLaticinios = await prisma.subcategory.create({
+    data: {
+      name: 'Laticínios & Ovos',
+      categoryId: catInsumos.id,
+    },
+  });
+
+  const subRecheios = await prisma.subcategory.create({
+    data: {
+      name: 'Recheios & Pastas',
+      categoryId: catInsumos.id,
+    },
+  });
+
+  const subAromas = await prisma.subcategory.create({
+    data: {
+      name: 'Aromas & Condimentos',
+      categoryId: catInsumos.id,
+    },
+  });
+
+  const catEmbalagens = await prisma.category.create({
+    data: {
+      name: 'Embalagens',
+      price: null,
+      observation: 'Caixas kraft, celofanes e embalagens.',
+    },
+  });
+
+  console.log('✅ Categorias e Subcategorias criadas.\n');
 
   // 3. Criação de Insumos / Matérias-Primas (isPurchasable: true, isSellable: false)
   console.log('🌾 Criando insumos e matérias-primas...');
   const insumosData = [
-    { name: 'Farinha de Trigo Especial Tipo 1', unit: 'kg', price: 6.5 },
-    { name: 'Manteiga Sem Sal Extra', unit: 'kg', price: 48.0 },
-    { name: 'Açúcar Cristal Orgânico', unit: 'kg', price: 5.2 },
-    { name: 'Açúcar Mascavo Úmido', unit: 'kg', price: 12.5 },
-    { name: 'Gotas de Chocolate Belga 54% Callebaut', unit: 'kg', price: 78.0 },
-    { name: 'Gotas de Chocolate ao Leite Belga', unit: 'kg', price: 68.0 },
-    { name: 'Gotas de Chocolate Branco Velvet', unit: 'kg', price: 72.0 },
-    { name: 'Nutella Original Ferrero', unit: 'kg', price: 58.0 },
-    { name: 'Doce de Leite Havanna Artesanal', unit: 'kg', price: 38.0 },
-    { name: 'Pasta Pura de Pistache & Pistache Granulado', unit: 'kg', price: 145.0 },
-    { name: 'Cacau em Pó 100% Black Alcalino', unit: 'kg', price: 42.0 },
-    { name: 'Extrato Natural de Baunilha de Madagascar', unit: 'L', price: 130.0 },
-    { name: 'Bicarbonato de Sódio Puro', unit: 'kg', price: 14.0 },
-    { name: 'Ovos Caipiras Selecionados', unit: 'Un', price: 0.85 },
-    { name: 'Flor de Sal de Guérande', unit: 'kg', price: 28.0 },
-    { name: 'Cream Cheese Philadelphia', unit: 'kg', price: 44.0 },
-    { name: 'Canela em Pó do Ceilão', unit: 'kg', price: 36.0 },
-    { name: 'Leite Integral Pasteurizado', unit: 'L', price: 5.8 },
-    { name: 'Xarope Natural de Maçã Verde', unit: 'L', price: 45.0 },
-    { name: 'Xarope Natural de Frutas Vermelhas', unit: 'L', price: 48.0 },
-    { name: 'Embalagem Caixa Kraft Haru 4 Cookies', unit: 'Un', price: 3.2 },
-    { name: 'Embalagem Individual Celofane + Tag Haru', unit: 'Un', price: 0.75 },
+    { name: 'Farinha de Trigo Especial Tipo 1', unit: 'kg', price: 6.5, categoryId: catInsumos.id, subcategoryId: subSecos.id },
+    { name: 'Manteiga Sem Sal Extra', unit: 'kg', price: 48.0, categoryId: catInsumos.id, subcategoryId: subLaticinios.id },
+    { name: 'Açúcar Cristal Orgânico', unit: 'kg', price: 5.2, categoryId: catInsumos.id, subcategoryId: subSecos.id },
+    { name: 'Açúcar Mascavo Úmido', unit: 'kg', price: 12.5, categoryId: catInsumos.id, subcategoryId: subSecos.id },
+    { name: 'Gotas de Chocolate Belga 54% Callebaut', unit: 'kg', price: 78.0, categoryId: catInsumos.id, subcategoryId: subChocolates.id },
+    { name: 'Gotas de Chocolate ao Leite Belga', unit: 'kg', price: 68.0, categoryId: catInsumos.id, subcategoryId: subChocolates.id },
+    { name: 'Gotas de Chocolate Branco Velvet', unit: 'kg', price: 72.0, categoryId: catInsumos.id, subcategoryId: subChocolates.id },
+    { name: 'Nutella Original Ferrero', unit: 'kg', price: 58.0, categoryId: catInsumos.id, subcategoryId: subRecheios.id },
+    { name: 'Doce de Leite Havanna Artesanal', unit: 'kg', price: 38.0, categoryId: catInsumos.id, subcategoryId: subRecheios.id },
+    { name: 'Pasta Pura de Pistache & Pistache Granulado', unit: 'kg', price: 145.0, categoryId: catInsumos.id, subcategoryId: subRecheios.id },
+    { name: 'Cacau em Pó 100% Black Alcalino', unit: 'kg', price: 42.0, categoryId: catInsumos.id, subcategoryId: subChocolates.id },
+    { name: 'Extrato Natural de Baunilha de Madagascar', unit: 'L', price: 130.0, categoryId: catInsumos.id, subcategoryId: subAromas.id },
+    { name: 'Bicarbonato de Sódio Puro', unit: 'kg', price: 14.0, categoryId: catInsumos.id, subcategoryId: subSecos.id },
+    { name: 'Ovos Caipiras Selecionados', unit: 'Un', price: 0.85, categoryId: catInsumos.id, subcategoryId: subLaticinios.id },
+    { name: 'Flor de Sal de Guérande', unit: 'kg', price: 28.0, categoryId: catInsumos.id, subcategoryId: subAromas.id },
+    { name: 'Cream Cheese Philadelphia', unit: 'kg', price: 44.0, categoryId: catInsumos.id, subcategoryId: subLaticinios.id },
+    { name: 'Canela em Pó do Ceilão', unit: 'kg', price: 36.0, categoryId: catInsumos.id, subcategoryId: subAromas.id },
+    { name: 'Leite Integral Pasteurizado', unit: 'L', price: 5.8, categoryId: catInsumos.id, subcategoryId: subLaticinios.id },
+    { name: 'Xarope Natural de Maçã Verde', unit: 'L', price: 45.0, categoryId: catInsumos.id, subcategoryId: subAromas.id },
+    { name: 'Xarope Natural de Frutas Vermelhas', unit: 'L', price: 48.0, categoryId: catInsumos.id, subcategoryId: subAromas.id },
+    { name: 'Embalagem Caixa Kraft Haru 4 Cookies', unit: 'Un', price: 3.2, categoryId: catEmbalagens.id, subcategoryId: null },
+    { name: 'Embalagem Individual Celofane + Tag Haru', unit: 'Un', price: 0.75, categoryId: catEmbalagens.id, subcategoryId: null },
   ];
 
   const insumosMap = new Map<string, any>();
@@ -94,7 +150,8 @@ async function main() {
         name: item.name,
         unit: item.unit,
         price: item.price,
-        categoryId: catInsumos.id,
+        categoryId: item.categoryId,
+        subcategoryId: item.subcategoryId,
         isPurchasable: true,
         isSellable: false,
       },
@@ -111,63 +168,83 @@ async function main() {
       name: 'Cookie Clássico Gotas Belga 54%',
       unit: 'Un',
       price: 14.0,
-      categoryId: catClassicos.id,
+      categoryId: catCookies.id,
+      subcategoryId: subClassicos.id,
+      description: 'Massa tradicional com gotas de chocolate belga 54% 🍪',
     },
     {
       name: 'Cookie Double Chocolate Intenso',
       unit: 'Un',
       price: 15.0,
-      categoryId: catClassicos.id,
+      categoryId: catCookies.id,
+      subcategoryId: subClassicos.id,
+      description: 'Massa de cacau 100% com chocolate ao leite e meio-amargo',
     },
     {
       name: 'Cookie Triplo Chocolate Belga',
       unit: 'Un',
       price: 16.0,
-      categoryId: catClassicos.id,
+      categoryId: catCookies.id,
+      subcategoryId: subClassicos.id,
+      description: 'O queridinho, uma combinação da nossa massa de cacau com chocolates ao leite, meio-amargo e branco',
     },
     {
       name: 'Cookie Churros & Doce de Leite',
       unit: 'Un',
       price: 15.0,
-      categoryId: catClassicos.id,
+      categoryId: catCookies.id,
+      subcategoryId: subClassicos.id,
+      description: 'Massa com canela e generoso recheio de doce de leite artesanal',
     },
     // Cookies Especiais & Recheados
     {
       name: 'Cookie Red Velvet com Cream Cheese',
       unit: 'Un',
       price: 17.0,
-      categoryId: catEspeciais.id,
+      categoryId: catCookies.id,
+      subcategoryId: subEspeciais.id,
+      description: 'Massa aveludada red velvet com recheio cremoso de cream cheese',
     },
     {
       name: 'Cookie Nutella & Leite Ninho',
       unit: 'Un',
       price: 18.0,
-      categoryId: catEspeciais.id,
+      categoryId: catCookies.id,
+      subcategoryId: subEspeciais.id,
+      description: 'Nossa massa de cacau 100%, com gotas de chocolate ao leite, recheado de Nutella!',
     },
     {
       name: 'Cookie Doce de Leite & Flor de Sal',
       unit: 'Un',
       price: 16.0,
-      categoryId: catEspeciais.id,
+      categoryId: catCookies.id,
+      subcategoryId: subEspeciais.id,
+      description: 'Massa tradicional com doce de leite artesanal e toque de flor de sal',
     },
     {
       name: 'Cookie Pistache Supremo & Choc Branco',
       unit: 'Un',
       price: 21.0,
-      categoryId: catEspeciais.id,
+      categoryId: catCookies.id,
+      subcategoryId: subEspeciais.id,
+      description: 'Massa especial com brigadeiro de pistache e chocolate branco nobre',
     },
     {
       name: 'Cookie Dark & White Black Cacau',
       unit: 'Un',
       price: 16.0,
-      categoryId: catEspeciais.id,
+      categoryId: catCookies.id,
+      subcategoryId: subEspeciais.id,
+      description: 'Cacau black intenso com generosos pedaços de chocolate branco',
     },
     // Cookies Sazonais
     {
       name: 'Cookie Sazonal Cenoura & Brigadeiro',
       unit: 'Un',
       price: 18.0,
-      categoryId: catSazonais.id,
+      categoryId: catCookies.id,
+      subcategoryId: subSazonais.id,
+      description: 'Massa de cenoura artesanal com recheio vulcão de brigadeiro',
     },
     // Bebidas Artesanais
     {
@@ -228,6 +305,8 @@ async function main() {
         unit: item.unit,
         price: item.price,
         categoryId: item.categoryId,
+        subcategoryId: (item as any).subcategoryId || null,
+        description: (item as any).description || null,
         isPurchasable: false,
         isSellable: true,
       },

@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { WasteReason } from "@prisma/client";
 import { Type } from "class-transformer";
-import { IsNumber, IsString } from "class-validator";
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
 import { StockService } from "./stock.service";
 
 export class StockInDto {
@@ -21,6 +22,45 @@ export class StockAdjustDto {
   quantity: number;
 }
 
+export class StockWasteDto {
+  @IsString()
+  productId: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  quantity: number;
+
+  @IsEnum(WasteReason)
+  reason: WasteReason;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class StockWasteBatchItemDto {
+  @IsString()
+  productId: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  quantity: number;
+}
+
+export class StockWasteBatchDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockWasteBatchItemDto)
+  items: StockWasteBatchItemDto[];
+
+  @IsEnum(WasteReason)
+  reason: WasteReason;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
 @Controller("stock")
 export class StockController {
   constructor(private readonly stockService: StockService) {}
@@ -37,8 +77,46 @@ export class StockController {
     return { success: true };
   }
 
+  @Post("waste")
+  async recordWaste(@Body() dto: StockWasteDto) {
+    await this.stockService.recordWaste(
+      dto.productId,
+      dto.quantity,
+      dto.reason,
+      dto.notes
+    );
+    return { success: true };
+  }
+
+  @Post("waste/batch")
+  async recordWasteBatch(@Body() dto: StockWasteBatchDto) {
+    await this.stockService.recordWasteBatch(
+      dto.items,
+      dto.reason,
+      dto.notes
+    );
+    return { success: true };
+  }
+
+  @Get("waste/history")
+  async getWasteHistory(
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string
+  ) {
+    return this.stockService.getWasteHistory(startDate, endDate);
+  }
+
+  @Get("waste/metrics")
+  async getWasteMetrics(
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string
+  ) {
+    return this.stockService.getWasteMetrics(startDate, endDate);
+  }
+
   @Get("snapshot")
   async getSnapshot() {
     return this.stockService.getStockSnapshot();
   }
 }
+

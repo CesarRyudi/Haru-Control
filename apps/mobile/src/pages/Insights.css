@@ -79,50 +79,47 @@
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px 16px;
   margin-bottom: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.insights-filter-chips {
+.insights-period-select-wrapper {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.insights-filter-chips::-webkit-scrollbar {
-  height: 4px;
-}
-
-.insights-filter-chips::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 4px;
-}
-
-.insights-chip {
-  background: #f1f5f9;
-  border: 1px solid transparent;
-  color: #475569;
-  padding: 8px 14px;
-  border-radius: 20px;
+.insights-period-label {
   font-size: 13px;
   font-weight: 600;
+  color: #475569;
+}
+
+.insights-period-select {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  background-color: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
+  outline: none;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 10px auto;
+  padding-right: 36px;
 }
 
-.insights-chip:hover {
-  background: #e2e8f0;
-}
-
-.insights-chip.active {
-  background: #4f46e5;
-  color: #ffffff;
+.insights-period-select:focus {
   border-color: #4f46e5;
-  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
 .insights-custom-dates {
@@ -572,3 +569,243 @@
   font-size: 32px;
   margin-bottom: 8px;
 }
+
+/* Monthly Revenue Projection Card */
+.insights-projection-card {
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.projection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.projection-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.projection-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.projection-badge {
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.25);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.projection-highlight-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.projection-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.projection-stats-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-label {
+  opacity: 0.85;
+}
+
+.stat-val {
+  font-weight: 700;
+}
+
+.projection-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.projection-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.projection-progress-fill {
+  height: 100%;
+  background: #34d399;
+  border-radius: 4px;
+  transition: width 0.5s ease-in-out;
+}
+
+.projection-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+/* 🗑️ Waste & Loss Metrics Section */
+.waste-kpi-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.waste-kpi-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.waste-kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.waste-kpi-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.waste-kpi-val.loss-val {
+  color: #dc2626;
+}
+
+.waste-kpi-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.waste-reasons-breakdown {
+  margin-top: 14px;
+}
+
+.waste-reasons-breakdown .sub-title,
+.top-wasted-section .sub-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.5px;
+}
+
+.waste-chips-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.waste-reason-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.waste-reason-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.waste-reason-icon {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+.waste-reason-name {
+  flex: 1;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.waste-reason-pct {
+  font-weight: 700;
+  color: #dc2626;
+  font-size: 11px;
+  background: #fee2e2;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.waste-reason-card-body {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.waste-reason-card-body span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.waste-progress-wrap {
+  width: 100%;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.waste-progress-fill {
+  height: 100%;
+  background: #ef4444;
+  border-radius: 2px;
+}
+

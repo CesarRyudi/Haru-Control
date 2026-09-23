@@ -1,0 +1,355 @@
+.broadcast-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+}
+
+.broadcast-modal-container {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  animation: broadcastModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes broadcastModalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.broadcast-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+}
+
+.broadcast-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.broadcast-icon {
+  font-size: 20px;
+}
+
+.broadcast-modal-title h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.broadcast-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.broadcast-modal-close:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.broadcast-modal-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+}
+
+.broadcast-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.broadcast-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.broadcast-field-hint {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.broadcast-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 14px;
+  color: #1e293b;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.broadcast-input:focus,
+.broadcast-textarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.broadcast-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 14px;
+  color: #1e293b;
+  box-sizing: border-box;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 56px;
+  line-height: 1.4;
+}
+
+.broadcast-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.broadcast-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.broadcast-btn-text {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.broadcast-btn-text:hover {
+  text-decoration: underline;
+}
+
+.broadcast-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.broadcast-empty {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.broadcast-product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.broadcast-product-item:hover {
+  border-color: #cbd5e1;
+}
+
+.broadcast-product-item.selected {
+  border-color: #a5b4fc;
+  background: #eef2ff;
+}
+
+.broadcast-product-item.no-stock {
+  opacity: 0.65;
+}
+
+.broadcast-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  margin: 0;
+}
+
+.broadcast-product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.broadcast-product-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.broadcast-product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.broadcast-product-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.broadcast-product-desc {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.broadcast-stock-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.broadcast-stock-badge.in-stock {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.broadcast-stock-badge.out-of-stock {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.broadcast-preview-box {
+  background: #fdfaf6;
+  border: 1.5px dashed #fed7aa;
+  border-radius: 12px;
+  padding: 12px 14px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.broadcast-preview-text {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #431407;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.broadcast-modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #ffffff;
+}
+
+.broadcast-btn-cancel {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.broadcast-btn-cancel:hover {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.broadcast-btn-copy {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: #25d366; /* WhatsApp Green */
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);
+  transition: all 0.15s;
+}
+
+.broadcast-btn-copy:hover {
+  background: #20ba59;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35);
+}
+
+.broadcast-btn-copy.copied {
+  background: #059669;
+}

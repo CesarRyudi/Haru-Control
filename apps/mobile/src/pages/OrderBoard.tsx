@@ -10,18 +10,65 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./OrderBoard.css";
 
+const TABS: OrderStatus[] = [
+  OrderStatus.DRAFT,
+  OrderStatus.PENDING,
+  OrderStatus.COMPLETED,
+];
+
 export default function OrderBoard() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [completedDate, setCompletedDate] = useState(getTodayString());
   const [activeTab, setActiveTab] = useState<OrderStatus>(OrderStatus.DRAFT);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
   const boardColumnsRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button, input, textarea, select, a, .order-modal-content, .batch-action-bar")) {
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    // Critérios para swipe horizontal:
+    // 1. Mínimo de 50px de deslocamento
+    // 2. Movimento predominantemente horizontal (deltaX > 1.5 * deltaY)
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      const currentIndex = TABS.indexOf(activeTab);
+      if (deltaX < 0 && currentIndex < TABS.length - 1) {
+        // Deslize para a esquerda -> avança de aba
+        setActiveTab(TABS[currentIndex + 1]);
+        setSelectedOrderIds(new Set());
+      } else if (deltaX > 0 && currentIndex > 0) {
+        // Deslize para a direita -> volta de aba
+        setActiveTab(TABS[currentIndex - 1]);
+        setSelectedOrderIds(new Set());
+      }
+    }
+  };
 
   useEffect(() => {
     loadOrders();
@@ -98,7 +145,72 @@ export default function OrderBoard() {
   };
 
   const getOrdersByStatus = (status: OrderStatus) => {
+    if (status === OrderStatus.PENDING) {
+      return orders.filter(
+        (order) =>
+          order.status === OrderStatus.PENDING ||
+          order.status === OrderStatus.READY
+      );
+    }
     return orders.filter((order) => order.status === status);
+  };
+
+  const currentTabOrders = getOrdersByStatus(activeTab);
+  const isAllSelected =
+    currentTabOrders.length > 0 &&
+    currentTabOrders.every((o) => selectedOrderIds.has(o.id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedOrderIds(new Set());
+      setIsSelectionMode(false);
+    } else {
+      setSelectedOrderIds(new Set(currentTabOrders.map((o) => o.id)));
+      setIsSelectionMode(true);
+    }
+  };
+
+  const toggleSelectOrder = (orderId: string) => {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      setIsSelectionMode(next.size > 0);
+      return next;
+    });
+  };
+
+  const handleLongPressCard = (orderId: string) => {
+    setIsSelectionMode(true);
+    setSelectedOrderIds((prev) => new Set(prev).add(orderId));
+  };
+
+  const handleExitSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedOrderIds(new Set());
+  };
+
+  const handleBatchStatusChange = async (targetStatus: OrderStatus) => {
+    if (selectedOrderIds.size === 0) return;
+    const ids = Array.from(selectedOrderIds);
+    setLoading(true);
+    try {
+      await api.patch("/orders/batch/status", { ids, status: targetStatus });
+      setToast({
+        message: `${ids.length} ${ids.length === 1 ? "pedido movido" : "pedidos movidos"} com sucesso!`,
+        type: "success",
+      });
+      handleExitSelectionMode();
+      await loadOrders(true);
+    } catch (error) {
+      console.error("Erro ao mover pedidos em lote:", error);
+      setToast({ message: "Erro ao mover pedidos em lote", type: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStatusChange = async (
@@ -124,7 +236,11 @@ export default function OrderBoard() {
   }
 
   return (
-    <div className="order-board">
+    <div
+      className="order-board"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <header className="board-header">
         <h1>Pedidos</h1>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -173,7 +289,10 @@ export default function OrderBoard() {
       <div className="board-tabs">
         <button
           className={`tab-btn ${activeTab === OrderStatus.DRAFT ? "active" : ""}`}
-          onClick={() => setActiveTab(OrderStatus.DRAFT)}
+          onClick={() => {
+            setActiveTab(OrderStatus.DRAFT);
+            setSelectedOrderIds(new Set());
+          }}
         >
           Rascunho
           <span className="tab-badge">
@@ -182,25 +301,22 @@ export default function OrderBoard() {
         </button>
         <button
           className={`tab-btn ${activeTab === OrderStatus.PENDING ? "active" : ""}`}
-          onClick={() => setActiveTab(OrderStatus.PENDING)}
+          onClick={() => {
+            setActiveTab(OrderStatus.PENDING);
+            setSelectedOrderIds(new Set());
+          }}
         >
-          Produção
+          Em Preparo
           <span className="tab-badge">
             {getOrdersByStatus(OrderStatus.PENDING).length}
           </span>
         </button>
         <button
-          className={`tab-btn ${activeTab === OrderStatus.READY ? "active" : ""}`}
-          onClick={() => setActiveTab(OrderStatus.READY)}
-        >
-          Em Entrega
-          <span className="tab-badge">
-            {getOrdersByStatus(OrderStatus.READY).length}
-          </span>
-        </button>
-        <button
           className={`tab-btn ${activeTab === OrderStatus.COMPLETED ? "active" : ""}`}
-          onClick={() => setActiveTab(OrderStatus.COMPLETED)}
+          onClick={() => {
+            setActiveTab(OrderStatus.COMPLETED);
+            setSelectedOrderIds(new Set());
+          }}
         >
           Concluídos
           <span className="tab-badge">
@@ -212,7 +328,51 @@ export default function OrderBoard() {
       <div className="board-content" ref={boardColumnsRef}>
         {activeTab === OrderStatus.DRAFT && (
           <div className="board-column active-column">
-            <h2>Rascunho</h2>
+            <div className="column-header">
+              <div className="column-header-left">
+                {isSelectionMode && getOrdersByStatus(OrderStatus.DRAFT).length > 0 && (
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    className="column-select-all-checkbox"
+                    title={isAllSelected ? "Desmarcar todos" : "Selecionar todos"}
+                  />
+                )}
+                <h2>Rascunho</h2>
+                <span className="column-count-badge">
+                  ({getOrdersByStatus(OrderStatus.DRAFT).length})
+                </span>
+              </div>
+              {selectedOrderIds.size > 0 && (
+                <div className="column-header-batch-actions">
+                  <button
+                    type="button"
+                    className="btn-header-batch btn-header-pending"
+                    onClick={() => handleBatchStatusChange(OrderStatus.PENDING)}
+                    title="Mover selecionados para Em Preparo"
+                  >
+                    Em Preparo ({selectedOrderIds.size})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-header-batch btn-header-complete"
+                    onClick={() => handleBatchStatusChange(OrderStatus.COMPLETED)}
+                    title="Mover selecionados para Concluído"
+                  >
+                    Concluir ({selectedOrderIds.size})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-header-batch-cancel"
+                    onClick={handleExitSelectionMode}
+                    title="Cancelar seleção"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="orders-list">
               {getOrdersByStatus(OrderStatus.DRAFT).length === 0 ? (
                 <p className="empty-state">Nenhum pedido rascunho</p>
@@ -224,6 +384,10 @@ export default function OrderBoard() {
                     onStatusChange={handleStatusChange}
                     onEdit={() => navigate(`/orders/${order.id}/edit`)}
                     showToast={setToast}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedOrderIds.has(order.id)}
+                    onToggleSelect={toggleSelectOrder}
+                    onLongPress={handleLongPressCard}
                   />
                 ))
               )}
@@ -233,10 +397,54 @@ export default function OrderBoard() {
 
         {activeTab === OrderStatus.PENDING && (
           <div className="board-column active-column">
-            <h2>Em Produção</h2>
+            <div className="column-header">
+              <div className="column-header-left">
+                {isSelectionMode && getOrdersByStatus(OrderStatus.PENDING).length > 0 && (
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    className="column-select-all-checkbox"
+                    title={isAllSelected ? "Desmarcar todos" : "Selecionar todos"}
+                  />
+                )}
+                <h2>Em Preparo</h2>
+                <span className="column-count-badge">
+                  ({getOrdersByStatus(OrderStatus.PENDING).length})
+                </span>
+              </div>
+              {selectedOrderIds.size > 0 && (
+                <div className="column-header-batch-actions">
+                  <button
+                    type="button"
+                    className="btn-header-batch btn-header-draft"
+                    onClick={() => handleBatchStatusChange(OrderStatus.DRAFT)}
+                    title="Mover selecionados para Rascunho"
+                  >
+                    Rascunho ({selectedOrderIds.size})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-header-batch btn-header-complete"
+                    onClick={() => handleBatchStatusChange(OrderStatus.COMPLETED)}
+                    title="Mover selecionados para Concluído"
+                  >
+                    Concluir ({selectedOrderIds.size})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-header-batch-cancel"
+                    onClick={handleExitSelectionMode}
+                    title="Cancelar seleção"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="orders-list">
               {getOrdersByStatus(OrderStatus.PENDING).length === 0 ? (
-                <p className="empty-state">Nenhum pedido em produção</p>
+                <p className="empty-state">Nenhum pedido em preparo</p>
               ) : (
                 getOrdersByStatus(OrderStatus.PENDING).map((order) => (
                   <OrderCard
@@ -246,27 +454,10 @@ export default function OrderBoard() {
                     onAcknowledge={handleAcknowledge}
                     onEdit={() => navigate(`/orders/${order.id}/edit`)}
                     showToast={setToast}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === OrderStatus.READY && (
-          <div className="board-column active-column">
-            <h2>Em Entrega</h2>
-            <div className="orders-list">
-              {getOrdersByStatus(OrderStatus.READY).length === 0 ? (
-                <p className="empty-state">Nenhum pedido pronto</p>
-              ) : (
-                getOrdersByStatus(OrderStatus.READY).map((order) => (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    onStatusChange={handleStatusChange}
-                    onEdit={() => navigate(`/orders/${order.id}/edit`)}
-                    showToast={setToast}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedOrderIds.has(order.id)}
+                    onToggleSelect={toggleSelectOrder}
+                    onLongPress={handleLongPressCard}
                   />
                 ))
               )}
@@ -277,7 +468,12 @@ export default function OrderBoard() {
         {activeTab === OrderStatus.COMPLETED && (
           <div className="board-column active-column">
             <div className="column-header">
-              <h2>Concluídos</h2>
+              <div className="column-header-left">
+                <h2>Concluídos</h2>
+                <span className="column-count-badge">
+                  ({getOrdersByStatus(OrderStatus.COMPLETED).length})
+                </span>
+              </div>
               <input
                 type="date"
                 value={completedDate}
@@ -319,6 +515,7 @@ export default function OrderBoard() {
   );
 }
 
+
 interface OrderCardProps {
   order: any;
   onStatusChange?: (id: string, status: OrderStatus) => void;
@@ -328,6 +525,10 @@ interface OrderCardProps {
   showToast?: (
     toast: { message: string; type: "success" | "error" } | null,
   ) => void;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  onLongPress?: (id: string) => void;
 }
 
 function OrderCard({
@@ -337,11 +538,39 @@ function OrderCard({
   onEdit,
   readonly,
   showToast,
+  isSelectionMode,
+  isSelected,
+  onToggleSelect,
+  onLongPress,
 }: OrderCardProps) {
   const [showModal, setShowModal] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLongPressTriggered = useRef(false);
+
+  const handleTouchStart = () => {
+    isLongPressTriggered.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPressTriggered.current = true;
+      onLongPress?.(order.id);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button")) {
+    if ((e.target as HTMLElement).closest("button, input[type='checkbox']")) {
+      return;
+    }
+    if (isLongPressTriggered.current) {
+      isLongPressTriggered.current = false;
+      return;
+    }
+    if (isSelectionMode) {
+      onToggleSelect?.(order.id);
       return;
     }
     setShowModal(true);
@@ -349,10 +578,11 @@ function OrderCard({
 
   const getPrevStatus = () => {
     switch (order.status) {
+      case OrderStatus.COMPLETED:
+        return OrderStatus.PENDING;
+      case OrderStatus.READY:
       case OrderStatus.PENDING:
         return OrderStatus.DRAFT;
-      case OrderStatus.READY:
-        return OrderStatus.PENDING;
       default:
         return null;
     }
@@ -363,7 +593,6 @@ function OrderCard({
       case OrderStatus.DRAFT:
         return OrderStatus.PENDING;
       case OrderStatus.PENDING:
-        return OrderStatus.READY;
       case OrderStatus.READY:
         return OrderStatus.COMPLETED;
       default:
@@ -397,10 +626,9 @@ ${itemsList}
 
 Valor do pedido: ${formatCurrency(orderTotal)} 
 Taxa de entrega: ${formatCurrency(deliveryFee)} 
-
 Valor total: ${formatCurrency(finalTotal)} 
 
-${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
+${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -447,9 +675,9 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
       case OrderStatus.DRAFT:
         return "Rascunho";
       case OrderStatus.PENDING:
-        return "Produção";
+        return "Em Preparo";
       case OrderStatus.READY:
-        return "Em entrega";
+        return "Em Preparo";
       case OrderStatus.COMPLETED:
         return "Concluído";
       case OrderStatus.CANCELLED:
@@ -474,18 +702,41 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
 
   return (
     <>
-      <div className="order-card" onClick={handleCardClick}>
+      <div
+        className={`order-card ${isSelected ? "selected" : ""}`}
+        onClick={handleCardClick}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchEnd}
+      >
         <div className="order-header">
           <div className="order-header-left">
+            {!readonly && isSelectionMode && (
+              <div
+                className="order-select-checkbox-container"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSelect?.(order.id);
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected || false}
+                  onChange={() => onToggleSelect?.(order.id)}
+                  className="order-select-checkbox"
+                />
+              </div>
+            )}
             <span className="order-id">#{order.id.slice(0, 8)}</span>
             <span className={`status-badge status-${order.status.toLowerCase()}`}>
+
               {getStatusLabel()}
             </span>
-            {order.status === OrderStatus.PENDING && order.pushoverReceipt && (
+            {order.status === OrderStatus.PENDING && (
               order.acknowledgedAt ? (
                 <span
                   className="ack-badge ack-confirmed"
-                  title={`Confirmado no celular às ${formatAckTime(order.acknowledgedAt)}`}
+                  title={`Confirmado às ${formatAckTime(order.acknowledgedAt)}`}
                 >
                   ✅ Confirmado {formatAckTime(order.acknowledgedAt)}
                 </span>
@@ -493,13 +744,13 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
                 <button
                   type="button"
                   className="ack-badge ack-pending"
-                  title="Alarme tocando no celular. Clique para confirmar pelo painel"
+                  title={order.pushoverReceipt ? "Alarme tocando no celular. Clique para confirmar pelo painel" : "Clique para confirmar ciência do pedido"}
                   onClick={(e) => {
                     e.stopPropagation();
                     onAcknowledge?.(order.id);
                   }}
                 >
-                  🔔 Pendente
+                  {order.pushoverReceipt ? "🔔 Pendente" : "⏱️ Confirmar"}
                 </button>
               )
             )}
@@ -591,6 +842,11 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
                     📍 {order.address}
                   </div>
                 )}
+                {order.acknowledgedAt && (
+                  <div style={{ fontSize: "13px", color: "#059669", marginTop: "4px", fontWeight: 600 }}>
+                    ✅ Confirmado às {formatAckTime(order.acknowledgedAt)}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -624,17 +880,45 @@ ${order.customer?.name ? `Cliente: ${order.customer.name}\n` : ""}${order.addres
                 <strong>{formatCurrency(totalWithDelivery)}</strong>
               </div>
             </div>
-            {!readonly && onEdit && (
-              <div className="order-modal-actions">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit();
-                  }}
-                  className="btn-edit-modal"
-                >
-                  Editar Pedido
-                </button>
+            {!readonly && (
+              <div className="order-modal-actions" style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+                {order.status === OrderStatus.PENDING && !order.acknowledgedAt && onAcknowledge && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAcknowledge(order.id);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      background: "#10b981",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "8px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <span>✅</span> Confirmar Pedido
+                  </button>
+                )}
+                {onEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit();
+                    }}
+                    className="btn-edit-modal"
+                    style={{ flex: 1 }}
+                  >
+                    Editar Pedido
+                  </button>
+                )}
               </div>
             )}
           </div>

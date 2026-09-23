@@ -44,3 +44,10 @@ Thumbs.db
 
 # Nx
 .nx/cache
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+e2e/.auth/

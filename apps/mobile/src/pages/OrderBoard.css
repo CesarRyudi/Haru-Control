@@ -1,24 +1,25 @@
 .order-board {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: calc(100vh - 80px);
   background: #f5f5f5;
-  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .board-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 16px 16px 12px;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
 .board-header h1 {
-  font-size: 28px;
+  font-size: 26px;
   color: #333;
+  margin: 0;
 }
 
 .header-actions {
@@ -58,38 +59,34 @@
 
 .board-tabs {
   display: flex;
-  gap: 8px;
-  padding: 0 20px 16px;
-  overflow-x: auto;
+  gap: 4px;
+  padding: 0 16px 12px;
   border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   flex-shrink: 0;
-}
-
-.board-tabs::-webkit-scrollbar {
-  height: 4px;
-}
-
-.board-tabs::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .tab-btn {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #666;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
-  border-radius: 4px 4px 0 0;
+  border-radius: 6px 6px 0 0;
 }
 
 .tab-btn:hover {
@@ -105,9 +102,9 @@
 .tab-badge {
   background: #f0f0f0;
   color: #666;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 12px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
   font-weight: 700;
   transition: all 0.2s;
 }
@@ -119,9 +116,9 @@
 
 .board-content {
   display: flex;
-  padding: 0 20px 20px;
+  padding: 0 16px 16px;
   flex: 1;
-  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .board-column {
@@ -132,6 +129,8 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  height: fit-content;
+  box-sizing: border-box;
 }
 
 .board-column h2 {
@@ -147,17 +146,110 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
   border-bottom: 2px solid #f0f0f0;
   flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.column-header h2 {
+.column-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column-select-all-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+  margin: 0;
+}
+
+.column-header-left h2 {
+  font-size: 18px;
+  color: #1e293b;
   margin: 0;
   padding: 0;
   border: none;
+  font-weight: 700;
 }
+
+.column-count-badge {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.column-header-batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-header-batch {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-header-pending {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-header-pending:hover {
+  background: #d97706;
+}
+
+.btn-header-complete {
+  background: #10b981;
+  color: white;
+}
+
+.btn-header-complete:hover {
+  background: #059669;
+}
+
+.btn-header-draft {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.btn-header-draft:hover {
+  background: #cbd5e1;
+}
+
+.btn-header-batch-cancel {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-header-batch-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
 
 .date-filter {
   padding: 6px 10px;
@@ -208,6 +300,14 @@
     transform 0.2s,
     box-shadow 0.2s;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.order-card * {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .order-card:hover {
@@ -624,3 +724,81 @@
 .btn-edit-modal:hover {
   background: #2980b9;
 }
+
+/* ==========================================================================
+   Modo de Seleção Múltipla e Barra de Ações em Lote (Batch Actions)
+   ========================================================================== */
+
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.batch-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-batch-header {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-batch-header:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn-batch-header-cancel {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #b91c1c;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-batch-header-cancel:hover {
+  background: #fecaca;
+}
+
+.order-card.selected {
+  border: 2px solid #667eea !important;
+  background: #f8faff;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.22);
+}
+
+.order-select-checkbox-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.order-select-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+

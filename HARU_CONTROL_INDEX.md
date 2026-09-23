@@ -41,8 +41,8 @@ Para garantir que a próxima sessão seja eficiente e economize tokens:
 
 ## 📡 Estado Atual (Resumo Rápido)
 
-- **Fase atual:** Fase 1 — Segregação de Ambientes (Coolify Prod vs Dev) & Fechamento do MVP
-- **Produção / Deploy:** Coolify (Ambiente único atualmente em uso real, a ser promovido para Produção oficial)
-- **Fases Concluídas:** Fase 1 (MVP Operacional Core: Autenticação PIN/WebAuthn, Board de Pedidos, Ledger de Estoque, Gestão de Produtos/Categorias, BOM/Manufatura, Clientes, Pushover, Insights)
-- **Funcionalidades Adiadas / Backlog:** Separação de branches (`main` para dev e branch dedicada para prod), retorno de `npx prisma migrate deploy` no Dockerfile da API, relatórios avançados de margem/insumos
-- **Infra / Stack Base:** Monorepo Nx (NestJS 10 + Prisma 5 + PostgreSQL 15 + React 18 + Vite 5 + Zustand + Pushover + Coolify)
+- **Fase atual:** Fase 2 — Expansão Operacional, Automações & Relatórios
+- **Produção / Deploy:** Coolify (Ambientes 100% isolados e validados: `production` para Produção com dados reais e `main` para Desenvolvimento)
+- **Fases Concluídas:** Fase 1 (MVP Operacional Core & Segregação de Ambientes Coolify Prod vs Dev)
+- **Funcionalidades em Foco (Fase 2):** Pix Copia e Cola Dinâmico com gestão de status, Projeção Mensal de Faturamento nos Insights, Sugestão de Fornada Multi-Dias (BOM + Estoque) e Módulo de Descarte de Produtos/Insumos (Ledger `WASTE`).
+- **Infra / Stack Base:** Monorepo Nx (NestJS 10 + Prisma 5 + PostgreSQL 15 + React 18 + Vite 5 + Zustand + Pushover + Playwright E2E + Coolify)

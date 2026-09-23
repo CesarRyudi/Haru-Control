@@ -15,8 +15,14 @@ export class ProductsService {
         unit: data.unit,
         price: data.price,
         categoryId: data.categoryId,
+        subcategoryId: data.subcategoryId,
         isSellable: data.isSellable,
         isPurchasable: data.isPurchasable,
+        description: data.description,
+      },
+      include: {
+        category: true,
+        subcategory: true,
       },
     });
   }
@@ -32,7 +38,10 @@ export class ProductsService {
 
     return this.prisma.product.findMany({
       where,
-      include: { category: true },
+      include: {
+        category: true,
+        subcategory: true,
+      },
       orderBy: { name: "asc" },
     });
   }
@@ -40,6 +49,10 @@ export class ProductsService {
   async findOne(id: string) {
     return this.prisma.product.findUnique({
       where: { id },
+      include: {
+        category: true,
+        subcategory: true,
+      },
     });
   }
 

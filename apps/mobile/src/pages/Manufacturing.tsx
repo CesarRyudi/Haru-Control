@@ -1,14 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
 import { NumberInput } from "@haru-control/ui";
 import "./Products.css"; // Reuse styling for now
 
-interface Product {
-  id: string;
-  name: string;
-  unit: string;
-  isSellable: boolean;
-}
+import { Product } from "@haru-control/types";
 
 export default function Manufacturing() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -23,17 +18,24 @@ export default function Manufacturing() {
   const loadData = async () => {
     try {
       const res = await api.get("/products");
-      // Apenas produtos que são fabricados e podem ser vendidos
-      // Na prática, um produto pode ter receita mesmo se não for isSellable.
-      // Vamos assumir que qualquer produto com recipeItems > 0 poderia ser aqui,
-      // Mas para simplificar vamos mostrar todos que possuem potencial de produção
-      // Por ora, vamos mostrar todos e se não tiver receita a API vai chiar.
-      // Seria ideal ter uma flag "isManufactured", mas usaremos todos.
       setProducts(res.data);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
     }
   };
+
+  const groupedProducts = useMemo<Record<string, Product[]>>(() => {
+    const groups: Record<string, Product[]> = {};
+    products.forEach(p => {
+      let groupName = p.category?.name || "Sem Categoria";
+      if (p.subcategory?.name) {
+        groupName += ` > ${p.subcategory.name}`;
+      }
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(p);
+    });
+    return groups;
+  }, [products]);
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
@@ -90,8 +92,12 @@ export default function Manufacturing() {
               style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px' }}
             >
               <option value="" disabled>Selecione um produto final...</option>
-              {products.map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({p.unit || 'un'})</option>
+              {Object.entries(groupedProducts).map(([groupName, groupItems]) => (
+                <optgroup key={groupName} label={groupName}>
+                  {groupItems.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.unit || 'un'})</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

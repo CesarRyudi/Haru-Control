@@ -9,19 +9,25 @@
 | ID | Status | Validação Prática | Severidade | Título Curto | Componente Afetado | Data |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `BUG-000` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Exemplo de Bug de Demonstração (Template) | `src/example.ts` | 2026-09-02 |
-| `BUG-001` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
+| `BUG-001` | `[x]` Resolvido | `✅ Validado` | `🔴 Alta` | Erros de CORS nas requisições da API no frontend | `apps/api/src/main.ts`, `Dockerfile.mobile` | 2026-09-02 |
+| `BUG-002` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
+| `BUG-003` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx` | 2026-09-17 |
+| `BUG-004` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm | `apps/mobile/src/pages/OrderForm.css` | 2026-09-17 |
+| `BUG-005` | `[ ]` Aberto | `⏳ Pendente` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
+| `BUG-006` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
+| `BUG-007` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
 
 ---
 
 ## 🔍 Registro Detalhado de Bugs
 
 ### [BUG-001] Erros de CORS nas requisições da API no frontend
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `[ ]` Pendente de Validação
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🔴 Alta`
 - **Data de Registro:** 2026-09-02
 - **Data de Implementação:** 2026-09-02
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-17
 - **Componentes / Arquivos Afetados:** `apps/api/src/main.ts`, `Dockerfile.mobile`, `apps/mobile/src/services/api.ts`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -47,6 +53,41 @@
 #### 5. Lições Aprendidas & Prevenção Futura
 - Sempre configurar `enableCors({ origin: true, credentials: true, methods: [...] })` em APIs NestJS desacopladas de SPA.
 - Declarar explicitamente `ARG` e `ENV` em Dockerfiles de SPAs (Vite/React) para variáveis de build time.
+
+### [BUG-002] Quebra de layout e overflow no modal de pedidos históricos
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🟡 Média`
+- **Data de Registro:** 2026-09-11
+- **Data de Implementação:** 2026-09-11
+- **Data de Validação:** 2026-09-17
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderHistory.css`, `apps/mobile/src/pages/OrderForm.tsx`, `e2e/page-objects/OrderHistoryPage.ts`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao abrir o modal de "Novo Pedido Histórico" ou "Editar Pedido" na tela de histórico (`/orders/history`), o conteúdo dos itens e campos transborda para o lado direito da tela (horizontal overflow), cortando elementos e tornando o uso em dispositivos móveis visualmente quebrado e desconfortável.
+- **Passos para Reproduzir:**
+  1. Acessar `/orders/history` no mobile ou tela com largura restrita.
+  2. Clicar em "＋ Pedido Histórico" ou "✏️ Editar Pedido".
+  3. Observar que a seção de itens e campos do formulário ultrapassa a largura máxima do modal, forçando scroll horizontal indesejado e cortando botões.
+- **Comportamento Esperado:** Formulário com layout responsivo, espaçoso e consistente, idealmente reaproveitando a tela canônica já existente de pedidos (`OrderForm`).
+- **Logs / Erros de Console:** Nenhum erro de console reportado (falha de layout/CSS e duplicação de responsabilidade de UI).
+
+#### 2. Onde está o problema (Localização Técnica)
+- O modal inline em `OrderHistory.tsx` e `OrderHistory.css` tentava recriar um formulário completo de pedido (seleção de produtos, inputs de quantidade, preço unitário, datas, cliente e totais) em uma janela modal com restrições de largura fixa (`max-width: 600px`, grids de múltiplas colunas e tabelas de itens comprimidas).
+- Além do problema visual de CSS, havia uma duplicidade arquitetural: já existe a tela completa e validada de pedidos (`OrderForm.tsx` em `/orders/new` e `/orders/:id/edit`), que já suporta seleção de categorias, busca de clientes com modal dedicado, controle de estoque e avisos.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Implementação inicial da feature de histórico onde optou-se por um modal local rápido para cadastrar pedidos históricos, em vez de estender a tela canônica `OrderForm` para aceitar parâmetros de pedidos retroativos (datas customizadas e status concluído).
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Unificação arquitetural: os modais duplicados e quebrados em `OrderHistory.tsx` e `OrderHistory.css` foram completamente eliminados (~700 linhas de código removidas).
+- "＋ Pedido Histórico" agora redireciona diretamente para `/orders/new?retroactive=true`.
+- "✏️ Editar Pedido" nos cards agora redireciona para `/orders/${order.id}/edit`.
+- `OrderForm.tsx` foi aprimorado para suportar data retroativa (`createdAt`), data de conclusão (`completedAt`) e `status` customizado via um card dedicado e limpo, desativando o alerta Pushover por padrão em pedidos históricos e redirecionando de volta ao histórico ao salvar.
+- A suíte E2E (`OrderHistoryPage.ts` e `04-history-retroactive.spec.ts`) foi adaptada e executada com 100% de sucesso.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Evitar duplicar fluxos complexos de criação/edição em modais comprimidos quando já existe uma tela canônica de página inteira (Full Page Form) testada e adaptada para mobile. Reaproveitar a rota existente com suporte a parâmetros retroativos reduz manutenção e padroniza a UX.
 
 ---
 
@@ -80,3 +121,202 @@
 - Medidas de blindagem preventiva adotadas para evitar regressões futuras.
 
 ---
+
+### [BUG-003] Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-17
+- **Data de Implementação:** 2026-09-17
+- **Data de Validação:** 2026-09-17
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx`, `e2e/page-objects/OrderBoardPage.ts`, `e2e/specs/04-history-retroactive.spec.ts`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- O botão de "Histórico" continuava visível no topo da tela do quadro de pedidos (`OrderBoard.tsx`), ao lado do botão de "Insights", mesmo após a criação da rota dedicada e entrada na barra de navegação inferior. Além disso, a aba correspondente na barra inferior (`BottomNavigation`) estava posicionada logo no início da lista (segunda posição, rotulada provisoriamente como "Pedidos"), em vez de ocupar a última posição como aba de histórico.
+- **Passos para Reproduzir:**
+  1. Acessar a tela inicial do aplicativo (`/`).
+  2. Observar a presença simultânea do botão "Histórico" no cabeçalho superior direito e de um item na barra de navegação inferior.
+  3. Observar a ordem dos ícones na barra inferior (`Início`, `Pedidos`, `Clientes`, `Produtos`, `Produção`, `Estoque`).
+- **Comportamento Esperado:**
+  - O cabeçalho deve conter apenas os botões auxiliares pertinentes ("Insights" e "Ajuda").
+  - A barra inferior (`BottomNavigation`) deve exibir a aba `📜 Histórico` posicionada como o último item da navegação (`Início`, `Clientes`, `Produtos`, `Produção`, `Estoque`, `Histórico`).
+- **Logs / Erros de Console:** Nenhum erro de console. Problema de consistência de navegação e UI/UX.
+
+#### 2. Onde está o problema (Localização Técnica)
+- `apps/mobile/src/pages/OrderBoard.tsx`: Botão `<button className="history-btn-header">` no cabeçalho `<header className="board-header">`.
+- `apps/mobile/src/components/BottomNavigation.tsx`: Array `navItems` com o item `/orders/history` na segunda posição com label "Pedidos".
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Durante a introdução da funcionalidade de histórico de pedidos retroativos (Fase 2), o botão de atalho de topo foi implementado temporariamente para acesso rápido. Na sequência, quando o item foi inserido no `BottomNavigation`, o botão do cabeçalho não havia sido removido e a ordenação final das abas ficou no início da barra em vez de ao final.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Removido o botão redundante `history-btn-header` do cabeçalho em `OrderBoard.tsx`.
+- Reordenado o array `navItems` em `BottomNavigation.tsx`, reposicionando `{ path: "/orders/history", icon: "📜", label: "Histórico" }` como o sexto e último item.
+- Atualizados os Page Objects (`OrderBoardPage.ts`) e a suíte de testes E2E (`04-history-retroactive.spec.ts`) para interagir com a aba "Histórico" da `BottomNavigation`.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Ao promover um botão de ação de topo a entidade primária na navegação persistente inferior (Bottom Navigation), garantir a remoção imediata dos atalhos transitórios para manter a interface limpa e prevenir duplicação de pontos de entrada.
+
+---
+
+### [BUG-004] Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-17
+- **Data de Implementação:** 2026-09-17
+- **Data de Validação:** 2026-09-17
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Na tela de criação/edição de pedidos (`OrderForm`), cada categoria agrupa seus produtos dentro de um contêiner `.products-grid`. Quando uma categoria possui mais de 6 produtos, era acionado um limite fixo de altura (`max-height: 70vh`) com `overflow-y: auto`, forçando uma barra de rolagem interna minúscula e desconfortável em vez de expandir a caixa verticalmente no fluxo natural da página.
+- **Passos para Reproduzir:**
+  1. Acessar a tela de novo pedido (`/orders/new`).
+  2. Localizar uma categoria que contenha mais de 6 itens cadastrados.
+  3. Observar a presença de barra de rolagem interna na grade dessa categoria.
+- **Comportamento Esperado:** O container da categoria deve crescer dinamicamente para comportar todos os produtos de forma contínua, permitindo que a rolagem principal da página gerencie toda a visualização sem aninhamento de barras de rolagem.
+- **Logs / Erros de Console:** Nenhum erro de console reportado/observado.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Regra CSS `.order-form .products-grid` em `apps/mobile/src/pages/OrderForm.css`, que impunha `max-height: 70vh;` e `overflow-y: auto;`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Foi introduzida uma trava rígida de altura durante o desenvolvimento inicial para evitar listas longas em resoluções de desktop, desconsiderando o padrão mobile-first onde a rolagem nativa de página é muito mais ergonômica.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Removidas as propriedades `max-height: 70vh;` e `overflow-y: auto;` da classe `.order-form .products-grid` em `apps/mobile/src/pages/OrderForm.css`.
+- As caixas de categoria de produtos agora crescem organicamente para comportar qualquer quantidade de itens cadastrados, delegando o scroll à viewport vertical da aplicação.
+- Validado via compilação completa do mobile app com 100% de sucesso.
+
+---
+
+### [BUG-005] Chips de seleção de motivo do descarte sem feedback visual
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-18
+- **Data de Implementação:** 2026-09-18
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Na tela de criação no modo Descarte (`OrderForm`), ao tocar nos chips de motivo do descarte ("Validade Vencida", "Quebra / Avaria", "Falha de Forno / Preparo", "Teste / Degustação", "Outro Motivo"), a interface não refletia o estado selecionado (não aplicava o fundo vermelho, texto branco ou sombra ativa), aparentando que a seleção não estava funcionando.
+- **Passos para Reproduzir:**
+  1. Acessar `/orders/new?mode=waste` ou alternar para o modo "Descarte de Estoque".
+  2. Rolar até a seção "Motivo do Descarte".
+  3. Clicar em qualquer chip de motivo (ex: "Falha de Forno / Preparo").
+  4. Observar que o botão não assume o estilo de ativo.
+- **Comportamento Esperado:** O chip selecionado deve receber imediatamente o destaque visual ativo (`.active`) com fundo vermelho, texto em branco e contraste definido.
+- **Logs / Erros de Console:** Nenhum erro de console reportado.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Incompatibilidade de nomenclatura de classes CSS entre `OrderForm.css` (que declarava `.waste-reason-chip` e `.waste-reason-chip.active`) e `OrderForm.tsx` (que renderizava os botões com a classe `.waste-chip-btn`).
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Durante a criação do formulário unificado, a classe CSS definida no arquivo de estilos divergiu ligeiramente da classe aplicada no componente JSX, impedindo a aplicação das regras de estilo e da pseudo-classe de seleção ativa.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- Unificados os seletores CSS em `OrderForm.css` aplicando regras conjuntas para `.waste-reason-chip, .waste-chip-btn` e `.waste-reason-chip.active, .waste-chip-btn.active`.
+- Atualizado o JSX em `OrderForm.tsx` para passar ambas as classes (`waste-reason-chip waste-chip-btn`) e renderizar a lista via `Object.values(WasteReason)`.
+- Validado em compilação completa com 100% de sucesso.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Padronizar seletores de classes de componentes ou usar aliasing em CSS para classes variantes (`.waste-reason-chip, .waste-chip-btn`) prevenindo divergências entre estilização e JSX.
+
+---
+
+### [BUG-006] Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-19
+- **Data de Implementação:** 2026-09-19
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- 1. Ao abrir o drawer do carrinho no `OrderForm`, dependendo da área tocada ou rolada no mobile (especialmente no overlay, cabeçalho, rodapé ou ao alcançar os limites da lista de itens), a página de pedidos ao fundo rola indevidamente (scroll chaining / vazamento de rolagem).
+- 2. O rodapé do drawer exibia apenas o subtotal dos itens, sem discriminar o valor da taxa de entrega e sem somá-lo ao total consolidado do pedido.
+- 3. O botão flutuante e cabeçalho exibiam um emoji de sacola de compras (`🛍️`) em vez de um ícone de carrinho de compras (`🛒`).
+- **Passos para Reproduzir:**
+  1. No formulário de novo pedido (`/orders/new`), adicionar 1 ou mais itens.
+  2. Tocar no botão de ver carrinho para abrir o drawer.
+  3. Deslizar o dedo sobre o backdrop, cabeçalho ou rodapé do drawer; a página ao fundo rola.
+  4. Observar que o rodapé do drawer não inclui o valor da taxa de entrega nem no botão de finalização.
+- **Comportamento Esperado:**
+  - O scroll do corpo da página deve ficar estritamente bloqueado enquanto o drawer estiver aberto.
+  - O rodapé do drawer deve discriminar Subtotal, Taxa de Entrega e Total final consolidado.
+  - O ícone do botão e do drawer deve ser um carrinho de compras (`🛒`).
+- **Logs / Erros de Console:** Nenhum erro de console reportado.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Ausência de trava de overflow/touch no body (`overflow: hidden; touch-action: none;`) durante a montagem do drawer em `OrderForm.tsx`.
+- Ausência de `overscroll-behavior: contain` e contenção de eventos `touchmove` nas camadas do drawer em `OrderForm.css`.
+- Omissão da variável de estado `deliveryFee` no cálculo do resumo do drawer em `OrderForm.tsx`.
+- Uso de `🛍️` em vez de `🛒` em `OrderForm.tsx`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Na primeira versão da barra flutuante e do drawer, o foco foi na transição visual e no IntersectionObserver, sem aplicar os mecanismos de lock de scroll em touch devices e omitindo a taxa de entrega que estava presente apenas no formulário final.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Bloqueio de Scroll no Body:** Adicionado `useEffect` em `OrderForm.tsx` que aplica `document.body.style.overflow = "hidden"` e `document.body.style.touchAction = "none"` enquanto `isCartDrawerOpen` estiver ativo, restaurando os valores originais ao fechar.
+- **Prevenção de Eventos Touch e Overscroll:** Adicionados `onTouchMove` com `preventDefault` condicional no overlay e `stopPropagation` no sheet. Em `OrderForm.css`, inseridas propriedades `overscroll-behavior: contain; touch-action: none;` no overlay, cabeçalho e rodapé, e `touch-action: pan-y; -webkit-overflow-scrolling: touch;` na lista de itens.
+- **Discriminação da Taxa de Entrega e Total Consolidado:** Inserido bloco `.cart-drawer-pricing-summary` exibindo Subtotal, Taxa de Entrega e Total (`totalCartPrice + deliveryFee`), atualizando também o valor exibido no botão `btn-drawer-checkout`.
+- **Ícone Autêntico de Carrinho:** Substituído o emoji `🛍️` por `🛒` no botão flutuante e no título do drawer.
+- **Validação:** Compilação do monorepo (`npm run build`) e 10 testes E2E Playwright executados com 100% de sucesso.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Sempre aplicar lock no body (`document.body.style.overflow = "hidden"`) e `overscroll-behavior: contain` com bloqueio de eventos de toque em modais e bottom sheets mobile.
+
+---
+
+### [BUG-007] Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-19
+- **Data de Implementação:** 2026-09-19
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- 1. Ao realizar o gesto de long-press (500ms) em um card de pedido para acionar a seleção no mobile, o navegador dispara a seleção nativa de texto / lupa sobre os textos do card.
+- 2. A barra de abas (`Rascunho`, `Em Preparo`, `Concluídos`) exibe um scroll horizontal indesejado em telas mobile, mesmo havendo espaço suficiente para acomodar as 3 abas uniformemente na largura da tela.
+- 3. O container da coluna do Kanban ultrapassa a altura da tela mesmo com zero pedidos, gerando scroll vertical desnecessário contra a barra de navegação inferior (`BottomNavigation`).
+- 4. A barra flutuante de ações em lote (`.batch-action-bar`) colidia visualmente atrás do botão flutuante de adicionar pedido (FAB).
+- **Passos para Reproduzir:**
+  1. Acessar o Quadro de Pedidos (`/orders`).
+  2. Pressionar e segurar um card por mais de 500ms; notar a caixa de seleção nativa de texto.
+  3. Observar a rolagem horizontal na barra de abas em telas menores.
+  4. Observar que a tela rola verticalmente mesmo sem pedidos na coluna.
+- **Comportamento Esperado:**
+  - O texto do card de pedidos não deve ser selecionável via long-press (`user-select: none`).
+  - As 3 abas devem preencher proporcionalmente 100% da largura da tela sem scroll lateral (`flex: 1`).
+  - O container da coluna deve se ajustar naturalmente à altura da tela e expandir apenas quando o conteúdo de pedidos demandar.
+  - A seleção e transição em lote de pedidos deve ser controlada diretamente no cabeçalho da coluna (checkbox na esquerda e botões na direita), eliminando a barra flutuante conflitante.
+
+#### 2. Onde está o problema (Localização Técnica)
+- Falta de `user-select: none; -webkit-user-select: none;` na classe `.order-card`.
+- Padding fixo e ausência de `flex: 1` nas classes `.board-tabs` e `.tab-btn`.
+- Regra rígida de `height: 100vh` em `.order-board` somada ao `paddingBottom: 80px` do `AppLayout`.
+- Posição flutuante fixa de `.batch-action-bar` sobrepondo o `FloatingActionButton`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Primeira iteração da feature de seleção em lote que utilizou long-press padrão sem supressão de seleção do browser e uma barra flutuante inferior sem prever a sobreposição com o botão flutuante de novo pedido.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Supressão de Seleção de Texto:** Aplicado `user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;` em `.order-card` e filhos no `OrderBoard.css`, impedindo que o long-press dispare a lupa/seleção de texto nativa do sistema operacional.
+- **Abas 100% Responsivas sem Scroll Lateral:** Redefinidas `.board-tabs` e `.tab-btn` com `width: 100%; overflow-x: hidden;` e `flex: 1; min-width: 0;`, distribuindo uniformemente as 3 abas em qualquer largura de tela mobile sem barra de rolagem lateral.
+- **Ajuste de Altura e Eliminação do Scroll Desnecessário:** Substituído `height: 100vh; overflow: hidden;` por `min-height: calc(100vh - 80px); box-sizing: border-box;` em `.order-board` e `.board-column` com `height: fit-content;`. O container agora fica contido na tela quando vazio e só expande conforme a quantidade de pedidos adicionados.
+- **Ações em Lote Integradas no Cabeçalho:**
+  - Eliminada a `.batch-action-bar` flutuante inferior.
+  - No cabeçalho da coluna (`.column-header`): adicionado checkbox "Selecionar Todos" à esquerda do título, e botões dinâmicos de transição de status em massa à direita (`🍳 Em Preparo`, `✅ Concluir` e `✕ Cancelar`) quando há pedidos selecionados.
+- **Validação:** Compilação com 100% de sucesso (`npm run build`) e suíte Playwright E2E 100% verde (10 passed).
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Sempre aplicar `user-select: none` em elementos com manipuladores de gestos touch/long-press.
+- Integrar ações contextuais de listas diretamente no cabeçalho da seção quando já existirem outros elementos flutuantes na tela.
+
+---
+
+
