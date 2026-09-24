@@ -518,6 +518,30 @@
   - Suíte completa de 14 testes E2E Playwright executada e aprovada com 100% de sucesso.
 - **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-24] Refinamento de UI/UX do Pix no Modal, Remoção de Botões no Card e Envio Isolado da Comanda
+
+- **Contexto:** Solicitação do usuário para otimização de espaço visual no modal de detalhes do pedido (seção Pix excessivamente alta em telas mobile), remoção dos botões de cópia dos cards no Kanban para layout mais limpo, centralização da cópia de comanda dentro do modal e desvinculação do Pix da mensagem de confirmação (para que o Pix possa ser enviado como mensagem avulsa e independente no WhatsApp, facilitando a cópia/pagamento pelo cliente).
+- **Implementações Realizadas:**
+  - **1. Seção Pix Colapsável no Modal (`OrderBoard.tsx` & `OrderBoard.css`):**
+    - Estado `isPixExpanded` com valor inicial `false` garantido ao abrir ou fechar o modal.
+    - Quando colapsada (default), ocupa apenas uma linha compacta contendo o valor total `🔑 Pix Copia e Cola (R$ XX,XX)`, botão `📋 Copiar Código` e badge interativo `▼ QR Code`.
+    - Ao tocar no cabeçalho ou no badge, expande suavemente exibindo o QR Code gerado em alta resolução e o bloco monoespaçado do código, com badge alternado para `▲ Fechar QR`.
+    - Cópia do código via botão `📋 Copiar Código` isolada com `e.stopPropagation()` para não disparar expansão/recolhimento acidental.
+  - **2. Limpeza dos Cards no Kanban (`OrderBoard.tsx`):**
+    - Removidos completamente os botões de ação rápida (`.order-item-actions`, contendo `btn-copy` e `btn-copy-pix`) dos cards de pedidos.
+    - A lista de itens dos cookies passa a ocupar a largura total do container, eliminando poluição visual no quadro.
+  - **3. Botão Dedicado de Cópia da Confirmação no Modal (`OrderBoard.tsx` & `OrderBoard.css`):**
+    - Adicionado botão `.btn-modal-copy-confirmation` (*"💬 Copiar Mensagem de Confirmação"*) em verde WhatsApp (`#25d366`) destacado na base dos totais do pedido, com feedback visual via Toast (*"Mensagem de confirmação copiada!"*).
+  - **4. Restauração da Comanda Original sem Pix (`OrderBoard.tsx`):**
+    - Removido o bloco `${pixBlock}` do gerador de texto em `handleCopyOrder()`, restaurando rigorosamente a mensagem original enxuta (*"Então são: ... Valor total: ... Certo?"*).
+  - **5. Atualização da Suíte de Testes E2E (`e2e/specs/09-pix-payment.spec.ts`):**
+    - Validação de ausência de botões nos cards, estado inicial colapsado no modal, cópia do código Pix, expansão do QR Code ao toque, cópia da mensagem de confirmação sem Pix e fechamento do modal.
+- **Validação:**
+  - `npx prisma generate` executado com sucesso sincronizando novos modelos com o cliente Prisma local.
+  - Build limpo do monorepo (`npm run build`) concluído com 100% de sucesso (`types`, `utils`, `api`, `mobile`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+
 
 
 

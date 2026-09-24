@@ -545,6 +545,7 @@ function OrderCard({
   onLongPress,
 }: OrderCardProps) {
   const [showModal, setShowModal] = useState(false);
+  const [isPixExpanded, setIsPixExpanded] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressTriggered = useRef(false);
 
@@ -574,6 +575,7 @@ function OrderCard({
       onToggleSelect?.(order.id);
       return;
     }
+    setIsPixExpanded(false);
     setShowModal(true);
   };
 
@@ -637,11 +639,7 @@ function OrderCard({
       )
       .join("\n");
 
-    const pixBlock = pixCode
-      ? `🔑 *Pix Copia e Cola (Valor exato ${formatCurrency(finalTotal)}):*\n${pixCode}\n\n`
-      : "";
-
-    // Montar mensagem completa
+    // Montar mensagem completa (formato original sem Pix)
     const orderText = `Então são: 
 ${itemsList}
  
@@ -650,21 +648,27 @@ Valor do pedido: ${formatCurrency(orderTotal)}
 Taxa de entrega: ${formatCurrency(deliveryFee)} 
 Valor total: ${formatCurrency(finalTotal)} 
 
-${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}${pixBlock}Certo?`;
+${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard
         .writeText(orderText)
         .then(() => {
-          showToast?.({ message: "Pedido copiado!", type: "success" });
+          showToast?.({
+            message: "Mensagem de confirmação copiada!",
+            type: "success",
+          });
         })
         .catch((error) => {
           console.error("Erro ao copiar:", error);
-          copyToClipboardFallback(orderText, "Pedido copiado!");
+          copyToClipboardFallback(
+            orderText,
+            "Mensagem de confirmação copiada!",
+          );
         });
     } else {
-      copyToClipboardFallback(orderText, "Pedido copiado!");
+      copyToClipboardFallback(orderText, "Mensagem de confirmação copiada!");
     }
   };
 
@@ -832,32 +836,6 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}${pixBloc
                 </div>
               )}
             </div>
-            <div className="order-item-actions">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCopyOrder();
-                }}
-                className="btn-copy"
-                title="Copiar comanda com Pix"
-              >
-                📋
-              </button>
-              {pixCode && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCopyPixOnly();
-                  }}
-                  className="btn-copy-pix"
-                  title="Copiar Pix Copia e Cola"
-                >
-                  🔑
-                </button>
-              )}
-            </div>
           </div>
         )}
 
@@ -913,7 +891,10 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}${pixBloc
                 )}
               </div>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setIsPixExpanded(false);
+                }}
                 className="btn-close-modal"
               >
                 ✕
@@ -945,13 +926,22 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}${pixBloc
               </div>
             </div>
 
-            {/* Seção Pix no Modal de Detalhes */}
+            {/* Seção Pix no Modal de Detalhes (Colapsável, default fechado) */}
             {pixCode && (
-              <div className="order-modal-pix-section">
-                <div className="pix-section-header">
-                  <span className="pix-section-title">
-                    🔑 Pix Copia e Cola ({formatCurrency(totalWithDelivery)})
-                  </span>
+              <div className={`order-modal-pix-section ${isPixExpanded ? "expanded" : "collapsed"}`}>
+                <div
+                  className="pix-section-header"
+                  onClick={() => setIsPixExpanded(!isPixExpanded)}
+                  title={isPixExpanded ? "Toque para recolher QR Code" : "Toque para abrir QR Code"}
+                >
+                  <div className="pix-section-title-wrap">
+                    <span className="pix-section-title">
+                      🔑 Pix Copia e Cola ({formatCurrency(totalWithDelivery)})
+                    </span>
+                    <span className="pix-toggle-indicator">
+                      {isPixExpanded ? "▲ Fechar QR" : "▼ QR Code"}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -963,21 +953,40 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}${pixBloc
                     📋 Copiar Código
                   </button>
                 </div>
-                <div className="pix-code-preview">
-                  <code>{pixCode}</code>
-                </div>
-                <div className="pix-qr-container">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(pixCode)}`}
-                    alt="QR Code Pix"
-                    className="pix-qr-image"
-                  />
-                  <span className="pix-qr-caption">
-                    Aponte a câmera do banco para pagar no balcão
-                  </span>
-                </div>
+                {isPixExpanded && (
+                  <div className="pix-expanded-content">
+                    <div className="pix-code-preview">
+                      <code>{pixCode}</code>
+                    </div>
+                    <div className="pix-qr-container">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(pixCode)}`}
+                        alt="QR Code Pix"
+                        className="pix-qr-image"
+                      />
+                      <span className="pix-qr-caption">
+                        Aponte a câmera do banco para pagar no balcão
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Botão Copiar Mensagem de Confirmação para WhatsApp */}
+            <div className="order-modal-copy-section">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyOrder();
+                }}
+                className="btn-modal-copy-confirmation"
+              >
+                💬 Copiar Mensagem de Confirmação
+              </button>
+            </div>
+
             {!readonly && (
               <div className="order-modal-actions" style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
                 {order.status === OrderStatus.PENDING && !order.acknowledgedAt && onAcknowledge && (

@@ -64,13 +64,15 @@
   - **Geração Matemática Local (EMVCo BR Code / BACEN):**
     - Implementação da biblioteca matemática pura `generatePixPayload` em `@haru-control/utils` calculando o padrão BR Code com checksum CRC16-CCITT (0x1021) sem dependência de APIs bancárias externas.
     - Embutimento automático do valor exato do pedido (`totalPrice + deliveryFee`), chave Pix da Haru Cookies, nome fantasia e cidade.
-  - **Comanda WhatsApp Automática:**
-    - Inclusão automática do bloco formatado de Pix Copia e Cola no rodapé da mensagem copiada pelo botão 📋 de comanda para o WhatsApp.
+  - **Comanda WhatsApp Original (Mensagem de Confirmação):**
+    - Retorno da mensagem de confirmação do WhatsApp ao seu formato original e limpo ("Então são: ... Valor total: ... Certo?"), mantendo o código Pix para envio avulso e facilitando a cópia/pagamento direto pelo cliente no WhatsApp.
   - **UI/UX Mobile no Kanban & Modal:**
-    - Botão de ação rápida `🔑` no card do pedido para copiar exclusivamente o Pix Copia e Cola com 1 toque e Toast de confirmação.
-    - Seção dedicada de Pagamento Pix no modal de detalhes do pedido, contendo caixa de código monospaçada, botão de cópia e imagem de QR Code para leitura por câmera no balcão.
+    - Remoção dos botões de cópia dos cards no Kanban, garantindo layout visual limpo e foco na leitura dos itens e movimentação de status.
+    - Seção Pix no modal de detalhes colapsável e compacta por padrão (`isPixExpanded: false`), exibindo apenas valor e botão `📋 Copiar Código` em uma única linha.
+    - Abertura suave do QR Code e código monoespaçado sob demanda ao tocar no cabeçalho ou no indicador `▼ QR Code`.
+    - Botão dedicado `💬 Copiar Mensagem de Confirmação` no modal com feedback via Toast.
   - **Suíte de Testes Automatizados E2E (`e2e/specs/09-pix-payment.spec.ts`):**
-    - Teste Playwright validando a geração do código EMVCo, cópia isolada do Pix via clipboard, comanda do WhatsApp com Pix e modal com QR Code (14/14 testes passando).
+    - Teste Playwright validando a ausência de botões no card, estado inicial colapsado do Pix, cópia do código Pix, expansão do QR Code ao toque, cópia da mensagem de confirmação no formato original e fechamento do modal.
 - `[x]` **Confirmação Interna de Pedidos (ACK no App) e Controle de Notificações:**
   - **Controle Opcional de Notificação na Criação/Edição:**
     - Adicionar checkbox no formulário do pedido (`OrderForm.tsx`): *"Enviar alerta sonoro de emergência (Pushover)"*, com **valor padrão marcado (`true`)**.
