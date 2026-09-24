@@ -801,4 +801,110 @@
   accent-color: #667eea;
 }
 
+/* Ações Pix no Card & Modal */
+.order-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-copy-pix {
+  background: #0284c7;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-copy-pix:hover {
+  background: #0369a1;
+  transform: scale(1.05);
+}
+
+.order-modal-pix-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 14px;
+}
+
+.pix-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pix-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0369a1;
+}
+
+.btn-pix-modal-copy {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-pix-modal-copy:hover {
+  background: #0369a1;
+}
+
+.pix-code-preview {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+}
+
+.pix-code-preview code {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #334155;
+  word-break: break-all;
+  display: block;
+}
+
+.pix-qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.pix-qr-image {
+  width: 130px;
+  height: 130px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 4px;
+}
+
+.pix-qr-caption {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-align: center;
+}
+
+
 

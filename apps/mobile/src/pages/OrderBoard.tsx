@@ -4,6 +4,7 @@ import {
   formatCurrency,
   formatDate,
   getTodayString,
+  generatePixPayload,
 } from "@haru-control/utils";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -600,6 +601,28 @@ function OrderCard({
     }
   };
 
+  const deliveryFee = parseFloat(order.deliveryFee || 0);
+  const orderTotal = parseFloat(order.totalPrice || 0);
+  const finalTotal = orderTotal + deliveryFee;
+
+  const pixKey = import.meta.env.VITE_PIX_KEY || "11976952264";
+  const pixName = import.meta.env.VITE_PIX_NAME || "Haru Cookies";
+  const pixCity = import.meta.env.VITE_PIX_CITY || "Sao Paulo";
+
+  const pixCode =
+    finalTotal > 0
+      ? generatePixPayload({
+          key: pixKey,
+          name: pixName,
+          city: pixCity,
+          amount: finalTotal,
+          txid: order.id
+            ? order.id.slice(0, 10).replace(/[^a-zA-Z0-9]/g, "")
+            : "***",
+          description: "Haru Cookies",
+        })
+      : "";
+
   const handleCopyOrder = () => {
     if (!order.items || order.items.length === 0) {
       showToast?.({ message: "Nenhum item no pedido", type: "error" });
@@ -614,10 +637,9 @@ function OrderCard({
       )
       .join("\n");
 
-    // Usar taxa de entrega do pedido
-    const deliveryFee = parseFloat(order.deliveryFee || 0);
-    const orderTotal = parseFloat(order.totalPrice);
-    const finalTotal = orderTotal + deliveryFee;
+    const pixBlock = pixCode
+      ? `🔑 *Pix Copia e Cola (Valor exato ${formatCurrency(finalTotal)}):*\n${pixCode}\n\n`
+      : "";
 
     // Montar mensagem completa
     const orderText = `Então são: 
@@ -628,7 +650,7 @@ Valor do pedido: ${formatCurrency(orderTotal)}
 Taxa de entrega: ${formatCurrency(deliveryFee)} 
 Valor total: ${formatCurrency(finalTotal)} 
 
-${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
+${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}${pixBlock}Certo?`;
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -639,16 +661,39 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
         })
         .catch((error) => {
           console.error("Erro ao copiar:", error);
-          // Fallback para o método antigo
-          copyToClipboardFallback(orderText);
+          copyToClipboardFallback(orderText, "Pedido copiado!");
         });
     } else {
-      // Fallback para navegadores antigos
-      copyToClipboardFallback(orderText);
+      copyToClipboardFallback(orderText, "Pedido copiado!");
     }
   };
 
-  const copyToClipboardFallback = (text: string) => {
+  const handleCopyPixOnly = () => {
+    if (!pixCode) {
+      showToast?.({ message: "Valor inválido para gerar Pix", type: "error" });
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(pixCode)
+        .then(() => {
+          showToast?.({
+            message: "Pix Copia e Cola copiado!",
+            type: "success",
+          });
+        })
+        .catch(() => {
+          copyToClipboardFallback(pixCode, "Pix Copia e Cola copiado!");
+        });
+    } else {
+      copyToClipboardFallback(pixCode, "Pix Copia e Cola copiado!");
+    }
+  };
+
+  const copyToClipboardFallback = (
+    text: string,
+    successMessage = "Copiado com sucesso!",
+  ) => {
     const textArea = document.createElement("textarea");
     textArea.value = text;
     textArea.style.position = "fixed";
@@ -658,10 +703,13 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
 
     try {
       document.execCommand("copy");
-      showToast?.({ message: "Pedido copiado!", type: "success" });
+      showToast?.({ message: successMessage, type: "success" });
     } catch (error) {
       console.error("Erro ao copiar:", error);
-      showToast?.({ message: "Erro ao copiar pedido", type: "error" });
+      showToast?.({
+        message: "Erro ao copiar para a área de transferência",
+        type: "error",
+      });
     } finally {
       document.body.removeChild(textArea);
     }
@@ -784,16 +832,32 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
                 </div>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopyOrder();
-              }}
-              className="btn-copy"
-              title="Copiar pedido"
-            >
-              📋
-            </button>
+            <div className="order-item-actions">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCopyOrder();
+                }}
+                className="btn-copy"
+                title="Copiar comanda com Pix"
+              >
+                📋
+              </button>
+              {pixCode && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopyPixOnly();
+                  }}
+                  className="btn-copy-pix"
+                  title="Copiar Pix Copia e Cola"
+                >
+                  🔑
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -880,6 +944,40 @@ ${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
                 <strong>{formatCurrency(totalWithDelivery)}</strong>
               </div>
             </div>
+
+            {/* Seção Pix no Modal de Detalhes */}
+            {pixCode && (
+              <div className="order-modal-pix-section">
+                <div className="pix-section-header">
+                  <span className="pix-section-title">
+                    🔑 Pix Copia e Cola ({formatCurrency(totalWithDelivery)})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopyPixOnly();
+                    }}
+                    className="btn-pix-modal-copy"
+                  >
+                    📋 Copiar Código
+                  </button>
+                </div>
+                <div className="pix-code-preview">
+                  <code>{pixCode}</code>
+                </div>
+                <div className="pix-qr-container">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(pixCode)}`}
+                    alt="QR Code Pix"
+                    className="pix-qr-image"
+                  />
+                  <span className="pix-qr-caption">
+                    Aponte a câmera do banco para pagar no balcão
+                  </span>
+                </div>
+              </div>
+            )}
             {!readonly && (
               <div className="order-modal-actions" style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
                 {order.status === OrderStatus.PENDING && !order.acknowledgedAt && onAcknowledge && (

@@ -60,15 +60,17 @@
     - Testes de ponta a ponta dos fluxos centrais: autenticação (PIN correto e inválido), criação de pedido e movimentação completa de status até conclusão com confirmação ACK, navegação por abas e gestos de swipe horizontal por toque, e cadastro de pedidos retroativos com filtros.
   - **Automação & Execução:**
     - Scripts de execução adicionados ao `package.json` (`test:e2e`, `test:e2e:ui`, `test:e2e:headed`, `test:e2e:codegen`) e guia completo para novos QAs em `e2e/README.md`.
-- `[ ]` **Integração de Pix Copia e Cola Dinâmico no Pedido com Gestão de Status:**
-  - **Geração de Código Pix:** Gerar código Pix "Copia e Cola" (e QR Code) com o valor exato final do pedido (produtos + taxa de entrega) e identificador único (`txid`).
-  - **Ciclo de Vida & Status do Pagamento:**
-    - Novos campos no modelo `Order` (ex: `pix_code`, `pix_txid`, `pix_status` [PENDING, PAID, EXPIRED], `pix_generated_at`, `pix_paid_at`).
-    - Registro de histórico e auditoria de quando o código foi gerado e quando o pagamento foi confirmado.
-  - **UI/UX Mobile:**
-    - Botão de ação rápida no card/modal para gerar e copiar a chave Pix com 1 toque.
-    - Opção de anexar o código Pix diretamente na mensagem formatada enviada ao cliente via WhatsApp.
-    - Badges visuais de status do Pix no card (ex: 🟡 Aguardando Pix, 🟢 Pix Pago).
+- `[x]` **Integração de Pix Copia e Cola Local com Valor Exato no Pedido:**
+  - **Geração Matemática Local (EMVCo BR Code / BACEN):**
+    - Implementação da biblioteca matemática pura `generatePixPayload` em `@haru-control/utils` calculando o padrão BR Code com checksum CRC16-CCITT (0x1021) sem dependência de APIs bancárias externas.
+    - Embutimento automático do valor exato do pedido (`totalPrice + deliveryFee`), chave Pix da Haru Cookies, nome fantasia e cidade.
+  - **Comanda WhatsApp Automática:**
+    - Inclusão automática do bloco formatado de Pix Copia e Cola no rodapé da mensagem copiada pelo botão 📋 de comanda para o WhatsApp.
+  - **UI/UX Mobile no Kanban & Modal:**
+    - Botão de ação rápida `🔑` no card do pedido para copiar exclusivamente o Pix Copia e Cola com 1 toque e Toast de confirmação.
+    - Seção dedicada de Pagamento Pix no modal de detalhes do pedido, contendo caixa de código monospaçada, botão de cópia e imagem de QR Code para leitura por câmera no balcão.
+  - **Suíte de Testes Automatizados E2E (`e2e/specs/09-pix-payment.spec.ts`):**
+    - Teste Playwright validando a geração do código EMVCo, cópia isolada do Pix via clipboard, comanda do WhatsApp com Pix e modal com QR Code (14/14 testes passando).
 - `[x]` **Confirmação Interna de Pedidos (ACK no App) e Controle de Notificações:**
   - **Controle Opcional de Notificação na Criação/Edição:**
     - Adicionar checkbox no formulário do pedido (`OrderForm.tsx`): *"Enviar alerta sonoro de emergência (Pushover)"*, com **valor padrão marcado (`true`)**.
@@ -165,6 +167,16 @@
     - Nova ação `📢 Divulgar Cookies Disponíveis` integrada ao menu do botão flutuante (FAB).
   - **Suíte de Testes Automatizados E2E (`e2e/`):**
     - Criado teste `07-broadcast-menu.spec.ts` cobrindo abertura, preenchimento, preview e cópia via clipboard, com 100% de sucesso (12/12 testes passando).
+- `[ ]` **Módulo Seguro de Sincronização e Importação de Dados (Produção ➔ Dev):**
+  - **Exportação Segura em Produção (`apps/api`):**
+    - Endpoint fechado `GET /admin/database/export` protegido por chave secreta dedicada no header (`X-Database-Sync-Key`) com comparação em tempo constante (`crypto.timingSafeEqual`).
+    - Despejo estruturado em JSON de todas as tabelas em ordem topológica de dependência (`categories`, `subcategories`, `products`, `recipe_items`, `customers`, `orders`, `order_items`, `sales`, `ledger_entries`).
+    - Endpoint desativado por padrão caso a variável secreta de ambiente não esteja configurada.
+  - **Importação e Carga Atômica em Desenvolvimento (`apps/api`):**
+    - Endpoint `POST /admin/database/import` habilitado estritamente em ambiente de desenvolvimento (`NODE_ENV !== 'production'`).
+    - Limpeza prévia atômica com `TRUNCATE ... CASCADE` e recarga ordenada de todos os registros via transação Prisma, tratando compatibilidade de migrations entre ambientes.
+  - **Automação & Script de Carga:**
+    - Script no monorepo (`npm run db:pull-prod`) para sincronizar a base de dev com a produção sob demanda ou semanalmente com 1 comando.
 
 ---
 

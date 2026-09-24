@@ -497,6 +497,27 @@
   - Suíte completa de 13 testes E2E Playwright executada e aprovada com 100% de sucesso (34.8s).
 - **Documentação Atualizada:** `docs/TASKS.md`, `docs/HISTORY.md` e `HARU_CONTROL_INDEX.md`.
 
+### [2026-09-24] Implementação de Pix Copia e Cola com Valor Exato e Integração na Comanda WhatsApp
+
+- **Contexto:** Agilização do fechamento e recebimento de pedidos diretamente pelo WhatsApp e no Quadro de Pedidos (Kanban), eliminando a dependência de APIs bancárias externas e sem gerar complexidade de schema ou poluição visual na interface.
+- **Implementações Realizadas:**
+  - **1. Utilitário BR Code EMVCo (`libs/utils/src/lib/pix.ts`):**
+    - Implementação da especificação oficial do Banco Central do Brasil para arranjos de pagamento Pix (EMVCo BR Code padrão).
+    - Cálculo matemático de redundância cíclica `CRC16-CCITT` (polinômio `0x1021`, inicial `0xFFFF`) com padding de 4 caracteres hexadecimais em caixa alta.
+    - Suporte a geração dinâmica com chave Pix (`harucookiesdf@gmail.com`), nome do recebedor (`HARU COOKIES`), cidade (`BRASILIA`), identificador de transação e valor exato formatado (`00.00`).
+    - Exportado em `libs/utils/src/index.ts` e compartilhado no monorepo.
+  - **2. Integração no Quadro de Pedidos (`apps/mobile/src/pages/OrderBoard.tsx` & `.css`):**
+    - **Comanda WhatsApp:** O botão de cópia rápida da comanda (`📋`) agora anexa automaticamente ao final da mensagem o bloco formatado com o código Pix Copia e Cola referente ao valor total do pedido (`totalPrice + deliveryFee`).
+    - **Botão Rápido no Card:** Adicionado botão `🔑` (`.btn-copy-pix`) ao lado do botão da comanda em cada card do Kanban, permitindo copiar exclusivamente o código Pix para a área de transferência com um único toque, com feedback visual via Toast.
+    - **Modal de Detalhes:** Seção Pix no modal de detalhes com visualização monoespaçada do código, botão dedicado de cópia e QR Code gerado para leitura presencial.
+    - **Fluxo Operacional Enxuto:** Conforme alinhado, a confirmação do pagamento ocorre de forma natural ao mover o pedido de `Rascunho` para `Em Produção`, mantendo a interface limpa e sem necessidade de migrações ou badges de pendência.
+  - **3. Suíte de Testes Automatizados E2E (`e2e/specs/09-pix-payment.spec.ts`):**
+    - Cobertura completa de ponta a ponta validando o botão `🔑` no card, validação da string EMVCo no clipboard (`000201...`, `br.gov.bcb.pix`, `HARU COOKIES`), inclusão do Pix na comanda copiada e QR Code / cópia no modal de detalhes.
+- **Validação:**
+  - Build limpo do monorepo (`npm run build`) concluído com 100% de sucesso (`types`, `utils`, `api`, `mobile`).
+  - Suíte completa de 14 testes E2E Playwright executada e aprovada com 100% de sucesso.
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
 
 
 
