@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import BroadcastMenuModal from "../components/BroadcastMenuModal";
+import BakingSuggestionCard from "../components/BakingSuggestionCard";
 import "./Stock.css";
 
 import { Category, Subcategory, Product } from "@haru-control/types";
@@ -276,6 +277,11 @@ export default function Stock() {
       <header className="page-header">
         <h1>Estoque</h1>
       </header>
+
+      <BakingSuggestionCard
+        onStockUpdated={loadData}
+        onToast={(message, type) => setToast({ message, type })}
+      />
 
       <div className="stock-list">
         {products.length === 0 ? (

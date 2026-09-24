@@ -7,9 +7,9 @@
 - `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[✅ Resolvido e validado na prática em Dev e Produção]*
 - `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
 - `[x]` **[BUG-004]** Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm — *[✅ Resolvido e validado na prática: remoção do max-height/overflow-y da grid para expansão natural dos produtos]*
-- `[ ]` **[BUG-005]** Chips de seleção de motivo do descarte sem feedback visual em OrderForm — *[🟡 Implementado: unificação de classes CSS e estilo .active nos chips — ⏳ Aguardando Validação Prática]*
-- `[ ]` **[BUG-006]** Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto — *[🟡 Implementado: bloqueio de scroll/touch no body, inclusão de taxa de entrega e total no drawer, ícone alterado para 🛒 — ⏳ Aguardando Validação Prática]*
-- `[ ]` **[BUG-007]** Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban — *[🟡 Implementado: user-select none nos cards, abas 100% width, container fit-content e ações de lote no cabeçalho da coluna — ⏳ Aguardando Validação Prática]*
+- `[x]` **[BUG-005]** Chips de seleção de motivo do descarte sem feedback visual em OrderForm — *[✅ Resolvido e validado na prática em Dev]*
+- `[x]` **[BUG-006]** Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto — *[✅ Resolvido e validado na prática em Dev]*
+- `[x]` **[BUG-007]** Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban — *[✅ Resolvido e validado na prática em Dev]*
 
 ---
 
@@ -81,19 +81,23 @@
   - **Exibição na UI:** Exibir card destacado de métrica na tela `/insights` com o valor projetado, indicando a média diária e o número de dias restantes do mês.
   - **Refinamento de UI/UX:** Substituição dos chips de filtro por dropdown nativo responsivo e remoção de emojis gráficos decorativos da projeção.
   - **Evolução Futura:** Deixar a arquitetura preparada para modelos preditivos mais avançados (levando em conta sazonalidade de dias da semana, quinta a domingo com maior pico de vendas).
-- `[ ]` **Previsão Estatística de Demanda e Sugestão de Fornada Multi-Dias (Planejamento de Produção):**
+- `[x]` **Previsão Estatística de Demanda e Sugestão de Fornada Multi-Dias (Planejamento de Produção):**
   - *Documento de Especificação detalhado:* [docs/DRAFT_SUGESTAO_FORNADA.md](docs/DRAFT_SUGESTAO_FORNADA.md)
-  - **Horizonte de Planejamento Flexível (Data Alvo):**
-    - Permitir que o operador selecione até que data pretende cobrir o estoque (ex: assar na segunda para cobrir segunda, terça e quarta).
-    - Somar a demanda histórica individual de cada dia da semana do intervalo, aplicando margem de segurança e alerta de frescor/validade (*shelf life*).
+  - **Horizonte de Planejamento Flexível:**
+    - Alternância rápida entre assar para consumo a partir de "De Hoje" ou "A partir de Amanhã" com chips de data alvo (`Hoje`, `Amanhã`, `Até Quarta`, `Fim de Semana`, `Outra Data`).
+    - Somatório da demanda ponderada dia a dia com margem de segurança de 10%.
   - **Motor de Recomendação Baseado em Dados:**
-    - Analisar o histórico de vendas por dia da semana nas últimas 4 semanas via média móvel ponderada.
-    - Subtrair o saldo atual de cookies prontos em estoque para obter a necessidade líquida de produção.
-    - Ajuste opcional para tamanho de assadeira/lote de forno.
-  - **Cruzamento com Ficha Técnica (BOM):**
-    - Alertar se há massa/ingredientes suficientes no estoque para cobrir a fornada recomendada no período.
-  - **Interface Mobile-First no Estoque (`Stock.tsx`):**
-    - Painel colapsável no topo da tela com chips de atalho rápido de período (`Hoje`, `Até Amanhã`, `Até Quarta`, `Fim de Semana`, `Data Personalizada...`) e botão para lançamento rápido no Ledger contábil.
+    - Análise do histórico de vendas por dia da semana nas últimas 4 semanas via média móvel ponderada decrescente (pesos 4, 3, 2, 1).
+    - Dedução do saldo físico de cookies em estoque para cálculo da necessidade líquida de produção.
+    - Exibição transparente da equação de necessidade individual por produto (`Demanda - Estoque = Assar`).
+  - **Cruzamento Informativo com Ficha Técnica (BOM):**
+    - Verificação não-bloqueante de insumos, alertando quais ingredientes estão em falta na cozinha sem travar a produção.
+  - **Interface Mobile-First no Estoque (`Stock.tsx` & `BakingSuggestionCard.tsx`):**
+    - Painel inteligente e colapsável no topo da tela de Estoque com badge de total a assar.
+    - Botão de 1 toque para copiar o resumo da fornada formatado para WhatsApp ou anotações.
+    - Modal de confirmação e lançamento atômico no Ledger contábil (`POST /stock/in/batch`).
+  - **Suíte de Testes Automatizados E2E (`e2e/specs/08-baking-suggestion.spec.ts`):**
+    - Teste Playwright de ponta a ponta validando renderização, alternância hoje/amanhã, presets, expansão de equação, cópia para WhatsApp e modal de fornada com 100% de sucesso (13/13 testes passando).
 - `[x]` **Módulo de Descarte de Produtos / Insumos (Controle de Perdas & Validade):**
   - **Ledger Contábil de Descarte:**
     - Adicionar operação `WASTE` ao enum `LedgerOperationType` no Prisma.

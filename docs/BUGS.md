@@ -13,9 +13,9 @@
 | `BUG-002` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
 | `BUG-003` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx` | 2026-09-17 |
 | `BUG-004` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm | `apps/mobile/src/pages/OrderForm.css` | 2026-09-17 |
-| `BUG-005` | `[ ]` Aberto | `⏳ Pendente` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
-| `BUG-006` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
-| `BUG-007` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
+| `BUG-005` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
+| `BUG-006` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
+| `BUG-007` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
 
 ---
 
@@ -191,12 +191,12 @@
 ---
 
 ### [BUG-005] Chips de seleção de motivo do descarte sem feedback visual
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟢 Baixa`
 - **Data de Registro:** 2026-09-18
 - **Data de Implementação:** 2026-09-18
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-23
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -226,12 +226,12 @@
 ---
 
 ### [BUG-006] Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟢 Baixa`
 - **Data de Registro:** 2026-09-19
 - **Data de Implementação:** 2026-09-19
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-23
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -271,12 +271,12 @@
 ---
 
 ### [BUG-007] Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟢 Baixa`
 - **Data de Registro:** 2026-09-19
 - **Data de Implementação:** 2026-09-19
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-23
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)

@@ -3,6 +3,7 @@ import { WasteReason } from "@prisma/client";
 import { Type } from "class-transformer";
 import { IsArray, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
 import { StockService } from "./stock.service";
+import { BakingSuggestionService } from "./baking-suggestion.service";
 
 export class StockInDto {
   @IsString()
@@ -11,6 +12,26 @@ export class StockInDto {
   @IsNumber()
   @Type(() => Number)
   quantity: number;
+}
+
+export class StockInBatchItemDto {
+  @IsString()
+  productId: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  quantity: number;
+}
+
+export class StockInBatchDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockInBatchItemDto)
+  items: StockInBatchItemDto[];
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class StockAdjustDto {
@@ -63,12 +84,37 @@ export class StockWasteBatchDto {
 
 @Controller("stock")
 export class StockController {
-  constructor(private readonly stockService: StockService) {}
+  constructor(
+    private readonly stockService: StockService,
+    private readonly bakingSuggestionService: BakingSuggestionService
+  ) {}
 
   @Post("in")
   async stockIn(@Body() dto: StockInDto) {
     await this.stockService.addStock(dto.productId, dto.quantity);
     return { success: true };
+  }
+
+  @Post("in/batch")
+  async stockInBatch(@Body() dto: StockInBatchDto) {
+    await this.stockService.addStockBatch(dto.items, dto.notes);
+    return { success: true };
+  }
+
+  @Get("baking-suggestion")
+  async getBakingSuggestion(
+    @Query("startDate") startDate?: string,
+    @Query("targetDate") targetDate?: string,
+    @Query("safetyMargin") safetyMargin?: string
+  ) {
+    const margin = safetyMargin != null && !isNaN(Number(safetyMargin))
+      ? Number(safetyMargin)
+      : 0.1;
+    return this.bakingSuggestionService.getBakingSuggestion(
+      startDate,
+      targetDate,
+      margin
+    );
   }
 
   @Post("adjust")

@@ -458,6 +458,47 @@
 - **Ação Executada:**
   - Criada Pull Request [#2](https://github.com/CesarRyudi/Haru-Control/pull/2) no GitHub: `chore(release): sincronizar produção com melhorias operacionais da Fase 2 e correções`.
 
+### [2026-09-23] Validação Prática de BUG-005, BUG-006 e BUG-007 pelo Usuário
+
+- **Contexto:** Confirmação explícita pelo usuário após testes práticos em ambiente de desenvolvimento de que as correções comportamentais e visuais implementadas resolveram completamente os problemas apontados.
+- **Bugs Validados:**
+  - `[BUG-005]`: Chips de seleção de motivo de descarte no `OrderForm` agora apresentam feedback visual claro de seleção (`.active`).
+  - `[BUG-006]`: Rolagem da página ao fundo travada durante a abertura do drawer do carrinho, discriminação de taxa de entrega e total consolidado, e ícone do carrinho atualizado para `🛒`.
+  - `[BUG-007]`: Supressão da seleção nativa de texto no long-press dos cards de pedidos, abas do Kanban 100% responsivas sem scroll horizontal, contenção da altura vertical da tela e botões de ação em massa integrados ao cabeçalho da coluna.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-23] Implementação da Previsão de Demanda e Sugestão de Fornada Multi-Dias
+
+- **Contexto:** Necessidade da confeitaria de planejar lotes de cookies que cubram múltiplos dias consecutivos de venda (ex: assar na segunda à noite para cobrir terça e quarta), com visibilidade clara da demanda individual por produto, dedução do estoque atual e checagem de matérias-primas.
+- **Implementações Realizadas:**
+  - **1. Tipos Compartilhados (`libs/types/src/lib/types.ts`):**
+    - Criadas as interfaces `BakingSuggestionDayBreakdown`, `MissingIngredient`, `BakingSuggestionItem`, `BakingSuggestionResponse`, `StockInBatchItemDto` e `StockInBatchDto`.
+  - **2. Backend API NestJS (`apps/api/src/modules/stock/`):**
+    - **`BakingSuggestionService`:** Motor estatístico que analisa as últimas 4 semanas de pedidos concluídos (`COMPLETED`), aplicando média móvel ponderada decrescente (pesos 4, 3, 2, 1) para cada dia da semana do intervalo planejado, margem de segurança configurável (padrão 10%), dedução do saldo atual de estoque (`LedgerEntry`) e cálculo da necessidade líquida individual por sabor.
+    - **Checagem Informativa de BOM:** Cruzamento com as receitas (`RecipeItem`), gerando lista detalhada de insumos em falta sem bloquear a produção.
+    - **Entrada em Lote no Ledger Contábil (`StockService.addStockBatch`):** Criação atômica de múltiplos registros `STOCK_IN` via `prisma.$transaction`.
+    - **`StockController`:** Adicionados endpoints `GET /stock/baking-suggestion` (com suporte a `startDate`, `targetDate` e `safetyMargin`) e `POST /stock/in/batch`.
+    - **`StockModule`:** Registrado `BakingSuggestionService` em providers e exports.
+  - **3. Frontend Mobile-First (`apps/mobile/src/`):**
+    - **Componente `BakingSuggestionCard.tsx` & `BakingSuggestionCard.css`:**
+      - Painel retrátil no topo da tela de Estoque com badge de contagem de cookies a fornar.
+      - Seletor flexível de início: `📅 De Hoje` vs `🌙 A partir de Amanhã` (ex: assando à noite para os dias seguintes).
+      - Chips de atalho rápido de data alvo: `Mesmo Dia`, `Até Amanhã`, `Até Quarta-feira`, `Fim de Semana (até Domingo)` e `Outra Data...` com seletor `<input type="date">`.
+      - Exibição transparente da equação por produto: `Demanda (X) − Estoque (Y) = Assar (Z)`.
+      - Accordion expansível com o discriminativo da demanda prevista de cada dia individual do período.
+      - Alerta visual suave listando insumos em falta caso a cozinha não tenha ingredientes suficientes, sem travar a fornada.
+      - Botão `📋 Copiar Resumo`: gera texto formatado com links e totais e copia instantaneamente para o clipboard com Toast de confirmação.
+      - Modal `🔥 Fornar Sugestão`: permite conferir e ajustar as quantidades e lançar a entrada de estoque em lote no Ledger contábil.
+    - **`Stock.tsx`:** Integrado o painel no topo da página de Estoque com recarregamento reativo automático dos dados.
+  - **4. Suíte de Testes Automatizados E2E com Playwright (`e2e/`):**
+    - Criado teste `08-baking-suggestion.spec.ts` validando o fluxo completo de ponta a ponta (renderização, alternância de início hoje/amanhã, presets, equação transparente, accordion dia a dia, cópia para WhatsApp e modal de fornada).
+- **Validação:**
+  - Build do monorepo (`npm run build`) concluído com 100% de sucesso para todos os 4 projetos (`types`, `utils`, `api`, `mobile`).
+  - Suíte completa de 13 testes E2E Playwright executada e aprovada com 100% de sucesso (34.8s).
+- **Documentação Atualizada:** `docs/TASKS.md`, `docs/HISTORY.md` e `HARU_CONTROL_INDEX.md`.
+
+
+
 
 
 

@@ -276,3 +276,56 @@ export interface ProductResponse {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Baking Suggestion & Production Planning
+export interface BakingSuggestionDayBreakdown {
+  date: string; // YYYY-MM-DD
+  dayOfWeek: number; // 0-6
+  dayName: string; // "Segunda", "Terça", etc.
+  shortName: string; // "Seg", "Ter", etc.
+  predictedSales: number;
+}
+
+export interface MissingIngredient {
+  productId: string;
+  productName: string;
+  unit: string;
+  required: number;
+  available: number;
+  missing: number;
+}
+
+export interface BakingSuggestionItem {
+  productId: string;
+  productName: string;
+  categoryName?: string;
+  subcategoryName?: string;
+  unit: string;
+  currentStock: number;
+  dailyForecast: BakingSuggestionDayBreakdown[];
+  totalDemand: number;
+  safetyMargin: number;
+  netNeeded: number;
+  suggestedBake: number;
+  batchSize?: number;
+  hasSufficientIngredients: boolean;
+  missingIngredients: MissingIngredient[];
+}
+
+export interface BakingSuggestionResponse {
+  startDate: string;
+  targetDate: string;
+  daysCount: number;
+  safetyMargin: number;
+  items: BakingSuggestionItem[];
+}
+
+export interface StockInBatchItemDto {
+  productId: string;
+  quantity: number;
+}
+
+export interface StockInBatchDto {
+  items: StockInBatchItemDto[];
+  notes?: string;
+}
