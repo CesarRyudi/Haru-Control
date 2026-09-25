@@ -97,13 +97,31 @@ export function generateBroadcastText(
     }
   });
 
-  // Ordenar categorias
+  // Helper para obter o preço de ordenação da categoria (menor preço encontrado)
+  const getCategorySortPrice = (catId: string): number => {
+    const group = grouped[catId];
+    if (!group) return 999999;
+    if (group.category?.price != null && Number(group.category.price) > 0) {
+      return Number(group.category.price);
+    }
+    const allItems = [
+      ...group.directItems,
+      ...group.subgroups.flatMap((s) => s.items),
+    ];
+    if (allItems.length === 0) return 999999;
+    return Math.min(...allItems.map((p) => Number(p.price || 0)));
+  };
+
+  // Ordenar categorias pelo menor preço: do mais barato para o mais caro
   const sortedCatIds = Object.keys(grouped).sort((a, b) => {
-    if (a === "none") return 1;
-    if (b === "none") return -1;
-    const orderA = categoryOrderMap.get(a) ?? 999;
-    const orderB = categoryOrderMap.get(b) ?? 999;
-    return orderA - orderB;
+    if (a === "none" && b !== "none") return 1;
+    if (b === "none" && a !== "none") return -1;
+    const priceA = getCategorySortPrice(a);
+    const priceB = getCategorySortPrice(b);
+    if (priceA !== priceB) return priceA - priceB;
+    const nameA = grouped[a]?.category?.name || "";
+    const nameB = grouped[b]?.category?.name || "";
+    return nameA.localeCompare(nameB);
   });
 
   // Renderizar cada bloco de produtos
@@ -114,8 +132,13 @@ export function generateBroadcastText(
     const renderProductBlock = (title: string, groupFixedPrice: number | null, items: Product[]) => {
       if (items.length === 0) return;
 
-      // Ordenar produtos por nome
-      const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
+      // Ordenar produtos por preço e depois nome
+      const sortedItems = [...items].sort((a, b) => {
+        const prA = Number(a.price || 0);
+        const prB = Number(b.price || 0);
+        if (prA !== prB) return prA - prB;
+        return a.name.localeCompare(b.name);
+      });
 
       // Checar se todos os itens têm o mesmo preço
       const distinctPrices = Array.from(new Set(sortedItems.map((i) => Number(i.price))));
@@ -163,19 +186,55 @@ export function generateBroadcastText(
       }
     };
 
-    // Subgrupos
+    // Montar blocos da categoria (subcategorias e itens diretos)
+    interface BlockToRender {
+      title: string;
+      groupFixedPrice: number | null;
+      items: Product[];
+      sortPrice: number;
+    }
+
+    const blocks: BlockToRender[] = [];
+
     catGroup.subgroups.forEach((subGroup) => {
       const subName = subGroup.subcategory?.name || "Especiais";
       const subFixedPrice = subGroup.subcategory?.price != null ? Number(subGroup.subcategory.price) : null;
-      renderProductBlock(subName, subFixedPrice, subGroup.items);
+      const sortPrice =
+        subFixedPrice ??
+        (subGroup.items.length > 0
+          ? Math.min(...subGroup.items.map((i) => Number(i.price)))
+          : 999999);
+
+      blocks.push({
+        title: subName,
+        groupFixedPrice: subFixedPrice,
+        items: subGroup.items,
+        sortPrice,
+      });
     });
 
-    // Itens diretos (sem subcategoria)
     if (catGroup.directItems.length > 0) {
       const catName = catGroup.category?.name || "Cookies & Delícias";
       const catFixedPrice = catGroup.category?.price != null ? Number(catGroup.category.price) : null;
-      renderProductBlock(catName, catFixedPrice, catGroup.directItems);
+      const sortPrice =
+        catFixedPrice ??
+        Math.min(...catGroup.directItems.map((i) => Number(i.price)));
+
+      blocks.push({
+        title: catName,
+        groupFixedPrice: catFixedPrice,
+        items: catGroup.directItems,
+        sortPrice,
+      });
     }
+
+    // Ordenar os blocos dentro da categoria do mais barato para o mais caro
+    blocks.sort((a, b) => {
+      if (a.sortPrice !== b.sortPrice) return a.sortPrice - b.sortPrice;
+      return a.title.localeCompare(b.title);
+    });
+
+    blocks.forEach((b) => renderProductBlock(b.title, b.groupFixedPrice, b.items));
   });
 
   // 4. Rodapé
@@ -216,9 +275,16 @@ export default function BroadcastMenuModal({
     }
   }, [isOpen, products, stockMap]);
 
-  // Lista de produtos vendáveis
+  // Lista de produtos vendáveis ordenada por preço (do mais barato ao mais caro)
   const sellableProducts = useMemo(() => {
-    return products.filter((p) => p.isSellable);
+    return products
+      .filter((p) => p.isSellable)
+      .sort((a, b) => {
+        const prA = Number(a.price || 0);
+        const prB = Number(b.price || 0);
+        if (prA !== prB) return prA - prB;
+        return a.name.localeCompare(b.name);
+      });
   }, [products]);
 
   // Texto gerado em tempo real

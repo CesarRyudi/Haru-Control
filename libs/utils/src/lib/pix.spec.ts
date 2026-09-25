@@ -51,3 +51,26 @@ describe("Pix BR Code Generator", () => {
     expect(/^[0-9A-F]{4}$/.test(crc)).toBe(true);
   });
 });
+
+describe("formatOrderConfirmationMessage", () => {
+  it("deve gerar mensagem de confirmação completa no formato original", () => {
+    const text = formatOrderConfirmationMessage({
+      items: [
+        { quantity: 2, productName: "Cookie Nutella", unitPrice: 12 },
+        { quantity: 1, productName: "Cookie Clássico", unitPrice: 8 },
+      ],
+      orderTotal: 32,
+      deliveryFee: 5,
+      address: "Rua das Flores, 123",
+    });
+
+    expect(text).toContain("Então são:");
+    expect(text).toContain("2  Cookie Nutella(R$ 12,00)");
+    expect(text).toContain("1  Cookie Clássico(R$ 8,00)");
+    expect(text).toContain("Valor do pedido: R$ 32,00");
+    expect(text).toContain("Taxa de entrega: R$ 5,00");
+    expect(text).toContain("Valor total: R$ 37,00");
+    expect(text).toContain("Endereço para entrega:\nRua das Flores, 123");
+    expect(text).toContain("Certo?");
+  });
+});

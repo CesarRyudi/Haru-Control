@@ -555,6 +555,26 @@
 - **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
 - **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-25] Auto-cópia da Confirmação do Pedido, Ordenação por Preço no Menu de Divulgação e Otimização do Pix
+
+- **Contexto:** Solicitação do usuário para:
+  1. Copiar automaticamente a mensagem de confirmação para a área de transferência no momento em que um pedido for criado no `OrderForm`, agilizando o envio imediato no WhatsApp.
+  2. Ordenar as categorias e subcategorias na mensagem de divulgação e no checklist do modal pelo preço (do mais barato para o mais caro), criando um padrão uniforme de apresentação.
+  3. Diagnóstico e otimização do código Pix Copia e Cola, removendo parâmetros redundantes na Tag 26 e padronizando txid estático (`***`).
+- **Implementações Realizadas:**
+  - **1. Auto-cópia da Confirmação de Pedido (`OrderForm.tsx`, `OrderBoard.tsx`, `libs/utils`):**
+    - Criada a função compartilhada `formatOrderConfirmationMessage()` em `libs/utils/src/lib/utils.ts`.
+    - `OrderForm.tsx`: Ao salvar o pedido (ou continuar com avisos), copia automaticamente a mensagem de confirmação formatada para o clipboard e redireciona com estado `{ toastMessage: "Pedido criado e confirmação copiada!" }`.
+    - `OrderBoard.tsx`: Escuta `location.state?.toastMessage` exibindo feedback visual imediato via Toast; refatorado `handleCopyOrder` para utilizar o mesmo utilitário compartilhado.
+  - **2. Ordenação por Preço no Menu de Divulgação (`BroadcastMenuModal.tsx`):**
+    - `generateBroadcastText`: Categorias e subgrupos agora são ordenados estritamente pelo menor preço (ascendente, do mais barato ao mais caro), com desempate alfabético por nome.
+    - Modal de Divulgação: Lista de produtos vendáveis (`sellableProducts`) também passa a ordenar os itens em ordem crescente de valor monetário.
+  - **3. Otimização do Payload Pix (`OrderBoard.tsx`):**
+    - Removida a subtag redundante `description: "Haru Cookies"` dentro da tag 26, eliminando espaços no campo e mantendo a identificação exclusivamente na tag 59 (`Merchant Name`).
+    - Padronizado o identificador de transação estático para `txid: "***"`, compatível com 100% dos aplicativos bancários.
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
 
 
 

@@ -5,9 +5,10 @@ import {
   formatDate,
   getTodayString,
   generatePixPayload,
+  formatOrderConfirmationMessage,
 } from "@haru-control/utils";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
 import "./OrderBoard.css";
 
@@ -19,6 +20,7 @@ const TABS: OrderStatus[] = [
 
 export default function OrderBoard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [completedDate, setCompletedDate] = useState(getTodayString());
@@ -29,6 +31,14 @@ export default function OrderBoard() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+
+  useEffect(() => {
+    if (location.state?.toastMessage) {
+      setToast({ message: location.state.toastMessage, type: "success" });
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const boardColumnsRef = useRef<HTMLDivElement>(null);
   const scrollPositionRef = useRef(0);
   const touchStartX = useRef<number | null>(null);
@@ -618,10 +628,7 @@ function OrderCard({
           name: pixName,
           city: pixCity,
           amount: finalTotal,
-          txid: order.id
-            ? order.id.slice(0, 10).replace(/[^a-zA-Z0-9]/g, "")
-            : "***",
-          description: "Haru Cookies",
+          txid: "***",
         })
       : "";
 
@@ -631,24 +638,16 @@ function OrderCard({
       return;
     }
 
-    // Formatar itens do pedido
-    const itemsList = order.items
-      .map(
-        (item: any) =>
-          `${item.quantity}  ${item.product.name}(${formatCurrency(item.unitPrice)})`,
-      )
-      .join("\n");
-
-    // Montar mensagem completa (formato original sem Pix)
-    const orderText = `Então são: 
-${itemsList}
- 
-
-Valor do pedido: ${formatCurrency(orderTotal)} 
-Taxa de entrega: ${formatCurrency(deliveryFee)} 
-Valor total: ${formatCurrency(finalTotal)} 
-
-${order.address ? `Endereço para entrega:\n${order.address}\n\n` : ""}Certo?`;
+    const orderText = formatOrderConfirmationMessage({
+      items: order.items.map((item: any) => ({
+        quantity: item.quantity,
+        productName: item.product?.name || "Produto",
+        unitPrice: item.unitPrice,
+      })),
+      orderTotal,
+      deliveryFee,
+      address: order.address,
+    });
 
     // Tentar usar a API moderna do clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {

@@ -64,9 +64,10 @@
   - **Geração Matemática Local (EMVCo BR Code / BACEN):**
     - Implementação da biblioteca matemática pura `generatePixPayload` em `@haru-control/utils` calculando o padrão BR Code com checksum CRC16-CCITT (0x1021) sem dependência de APIs bancárias externas.
     - Embutimento automático do valor exato do pedido (`totalPrice + deliveryFee`), chave Pix configurável via env `VITE_PIX_KEY`, nome fantasia e cidade.
-    - Adequação do padrão BR Code para Pix Estático: omissão da tag `01` (`010212`) para compatibilidade universal com aplicativos bancários (evitando falso positivo de QR Dinâmico).
+    - Adequação do padrão BR Code para Pix Estático: omissão da tag `01` (`010212`) e padronização do `txid` estático para `***` (`62070503***`), removendo subtags redundantes para compatibilidade universal com 100% dos apps bancários.
   - **Comanda WhatsApp Original (Mensagem de Confirmação):**
     - Retorno da mensagem de confirmação do WhatsApp ao seu formato original e limpo ("Então são: ... Valor total: ... Certo?"), mantendo o código Pix para envio avulso e facilitando a cópia/pagamento direto pelo cliente no WhatsApp.
+    - Cópia automática da mensagem de confirmação para a área de transferência no momento da criação do pedido em `OrderForm.tsx`, pronta para envio imediato.
   - **UI/UX Mobile no Kanban & Modal:**
     - Remoção dos botões de cópia dos cards no Kanban, garantindo layout visual limpo e foco na leitura dos itens e movimentação de status.
     - Seção Pix no modal de detalhes colapsável e compacta por padrão (`isPixExpanded: false`), exibindo apenas valor e botão `📋 Copiar Código` em uma única linha.
@@ -164,6 +165,7 @@
     - Mensagem contextual/gancho opcional (ex: sobre friozinho, chuva), completamente omitida se vazia.
     - Seleção de produtos vendáveis (`isSellable === true`), com pré-seleção automática dos itens com estoque > 0.
     - Agrupamento inteligente por Subcategoria/Categoria com detecção de preço uniforme (ex: `*Cookies Tradicionais R$8,00*`) ou preços variados com subgrupos de valor (ex: `*Cookies Especiais:*` ➔ `*R$11,00*` ➔ `*R$14,00*`).
+    - Ordenação estrita das categorias e subcategorias pelo menor preço (ascendente, do mais barato ao mais caro) tanto na mensagem quanto no checklist do modal.
     - Formatação fiel ao modelo oficial da Haru Cookies com links do catálogo WhatsApp e texto de encomenda.
     - Pré-visualização em tempo real da mensagem formatada no próprio modal.
     - Cópia para o clipboard com 1 toque e toast de confirmação.

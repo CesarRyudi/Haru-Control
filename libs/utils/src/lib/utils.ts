@@ -21,3 +21,35 @@ export function formatDateOnly(date: Date | string): string {
 export function getTodayString(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
+
+export interface OrderConfirmationItem {
+  quantity: number;
+  productName: string;
+  unitPrice: number;
+}
+
+export function formatOrderConfirmationMessage(options: {
+  items: OrderConfirmationItem[];
+  orderTotal: number;
+  deliveryFee: number;
+  address?: string | null;
+}): string {
+  const itemsList = options.items
+    .map(
+      (item) =>
+        `${item.quantity}  ${item.productName}(${formatCurrency(item.unitPrice)})`,
+    )
+    .join("\n");
+
+  const finalTotal = options.orderTotal + options.deliveryFee;
+
+  return `Então são: 
+${itemsList}
+ 
+
+Valor do pedido: ${formatCurrency(options.orderTotal)} 
+Taxa de entrega: ${formatCurrency(options.deliveryFee)} 
+Valor total: ${formatCurrency(finalTotal)} 
+
+${options.address ? `Endereço para entrega:\n${options.address}\n\n` : ""}Certo?`;
+}
