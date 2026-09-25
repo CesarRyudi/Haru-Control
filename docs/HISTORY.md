@@ -541,6 +541,19 @@
   - Build limpo do monorepo (`npm run build`) concluído com 100% de sucesso (`types`, `utils`, `api`, `mobile`).
 - **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-25] Correção do Padrão EMVCo BR Code do Pix Copia e Cola (Remoção da Tag 010212)
+
+- **Contexto:** Identificada inconsistência técnica na geração do payload de Pix Copia e Cola: a inclusão indevida da tag `010212` (`Point of Initiation Method = 12`) indicava aos aplicativos bancários tratar-se de um QR Code Dinâmico (que exige URL de cobrança via API bancária). Como o Haru Control opera com QR Code Estático offline (chave Pix direta na subtag 01), os bancos rejeitavam o código com erro de formato ou QR code inválido.
+- **Implementações Realizadas:**
+  - **1. Utilitário BR Code (`libs/utils/src/lib/pix.ts`):**
+    - Removida a emissão da Tag `01` (`010212`) para estrita conformidade com a especificação do Banco Central (Manual BR Code / EMVCo) para Pix Estático com valor fixo.
+    - Adicionada sanitização de espaços em branco na chave (`key.replace(/\s+/g, "").trim()`) para prevenir falhas decorrentes de espaçamentos acidentais em variáveis de ambiente.
+  - **2. Variáveis de Ambiente & Documentação (`.env.example`):**
+    - Documentadas as variáveis `VITE_PIX_KEY`, `VITE_PIX_NAME` e `VITE_PIX_CITY`.
+  - **3. Testes Unitários (`libs/utils/src/lib/pix.spec.ts`):**
+    - Criados testes unitários validando a estrutura BR Code (início em `00020126`, ausência de `010212`, presença de `br.gov.bcb.pix`, chave, valor monetário formatado e cálculo do CRC16).
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
 
 
 

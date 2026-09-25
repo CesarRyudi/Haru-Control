@@ -68,7 +68,8 @@ export function generatePixPayload(options: PixPayloadOptions): string {
     description,
   } = options;
 
-  const cleanKey = key.trim();
+  // Limpa eventuais espaços na chave Pix mantendo caracteres válidos (+, letras, números, etc)
+  const cleanKey = key.replace(/\s+/g, "").trim();
   const cleanName = sanitizeText(name, 25).toUpperCase() || "HARU COOKIES";
   const cleanCity = sanitizeText(city, 15).toUpperCase() || "SAO PAULO";
   const cleanTxid = sanitizeText(txid, 25).toUpperCase() || "***";
@@ -76,8 +77,9 @@ export function generatePixPayload(options: PixPayloadOptions): string {
   // 00: Payload Format Indicator (fixo "01")
   let payload = formatField("00", "01");
 
-  // 01: Point of Initiation Method ("12" = QR dinâmico / valor pré-definido para uso único)
-  payload += formatField("01", "12");
+  // Nota: Para Pix Estático (mesmo com valor fixo definido no campo 54), a Tag 01
+  // (Point of Initiation Method) deve ser omitida conforme especificação do BACEN (Manual BR Code).
+  // O valor "12" indicava incorretamente QR dinâmico e fazia bancos rejeitarem a chave estática.
 
   // 26: Merchant Account Information (Pix)
   let merchantAccount = formatField("00", "br.gov.bcb.pix");
