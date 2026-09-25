@@ -638,7 +638,19 @@
     - Substituída a rota de chamada para `api.get("/stock/baking-suggestion", ...)`, alinhando os parâmetros `startDate` e `targetDate` com o backend.
   - **2. Inicialização Síncrona do Dropdown (`BakingSuggestionModal.tsx`):**
     - Extraída a função auxiliar `getDynamicOptions()` e inicializado o estado `selectedOptionValue` diretamente com o valor do preset padrão, evitando re-renders e chamadas duplicadas ou desordenadas na abertura do modal.
-- **Validação:** Compilação completa do monorepo (`npm run build`) concluída com 100% de sucesso.
+### [2026-09-25] Resolução de BUG-010: Isolamento de Scroll Mobile e Touch Lock no Modal de Fornada
+
+- **Contexto:** Usuário identificou que, ao abrir o modal de Sugestão de Fornada no mobile, o gesto de rolagem touch movia a página de Estoque ao fundo em vez de rolar suavemente os itens internos do modal (comportamento de *scroll chaining* análogo ao corrigido no drawer em `[BUG-006]`).
+- **Implementações Realizadas:**
+  - **1. Lock de Rolagem no Body (`BakingSuggestionModal.tsx` & `BroadcastMenuModal.tsx`):**
+    - Adicionado hook `useEffect` que atribui `document.body.style.overflow = "hidden"` e `document.body.style.touchAction = "none"` enquanto o modal estiver aberto, restaurando os estilos no desmonte.
+  - **2. Contenção de Eventos Touch no DOM:**
+    - Inserido `onTouchMove` com `preventDefault` condicional no overlay (`e.target === e.currentTarget`) para bloquear qualquer arrasto externo.
+    - Adicionado `stopPropagation` no container principal e no modal aninhado de registro de fornada (`bake-modal`).
+  - **3. Blindagem de CSS (`BakingSuggestionModal.css` & `BroadcastMenuModal.css`):**
+    - Aplicadas as propriedades `touch-action: none` e `overscroll-behavior: contain` nos backdrops e cabeçalhos.
+    - Aplicadas `touch-action: pan-y`, `-webkit-overflow-scrolling: touch` e `overscroll-behavior: contain` nas áreas roláveis (`.baking-modal-body`, `.bake-modal-body` e `.broadcast-modal-body`).
+- **Validação:** Compilação de todos os pacotes (`npm run build`) concluída com 100% de sucesso.
 - **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
 
 

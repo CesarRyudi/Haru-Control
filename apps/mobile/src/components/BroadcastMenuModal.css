@@ -13,6 +13,7 @@
   padding: 16px;
   box-sizing: border-box;
   overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .broadcast-modal-container {
@@ -26,6 +27,7 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   animation: broadcastModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
 }
 
 @keyframes broadcastModalPop {
@@ -46,6 +48,7 @@
   justify-content: space-between;
   align-items: center;
   background: #ffffff;
+  touch-action: none;
 }
 
 .broadcast-modal-title {
@@ -92,6 +95,8 @@
   flex-direction: column;
   gap: 18px;
   flex: 1;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .broadcast-field-group {

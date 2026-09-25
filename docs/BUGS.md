@@ -17,7 +17,8 @@
 | `BUG-006` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
 | `BUG-007` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
 | `BUG-008` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Chave Pix de telefone rejeitada por ausência do padrão internacional E.164 (+55) | `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx` | 2026-09-25 |
-| `BUG-009` | `[x]` Implementado | `⏳ Pendente` | `🟡 Média` | Erro ao carregar previsão de fornada no modal por endpoint incorreto | `apps/mobile/src/components/BakingSuggestionModal.tsx` | 2026-09-25 |
+| `BUG-009` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Erro ao carregar previsão de fornada no modal por endpoint incorreto | `apps/mobile/src/components/BakingSuggestionModal.tsx` | 2026-09-25 |
+| `BUG-010` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile | `apps/mobile/src/components/BakingSuggestionModal.tsx`, `BakingSuggestionModal.css` | 2026-09-25 |
 
 ---
 
@@ -358,12 +359,12 @@
 ---
 
 ### [BUG-009] Erro ao carregar previsão de fornada no modal por endpoint incorreto (/analytics/demand-forecast)
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟡 Média`
 - **Data de Registro:** 2026-09-25
 - **Data de Implementação:** 2026-09-25
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-25
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/components/BakingSuggestionModal.tsx`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -385,10 +386,49 @@
 #### 4. Como foi resolvido (Solução Aplicada)
 - **Correção da Rota:** Alterada a chamada em `BakingSuggestionModal.tsx` para `api.get("/stock/baking-suggestion", ...)`, alinhando perfeitamente com os parâmetros `startDate` e `targetDate` esperados pelo `StockController` e `BakingSuggestionService`.
 - **Inicialização Síncrona do Período Padrão:** Extraída a função geradora de opções dinâmicas `getDynamicBakingOptions` e inicializado `selectedOptionValue` diretamente com o valor da primeira opção padrão válida, eliminando disparos duplicados ou inconsistentes na montagem inicial do modal.
+- **Validação Prática:** Validado no ambiente Dev (`haru-control.dev.com.br`) pelo usuário ao abrir o modal e visualizar os dados de previsão sem erros.
 
 #### 5. Lições Aprendidas & Prevenção Futura
 - Sempre verificar e validar os decorators de rota dos controllers NestJS ao criar ou refatorar serviços e componentes no frontend.
 - Tipar as URLs das rotas da API em constantes ou clientes de serviço centralizados para garantir checagem estática em tempo de compilação.
+
+---
+
+### [BUG-010] Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-25
+- **Data de Implementação:** 2026-09-25
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/components/BakingSuggestionModal.tsx`, `apps/mobile/src/components/BakingSuggestionModal.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao abrir o modal de Sugestão de Fornada em telas móveis/touch na tela de Estoque (`/stock`) e arrastar o dedo para navegar na lista de cookies sugeridos, a página de estoque ao fundo rola indevidamente (scroll chaining / vazamento de rolagem), tornando a rolagem interna do modal truncada e confusa.
+- **Passos para Reproduzir:**
+  1. Acessar `/stock` no smartphone ou DevTools touch mode.
+  2. Abrir o modal de Sugestão de Fornada pelo menu flutuante.
+  3. Deslizar o dedo verticalmente na área de itens ou cabeçalho do modal.
+  4. Observar que a página ao fundo rola simultaneamente ou bloqueia a rolagem interna do modal.
+- **Comportamento Esperado:** O fundo da página deve permanecer perfeitamente fixo (`overflow: hidden; touch-action: none;`), e o scroll touch deve operar única e exclusivamente no corpo interno do modal com inércia nativa (`-webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain;`).
+- **Logs / Erros de Console:** Nenhum erro de console reportado (comportamento de scroll chaining em touch screens).
+
+#### 2. Onde está o problema (Localização Técnica)
+- Falta de efeito de lock de scroll no `document.body` (`overflow: hidden; touch-action: none;`) em `BakingSuggestionModal.tsx` durante o ciclo de abertura (`isOpen`).
+- Falta de propriedades `touch-action: none; overscroll-behavior: contain;` nos seletores `.baking-modal-overlay`, `.baking-modal-header` e `.bake-modal-backdrop` no `BakingSuggestionModal.css`.
+- Falta de `touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;` em `.baking-modal-body` e `.bake-modal-body`.
+- Ausência de contenção explícita de `onTouchMove` no overlay (`preventDefault()` quando o evento parte do backdrop) e no container (`stopPropagation()`).
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- O modal de sugestão de fornada foi criado recentemente com foco na lógica estatística de demandas e presets de data, sem incorporar o padrão rigoroso de lock e contenção de gestos touch que já havia sido calibrado e resolvido no drawer do carrinho em `[BUG-006]`.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Lock no Body:** Inserido `useEffect` em `BakingSuggestionModal.tsx` aplicando `document.body.style.overflow = "hidden"` e `document.body.style.touchAction = "none"` enquanto `isOpen` for verdadeiro, restaurando os valores no cleanup.
+- **Contenção de Eventos Touch:** Adicionado `onTouchMove` com `preventDefault` condicional no overlay (`if (e.target === e.currentTarget) e.preventDefault()`) e `stopPropagation` no container e no sub-modal de fornada (`bake-modal`).
+- **Blindagem CSS:** Em `BakingSuggestionModal.css`, aplicados `touch-action: none; overscroll-behavior: contain;` nos overlays e cabeçalhos, e `touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;` nos contêineres de scroll (`.baking-modal-body` e `.bake-modal-body`).
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Todo componente modal ou bottom sheet deve herdar o padrão canônico de isolamento de scroll mobile (lock no body + overscroll contain + touch-action delimitado), prevenindo qualquer vazamento de rolagem para o documento pai.
 
 ---
 

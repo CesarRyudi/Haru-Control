@@ -226,6 +226,21 @@ export default function BakingSuggestionModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, isBakeModalOpen, onClose]);
 
+  // Bloqueia a rolagem do body no mobile enquanto o modal estiver aberto
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [isOpen]);
+
   // Total geral de unidades a assar sugeridas
   const totalToBakeCount = useMemo(() => {
     if (!data?.items) return 0;
@@ -368,10 +383,19 @@ export default function BakingSuggestionModal({
   if (!isOpen && !isBakeModalOpen) return null;
 
   return (
-    <div className="baking-modal-overlay" onClick={onClose}>
+    <div
+      className="baking-modal-overlay"
+      onClick={onClose}
+      onTouchMove={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
+    >
       <div
         className="baking-modal-container"
         onClick={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         {/* Cabeçalho do Modal */}
         <div className="baking-modal-header">
@@ -632,8 +656,17 @@ export default function BakingSuggestionModal({
             e.stopPropagation();
             setIsBakeModalOpen(false);
           }}
+          onTouchMove={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
         >
-          <div className="bake-modal-sheet" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bake-modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             <div className="bake-modal-header">
               <h3>🔥 Registrar Fornada no Estoque</h3>
               <button

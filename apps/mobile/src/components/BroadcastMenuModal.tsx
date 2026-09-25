@@ -275,6 +275,21 @@ export default function BroadcastMenuModal({
     }
   }, [isOpen, products, stockMap]);
 
+  // Bloqueia a rolagem do body no mobile enquanto o modal estiver aberto
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [isOpen]);
+
   // Lista de produtos vendáveis ordenada por preço (do mais barato ao mais caro)
   const sellableProducts = useMemo(() => {
     return products
@@ -355,10 +370,19 @@ export default function BroadcastMenuModal({
 
   // Agrupamento para exibição no checklist do modal
   return (
-    <div className="broadcast-modal-overlay" onClick={onClose}>
+    <div
+      className="broadcast-modal-overlay"
+      onClick={onClose}
+      onTouchMove={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
+    >
       <div
         className="broadcast-modal-container"
         onClick={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         <div className="broadcast-modal-header">
           <div className="broadcast-modal-title">

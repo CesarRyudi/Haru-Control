@@ -14,6 +14,7 @@
   padding: 16px;
   box-sizing: border-box;
   overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .baking-modal-container {
@@ -27,6 +28,7 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   animation: bakingModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
 }
 
 @keyframes bakingModalPop {
@@ -48,6 +50,7 @@
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  touch-action: none;
 }
 
 .baking-modal-title,
@@ -99,6 +102,9 @@
   overflow-y: auto;
   padding: 16px;
   box-sizing: border-box;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .baking-suggestion-panel {
@@ -558,6 +564,9 @@
   justify-content: center;
   z-index: 10000;
   padding: 16px;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .bake-modal-sheet {
@@ -571,6 +580,7 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   animation: bakeModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
 }
 
 @keyframes bakeModalPop {
@@ -590,6 +600,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  touch-action: none;
 }
 
 .bake-modal-header h3 {
@@ -619,6 +630,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .bake-modal-item {
