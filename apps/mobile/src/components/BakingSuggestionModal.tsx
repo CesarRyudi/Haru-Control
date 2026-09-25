@@ -230,14 +230,11 @@ export default function BakingSuggestionModal({
   useEffect(() => {
     if (!isOpen) return;
     const originalOverflow = document.body.style.overflow;
-    const originalTouchAction = document.body.style.touchAction;
 
     document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
 
     return () => {
       document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
     };
   }, [isOpen]);
 
@@ -395,7 +392,6 @@ export default function BakingSuggestionModal({
       <div
         className="baking-modal-container"
         onClick={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
       >
         {/* Cabeçalho do Modal */}
         <div className="baking-modal-header">
@@ -420,7 +416,7 @@ export default function BakingSuggestionModal({
         </div>
 
         {/* Corpo do Modal (Rolável) */}
-        <div className="baking-modal-body baking-suggestion-panel">
+        <div className="baking-modal-body">
           <div className="baking-suggestion-content">
             {/* Controles de Início e Término do Horizonte */}
             <div className="baking-horizon-controls">
@@ -665,7 +661,6 @@ export default function BakingSuggestionModal({
           <div
             className="bake-modal-sheet"
             onClick={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="bake-modal-header">
               <h3>🔥 Registrar Fornada no Estoque</h3>

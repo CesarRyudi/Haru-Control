@@ -279,14 +279,11 @@ export default function BroadcastMenuModal({
   useEffect(() => {
     if (!isOpen) return;
     const originalOverflow = document.body.style.overflow;
-    const originalTouchAction = document.body.style.touchAction;
 
     document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
 
     return () => {
       document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
     };
   }, [isOpen]);
 
@@ -382,7 +379,6 @@ export default function BroadcastMenuModal({
       <div
         className="broadcast-modal-container"
         onClick={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
       >
         <div className="broadcast-modal-header">
           <div className="broadcast-modal-title">

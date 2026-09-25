@@ -638,18 +638,21 @@
     - Substituída a rota de chamada para `api.get("/stock/baking-suggestion", ...)`, alinhando os parâmetros `startDate` e `targetDate` com o backend.
   - **2. Inicialização Síncrona do Dropdown (`BakingSuggestionModal.tsx`):**
     - Extraída a função auxiliar `getDynamicOptions()` e inicializado o estado `selectedOptionValue` diretamente com o valor do preset padrão, evitando re-renders e chamadas duplicadas ou desordenadas na abertura do modal.
-### [2026-09-25] Resolução de BUG-010: Isolamento de Scroll Mobile e Touch Lock no Modal de Fornada
+### [2026-09-25] Resolução de BUG-010: Isolamento de Scroll Mobile, Conflito de Overflow e Touch Lock no Modal de Fornada
 
-- **Contexto:** Usuário identificou que, ao abrir o modal de Sugestão de Fornada no mobile, o gesto de rolagem touch movia a página de Estoque ao fundo em vez de rolar suavemente os itens internos do modal (comportamento de *scroll chaining* análogo ao corrigido no drawer em `[BUG-006]`).
+- **Contexto:** Usuário identificou que, ao abrir o modal de Sugestão de Fornada no mobile, a rolagem dos cookies travava e/ou movia a página de Estoque ao fundo.
+- **Investigação & Causa Raiz:**
+  1. A classe herdada `.baking-suggestion-panel` continha `overflow: visible;`, sobrescrevendo o `overflow-y: auto;` de `.baking-modal-body` por especificidade CSS e destruindo o contêiner de rolagem.
+  2. Como o contêiner `.baking-modal-container` é um flexbox vertical com limite de `90vh`, a ausência de `min-height: 0;` no elemento rolável impedia o encolhimento do flex item, extrapolando a altura e sendo cortado pelo `overflow: hidden` do modal.
+  3. A aplicação de `document.body.style.touchAction = "none"` e de `onTouchMove stopPropagation` no contêiner suprimia o reconhecimento de gestos verticais (`pan-y`) em navegadores móveis.
 - **Implementações Realizadas:**
-  - **1. Lock de Rolagem no Body (`BakingSuggestionModal.tsx` & `BroadcastMenuModal.tsx`):**
-    - Adicionado hook `useEffect` que atribui `document.body.style.overflow = "hidden"` e `document.body.style.touchAction = "none"` enquanto o modal estiver aberto, restaurando os estilos no desmonte.
-  - **2. Contenção de Eventos Touch no DOM:**
-    - Inserido `onTouchMove` com `preventDefault` condicional no overlay (`e.target === e.currentTarget`) para bloquear qualquer arrasto externo.
-    - Adicionado `stopPropagation` no container principal e no modal aninhado de registro de fornada (`bake-modal`).
-  - **3. Blindagem de CSS (`BakingSuggestionModal.css` & `BroadcastMenuModal.css`):**
-    - Aplicadas as propriedades `touch-action: none` e `overscroll-behavior: contain` nos backdrops e cabeçalhos.
-    - Aplicadas `touch-action: pan-y`, `-webkit-overflow-scrolling: touch` e `overscroll-behavior: contain` nas áreas roláveis (`.baking-modal-body`, `.bake-modal-body` e `.broadcast-modal-body`).
+  - **1. Remoção de Conflito de Overflow & Habilitação de Flex Shrink:**
+    - Removida a propriedade `overflow: visible;` de `.baking-suggestion-panel` e removida a classe do JSX de `BakingSuggestionModal.tsx`.
+    - Inseridos `flex: 1 1 auto; min-height: 0; overflow-y: auto;` em `.baking-modal-body`, `.bake-modal-body` e `.broadcast-modal-body`.
+  - **2. Ajuste Fino de Eventos Touch:**
+    - O lock do body agora restringe estritamente `document.body.style.overflow = "hidden"`, sem afetar o `touchAction` global da página.
+    - Removido `onTouchMove stopPropagation` dos contêineres, liberando o arrasto touch vertical nativo dentro do modal.
+    - Mantido `preventDefault()` condicional no overlay (`if (e.target === e.currentTarget)`) para impedir rolagem de fundo ao tocar fora.
 - **Validação:** Compilação de todos os pacotes (`npm run build`) concluída com 100% de sucesso.
 - **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
 

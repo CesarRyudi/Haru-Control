@@ -414,21 +414,24 @@
 - **Logs / Erros de Console:** Nenhum erro de console reportado (comportamento de scroll chaining em touch screens).
 
 #### 2. Onde está o problema (Localização Técnica)
-- Falta de efeito de lock de scroll no `document.body` (`overflow: hidden; touch-action: none;`) em `BakingSuggestionModal.tsx` durante o ciclo de abertura (`isOpen`).
-- Falta de propriedades `touch-action: none; overscroll-behavior: contain;` nos seletores `.baking-modal-overlay`, `.baking-modal-header` e `.bake-modal-backdrop` no `BakingSuggestionModal.css`.
-- Falta de `touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;` em `.baking-modal-body` e `.bake-modal-body`.
-- Ausência de contenção explícita de `onTouchMove` no overlay (`preventDefault()` quando o evento parte do backdrop) e no container (`stopPropagation()`).
+1. **Conflito de Classes CSS e Sobrescrita de Overflow:** O elemento rolável em `BakingSuggestionModal.tsx` recebia duas classes: `<div className="baking-modal-body baking-suggestion-panel">`. Em `BakingSuggestionModal.css`, a classe `.baking-suggestion-panel` declarava `overflow: visible;` após a definição de `.baking-modal-body { overflow-y: auto; }`. Como ambas tinham mesma especificidade, `overflow: visible` sobrescreveu a rolagem, desativando o contêiner de scroll.
+2. **Restrição de Flexbox (`min-height: 0`):** Em contêineres `flex-direction: column` (`.baking-modal-container`), os filhos possuem `min-height: auto` por especificação. Sem `min-height: 0;`, o corpo interno não encolhia para caber nos `90vh`, expandindo todo o conteúdo e sendo cortado pelo `overflow: hidden` do pai sem ativar a barra de rolagem.
+3. **Supressão Global de Gestos Touch:** A atribuição de `document.body.style.touchAction = "none"` e o uso de `onTouchMove={(e) => e.stopPropagation()}` no contêiner do modal bloqueavam os gestos nativos de arrasto (`pan-y`) em navegadores móveis (Chrome/WebKit).
 
 #### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
-- O modal de sugestão de fornada foi criado recentemente com foco na lógica estatística de demandas e presets de data, sem incorporar o padrão rigoroso de lock e contenção de gestos touch que já havia sido calibrado e resolvido no drawer do carrinho em `[BUG-006]`.
+- O modal de sugestão de fornada herdou o seletor `.baking-suggestion-panel` da época em que era um painel estático em `Stock.tsx` com `overflow: visible`. Na primeira tentativa de corrigir o vazamento de scroll, a inclusão de `touchAction: "none"` no body e no container acabou bloqueando os gestos de toque no próprio modal.
 
 #### 4. Como foi resolvido (Solução Aplicada)
-- **Lock no Body:** Inserido `useEffect` em `BakingSuggestionModal.tsx` aplicando `document.body.style.overflow = "hidden"` e `document.body.style.touchAction = "none"` enquanto `isOpen` for verdadeiro, restaurando os valores no cleanup.
-- **Contenção de Eventos Touch:** Adicionado `onTouchMove` com `preventDefault` condicional no overlay (`if (e.target === e.currentTarget) e.preventDefault()`) e `stopPropagation` no container e no sub-modal de fornada (`bake-modal`).
-- **Blindagem CSS:** Em `BakingSuggestionModal.css`, aplicados `touch-action: none; overscroll-behavior: contain;` nos overlays e cabeçalhos, e `touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;` nos contêineres de scroll (`.baking-modal-body` e `.bake-modal-body`).
+- **Eliminação do Conflito de Overflow:** Removida a classe e a propriedade conflitante `overflow: visible;` de `.baking-suggestion-panel`. O contêiner de conteúdo agora é puramente `<div className="baking-modal-body">`.
+- **Habilitação de Encolhimento Flex (`min-height: 0`):** Aplicados `flex: 1 1 auto; min-height: 0; overflow-y: auto;` em `.baking-modal-body`, `.bake-modal-body` e `.broadcast-modal-body`, garantindo que os corpos roláveis encolham perfeitamente dentro dos limites da viewport móvel.
+- **Liberação dos Gestos de Toque:**
+  - O lock do body agora altera estritamente `document.body.style.overflow = "hidden"`, sem travar o `touchAction` global do documento.
+  - Removido `onTouchMove stopPropagation` dos contêineres, permitindo que o navegador reconheça livremente os gestos verticais de `pan-y`.
+  - Mantido `onTouchMove` condicional (`if (e.target === e.currentTarget) e.preventDefault()`) no overlay para impedir scroll ao tocar no fundo.
 
 #### 5. Lições Aprendidas & Prevenção Futura
-- Todo componente modal ou bottom sheet deve herdar o padrão canônico de isolamento de scroll mobile (lock no body + overscroll contain + touch-action delimitado), prevenindo qualquer vazamento de rolagem para o documento pai.
+- Em contêineres Flexbox verticais com modais/drawers, sempre declarar `min-height: 0;` no elemento rolável (`overflow-y: auto`), caso contrário o flex item se expande além do contêiner e o scroll quebra.
+- Nunca aplicar `touch-action: none` globalmente em `document.body`, pois isso desativa os gestos de arrasto em todos os elementos filhos que precisem de `pan-y`.
 
 ---
 

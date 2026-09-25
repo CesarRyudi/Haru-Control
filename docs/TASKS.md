@@ -3,7 +3,7 @@
 ## 🐛 Bugs Prioritários (BUGS.md)
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
-- `[ ]` **[BUG-010]** Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile — *[🟡 Implementado: body scroll lock, touch prevention e regras CSS de touch-action e overscroll-behavior — ⏳ Aguardando Validação Prática]*
+- `[ ]` **[BUG-010]** Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile — *[🟡 Implementado: remoção de overflow:visible conflitante, min-height:0 em flex e liberação de gestos touch — ⏳ Aguardando Validação Prática]*
 - `[ ]` **[BUG-008]** Chave Pix de telefone rejeitada por ausência de prefixo internacional E.164 (+55) — *[🟡 Implementado: normalização automática de telefones para +55 e fallback seguro no OrderBoard — ⏳ Aguardando Validação Prática]*
 - `[x]` **[BUG-009]** Erro ao carregar previsão de fornada no modal por endpoint incorreto — *[✅ Resolvido e validado na prática em Dev: endpoint corrigido para /stock/baking-suggestion]*
 - `[x]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[✅ Resolvido e validado na prática em Dev e Produção no Coolify]*

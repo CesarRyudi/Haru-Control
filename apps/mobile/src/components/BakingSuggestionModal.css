@@ -98,7 +98,8 @@
 }
 
 .baking-modal-body {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   box-sizing: border-box;
@@ -112,7 +113,6 @@
   border: none;
   box-shadow: none;
   margin-bottom: 0;
-  overflow: visible;
 }
 
 .baking-suggestion-content {
@@ -626,6 +626,8 @@
 
 .bake-modal-body {
   padding: 16px 18px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
