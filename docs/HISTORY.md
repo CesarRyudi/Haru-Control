@@ -575,6 +575,59 @@
 - **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
 - **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-25] Conversão da Sugestão de Fornada para Modal Acionado pelo Menu Flutuante (FAB)
+
+- **Contexto:** Solicitação do usuário para mover o painel de sugestão de fornada (que anteriormente ficava fixo no topo da página de estoque ocupando espaço vertical) para dentro de um modal sob demanda, acessível diretamente pelo menu do botão de ação flutuante (`FloatingActionButton`).
+- **Implementações Realizadas:**
+  - **1. Componente de Modal Responsivo (`BakingSuggestionModal.tsx` & `.css`):**
+    - Criado componente `BakingSuggestionModal` com overlay com efeito blur, container animado (`bakingModalPop`), cabeçalho temático com badge de unidades a fornar, botão de fechar (`✕`), corpo com rolagem suave independente e rodapé com botões de fechar e fornar sugestão.
+    - Suporte a fechamento ao clicar no backdrop e pela tecla `Escape`.
+    - Ajustado o z-index do modal aninhado de registro de fornada no estoque (`.bake-modal-backdrop`, z-index 10000) para sobrepor com perfeição o modal de sugestão.
+    - Re-exportação mantida em `BakingSuggestionCard.tsx` para compatibilidade retroativa integral.
+  - **2. Integração no Menu Flutuante e Limpeza da Tela de Estoque (`Stock.tsx`):**
+    - Removido o componente fixo do topo de `Stock.tsx`, permitindo visualização imediata da listagem de produtos e categorias do estoque sem rolagem preliminar.
+    - Adicionada a ação `🍪 Sugestão de Fornada` ao menu de ações do `FloatingActionButton`.
+    - Integração de estado `isBakingModalOpen` com recarregamento reativo dos dados ao abrir.
+  - **3. Atualização dos Testes Automatizados E2E (`08-baking-suggestion.spec.ts`):**
+    - Atualizado o fluxo de teste Playwright para abrir o FAB e selecionar "Sugestão de Fornada", mantendo todas as validações de horizonte, breakdown, cópia e lançamento no estoque ativas.
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Atalhos de Datas Dinâmicos no Modal de Fornada e Otimização do Menu Flutuante (FAB)
+
+- **Contexto:** Solicitação do usuário para:
+  1. Substituir os botões fixos de presets por um seletor dropdown nativo idêntico ao utilizado nos Insights, calculando dinamicamente as opções com base no dia atual ("Até amanhã", "Até depois de amanhã (dia da semana)", etc.), abrangendo todos os dias da semana corrente até sábado (omitindo domingo, pois não há vendas).
+  2. Remover as opções "Entrada de Estoque" e "Ajustar Estoque" do menu flutuante (FAB), visto que o fluxo já é acessado intuitivamente com um toque direto nos cards dos produtos.
+- **Implementações Realizadas:**
+  - **1. Atalhos Dinâmicos em Dropdown Nativo (`BakingSuggestionModal.tsx` & `.css`):**
+    - Criado gerador `dynamicOptions` calculando automaticamente os dias úteis a partir de hoje/amanhã até o sábado da semana em curso.
+    - Rótulos formatados fielmente: "Até amanhã (dia)", "Até depois de amanhã (dia)", "Até sábado", etc., com exclusão inteligente de domingos.
+    - Seletor estilizado com o padrão `Insights.tsx` (`baking-period-select-wrapper` e `baking-period-select`), acompanhado de campo de data customizada quando "Outra data..." for selecionada.
+  - **2. Simplificação do Menu Flutuante (`Stock.tsx`):**
+    - Removidos os itens de menu redundantes `Entrada de Estoque` e `Ajustar Estoque`, mantendo `Divulgar Cookies Disponíveis`, `Sugestão de Fornada` e `Registrar Descarte / Perda`.
+  - **3. Atualização dos Testes Automatizados E2E (`08-baking-suggestion.spec.ts`):**
+    - Adaptada a asserção Playwright para interagir com o novo dropdown nativo de período dinâmico.
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Resolução de BUG-008: Normalização Automática de Chaves Pix para Padrão Internacional E.164 (+55)
+
+- **Contexto:** Identificado que aplicativos bancários rejeitavam o código Pix Copia e Cola gerado para chaves de telefone celular quando informadas sem o prefixo internacional `+55` (ex: `11976952264`). De acordo com a especificação técnica do DICT (Banco Central do Brasil), telefones exigem estritamente o formato E.164 (`+55XXXXXXXXXXX`). Na ausência do `+`, os bancos interpretavam o valor de 11 dígitos como um CPF e rejeitavam a transação.
+- **Implementações Realizadas:**
+  - **1. Normalizador de Chaves Pix (`libs/utils/src/lib/pix.ts`):**
+    - Implementada a função `normalizePixKey()` com algoritmo de validação matemática de CPF (módulo 11).
+    - Se a chave for composta por 10 ou 11 dígitos que não correspondam a um CPF válido, ou se começar com `55` sem o `+`, é automaticamente prefixada com `+55` (ex: `11976952264` ou `(11) 97695-2264` ➔ `+5511976952264`).
+    - Chaves do tipo e-mail, EVP (UUID), CPF válido e CNPJ continuam preservadas sem alteração.
+    - Integrada a normalização diretamente no ponto de entrada de `generatePixPayload()`.
+  - **2. Fallback Seguro no Frontend (`OrderBoard.tsx`):**
+    - Atualizado o valor padrão de `pixKey` para `+5511976952264` caso a variável `VITE_PIX_KEY` não seja fornecida.
+  - **3. Testes Unitários (`libs/utils/src/lib/pix.spec.ts`):**
+    - Testes unitários atualizados e expandidos cobrindo chaves com e sem `+55`, com caracteres especiais de máscara, e-mails, UUIDs, CNPJs e validação da subtag `0114+5511976952264`.
+- **Validação:** Compilação do monorepo (`npm run build`) concluída com 100% de sucesso e testes validados via script de execução.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
+
+
 
 
 

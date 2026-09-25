@@ -3,6 +3,7 @@
 ## 🐛 Bugs Prioritários (BUGS.md)
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
+- `[ ]` **[BUG-008]** Chave Pix de telefone rejeitada por ausência de prefixo internacional E.164 (+55) — *[🟡 Implementado: normalização automática de telefones para +55 e fallback seguro no OrderBoard — ⏳ Aguardando Validação Prática]*
 - `[x]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[✅ Resolvido e validado na prática em Dev e Produção no Coolify]*
 - `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[✅ Resolvido e validado na prática em Dev e Produção]*
 - `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
@@ -99,8 +100,12 @@
     - Exibição transparente da equação de necessidade individual por produto (`Demanda - Estoque = Assar`).
   - **Cruzamento Informativo com Ficha Técnica (BOM):**
     - Verificação não-bloqueante de insumos, alertando quais ingredientes estão em falta na cozinha sem travar a produção.
-  - **Interface Mobile-First no Estoque (`Stock.tsx` & `BakingSuggestionCard.tsx`):**
-    - Painel inteligente e colapsável no topo da tela de Estoque com badge de total a assar.
+  - **Interface Mobile-First no Estoque (`Stock.tsx` & `BakingSuggestionModal.tsx`):**
+    - Sugestão de fornada convertida em modal responsivo (`BakingSuggestionModal.tsx` & `.css`), liberando espaço visual no topo da lista de estoque.
+    - Nova ação `🍪 Sugestão de Fornada` integrada ao menu do botão flutuante (FAB) em `Stock.tsx`.
+    - Remoção dos botões redundantes de "Entrada de Estoque" e "Ajustar Estoque" do menu flutuante (FAB), uma vez que a interação é feita diretamente ao tocar nos cards dos produtos.
+    - Atalhos de datas dinâmicos em dropdown nativo (padrão `Insights.tsx`): calcula automaticamente os dias úteis da semana atual até sábado ("Até amanhã", "Até depois de amanhã (dia da semana)", etc.), excluindo domingos.
+    - Painel inteligente com badge de total a assar, controles de início ("De Hoje" / "A partir de Amanhã") e expansão dia a dia.
     - Botão de 1 toque para copiar o resumo da fornada formatado para WhatsApp ou anotações.
     - Modal de confirmação e lançamento atômico no Ledger contábil (`POST /stock/in/batch`).
   - **Suíte de Testes Automatizados E2E (`e2e/specs/08-baking-suggestion.spec.ts`):**

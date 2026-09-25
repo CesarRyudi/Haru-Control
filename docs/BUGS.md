@@ -16,6 +16,7 @@
 | `BUG-005` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
 | `BUG-006` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
 | `BUG-007` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
+| `BUG-008` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Chave Pix de telefone rejeitada por ausência do padrão internacional E.164 (+55) | `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx` | 2026-09-25 |
 
 ---
 
@@ -317,6 +318,43 @@
 - Sempre aplicar `user-select: none` em elementos com manipuladores de gestos touch/long-press.
 - Integrar ações contextuais de listas diretamente no cabeçalho da seção quando já existirem outros elementos flutuantes na tela.
 
+### [BUG-008] Chave Pix de telefone rejeitada pelos bancos por ausência do prefixo internacional E.164 (+55)
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🔴 Alta`
+- **Data de Registro:** 2026-09-25
+- **Data de Implementação:** 2026-09-25
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx`, `libs/utils/src/lib/pix.spec.ts`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao copiar o código Pix Copia e Cola gerado pelo Haru Control ou escanear o QR Code gerado nos aplicativos bancários (Nubank, Itaú, Inter, etc.), o banco rejeita a transação exibindo erro de que a chave Pix não foi encontrada, que os dados do recebedor não puderam ser identificados ou que o código é inválido. A captura de tela do app bancário fica totalmente preta devido à proteção `FLAG_SECURE` do Android em telas de transação bancária.
+- **Passos para Reproduzir:**
+  1. No Haru Control, abrir um pedido com valor definido e copiar o código Pix Copia e Cola.
+  2. Abrir qualquer aplicativo bancário no celular e selecionar "Pix Copia e Cola".
+  3. Colar o código gerado.
+  4. O banco retorna erro de consulta de chave ou chave não localizada no DICT.
+- **Comportamento Esperado:** O banco deve reconhecer o recebedor (Haru Cookies), o valor monetário exato e permitir a confirmação imediata da transferência Pix.
+- **Logs / Erros de Console:** Aplicativo bancário rejeita o payload com erro de dados do destinatário/chave não encontrada.
+
+#### 2. Onde está o problema (Localização Técnica)
+- No arquivo `apps/mobile/src/pages/OrderBoard.tsx`, o valor padrão de `pixKey` foi definido como `"11976952264"` (apenas DDD + número, sem `+55`).
+- Na especificação técnica do Banco Central do Brasil para o Diretório de Identificadores de Contas Transacionais (DICT), chaves Pix do tipo telefone celular **obrigatoriamente** seguem o formato internacional **E.164** (`+55` seguido do DDD e dos 9 dígitos, totalizando 14 caracteres com o prefixo `+`).
+- Quando um número com 11 dígitos sem `+55` é inserido na subtag `01` do EMVCo BR Code, os sistemas bancários tentam interpretá-lo como um CPF (já que CPFs possuem 11 dígitos numéricos). Como o número não possui os dígitos verificadores de um CPF nem corresponde a um CPF cadastrado, o banco falha na busca e rejeita o pagamento.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- O número de telefone celular de contato da Haru Cookies (`11976952264`) foi inserido como chave sem o prefixo internacional `+55` exigido pelo padrão DICT do BACEN para números telefônicos.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Normalização Automática de Chaves E.164 (`normalizePixKey`):** Criada função utilitária em `libs/utils/src/lib/pix.ts` com validação matemática de CPF (módulo 11). Se a chave possuir 10 ou 11 dígitos e não for um CPF válido, ou se começar com `55` sem o prefixo `+`, o sistema adiciona automaticamente o prefixo internacional `+55` (ex: `11976952264` ➔ `+5511976952264`), garantindo que o banco reconheça imediatamente como telefone celular no DICT. Chaves de e-mail, EVP (UUID), CPF válido e CNPJ são preservadas.
+- **Fallback Seguro em `OrderBoard.tsx`:** Atualizado o valor padrão de `pixKey` para `+5511976952264`.
+- **Validação por Testes:** Testes unitários adicionados em `pix.spec.ts` cobrindo normalização com/sem formatação, e-mails, UUIDs, CNPJs e geração do payload canônico.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Chaves Pix de telefone no Brasil devem sempre seguir rigorosamente a norma internacional E.164 (`+55XXXXXXXXXXX`).
+- Adicionar sanitização e normalização inteligente na biblioteca `generatePixPayload`: se uma chave de 10 ou 11 dígitos for informada e não for um CPF válido com algoritmo oficial, prefixar automaticamente com `+55` para garantir conformidade estrita e prevenir erros humanos de configuração em variáveis de ambiente.
+
 ---
+
 
 

@@ -18,6 +18,88 @@ export interface PixPayloadOptions {
 }
 
 /**
+ * Validador oficial de CPF (módulo 11) para evitar falsos positivos entre telefones e CPFs
+ */
+function isValidCPF(cpf: string): boolean {
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cpf.charAt(i), 10) * (10 - i);
+  }
+  let rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(cpf.charAt(9), 10)) return false;
+
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cpf.charAt(i), 10) * (11 - i);
+  }
+  rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(cpf.charAt(10), 10)) return false;
+
+  return true;
+}
+
+/**
+ * Normaliza e formata a chave Pix para conformidade estrita com o padrão BACEN.
+ * Se a chave for um número de telefone brasileiro (mesmo sem formatação ou sem +55),
+ * adiciona automaticamente o prefixo internacional E.164 (+55), conforme exigência do DICT.
+ */
+export function normalizePixKey(key: string): string {
+  if (!key) return "";
+  const trimmed = key.trim();
+
+  // 1. Se for e-mail (contém @), limpa espaços e passa para minúsculas
+  if (trimmed.includes("@")) {
+    return trimmed.toLowerCase().replace(/\s+/g, "");
+  }
+
+  // 2. Se for chave aleatória EVP (UUID de 36 caracteres)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+
+  // 3. Se já começa com +, mantém apenas o + e dígitos numéricos
+  if (trimmed.startsWith("+")) {
+    const digitsOnly = trimmed.replace(/\D/g, "");
+    if (digitsOnly.length === 10 || digitsOnly.length === 11) {
+      return `+55${digitsOnly}`;
+    }
+    return `+${digitsOnly}`;
+  }
+
+  // 4. Extrai apenas dígitos
+  const digits = trimmed.replace(/\D/g, "");
+
+  // Se já tem 12 ou 13 dígitos começando com 55 (DDI do Brasil sem +)
+  // Ex: 5511976952264 (13 dígitos) ou 551134567890 (12 dígitos)
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
+    return `+${digits}`;
+  }
+
+  // Se tem 14 dígitos, é CNPJ
+  if (digits.length === 14) {
+    return digits;
+  }
+
+  // Se tem 11 dígitos e for um CPF matematicamente válido, mantém como CPF
+  if (digits.length === 11 && isValidCPF(digits)) {
+    return digits;
+  }
+
+  // Se tem 10 ou 11 dígitos (número de telefone brasileiro: DDD + 8 ou 9 dígitos),
+  // adiciona obrigatoriamente o código do Brasil (+55) conforme o padrão E.164 do BACEN
+  if (digits.length === 10 || digits.length === 11) {
+    return `+55${digits}`;
+  }
+
+  // Fallback: retorna caracteres alfanuméricos sem espaços
+  return trimmed.replace(/\s+/g, "");
+}
+
+/**
  * Remove acentos e caracteres especiais para conformidade estrita com o padrão EMVCo
  */
 function sanitizeText(text: string, maxLength: number): string {
@@ -68,8 +150,8 @@ export function generatePixPayload(options: PixPayloadOptions): string {
     description,
   } = options;
 
-  // Limpa eventuais espaços na chave Pix mantendo caracteres válidos (+, letras, números, etc)
-  const cleanKey = key.replace(/\s+/g, "").trim();
+  // Normaliza e garante conformidade estrita da chave Pix (ex: padrão E.164 com +55 para telefones)
+  const cleanKey = normalizePixKey(key);
   const cleanName = sanitizeText(name, 25).toUpperCase() || "HARU COOKIES";
   const cleanCity = sanitizeText(city, 15).toUpperCase() || "SAO PAULO";
   const cleanTxid = sanitizeText(txid, 25).toUpperCase() || "***";

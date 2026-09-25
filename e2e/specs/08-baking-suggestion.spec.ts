@@ -16,9 +16,20 @@ test.describe("Previsão de Demanda e Sugestão de Fornada Multi-Dias", () => {
     const navStock = page.locator("button.bottom-nav-item", { hasText: "Estoque" });
     await navStock.click();
 
-    // 4. Aguarda carregamento da página de estoque e painel de fornada
+    // 4. Aguarda carregamento da página de estoque
     await expect(page.locator(".stock-page")).toBeVisible({ timeout: 10000 });
-    await expect(page.locator(".baking-suggestion-panel")).toBeVisible({ timeout: 10000 });
+
+    // 5. Abre o menu flutuante (FAB) e clica em "Sugestão de Fornada"
+    const fabButton = page.locator("button.fab-button");
+    await expect(fabButton).toBeVisible();
+    await fabButton.click();
+
+    const bakingMenuItem = page.locator(".fab-menu-item", { hasText: "Sugestão de Fornada" });
+    await expect(bakingMenuItem).toBeVisible();
+    await bakingMenuItem.click();
+
+    // 6. Aguarda abertura do modal de fornada
+    await expect(page.locator(".baking-modal-container")).toBeVisible({ timeout: 10000 });
     await expect(page.locator(".baking-suggestion-title h2")).toContainText("Sugestão de Fornada & Planejamento");
 
     // 5. Valida os controles de início (Hoje vs Amanhã)
@@ -37,11 +48,15 @@ test.describe("Previsão de Demanda e Sugestão de Fornada Multi-Dias", () => {
     await btnToday.click();
     await expect(btnToday).toHaveClass(/active/);
 
-    // 7. Testa seleção de preset de término (ex: Até Quarta-feira)
-    const btnWednesday = page.locator(".horizon-chip", { hasText: "Até Quarta-feira" });
-    await expect(btnWednesday).toBeVisible();
-    await btnWednesday.click();
-    await expect(btnWednesday).toHaveClass(/active/);
+    // 7. Testa seleção no dropdown dinâmico de término (padrão Insights)
+    const periodSelect = page.locator("select.baking-period-select");
+    await expect(periodSelect).toBeVisible();
+    const options = await periodSelect.locator("option").all();
+    expect(options.length).toBeGreaterThan(1);
+    const targetVal = await options[1].getAttribute("value");
+    if (targetVal) {
+      await periodSelect.selectOption(targetVal);
+    }
 
     // Valida que o texto resumo de período foi atualizado
     const summaryText = page.locator(".horizon-summary-text");

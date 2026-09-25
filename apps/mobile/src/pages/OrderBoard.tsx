@@ -617,7 +617,7 @@ function OrderCard({
   const orderTotal = parseFloat(order.totalPrice || 0);
   const finalTotal = orderTotal + deliveryFee;
 
-  const pixKey = import.meta.env.VITE_PIX_KEY || "11976952264";
+  const pixKey = import.meta.env.VITE_PIX_KEY || "+5511976952264";
   const pixName = import.meta.env.VITE_PIX_NAME || "Haru Cookies";
   const pixCity = import.meta.env.VITE_PIX_CITY || "Sao Paulo";
 
