@@ -49,16 +49,19 @@ const getDynamicOptions = (startType: "today" | "tomorrow") => {
     });
   }
 
-  // Dias subsequentes até sábado daquela semana (0=domingo, 6=sábado)
+  // Dias subsequentes até sábado (se restarem menos de 4 dias para o sábado atual, estende até o sábado da semana seguinte)
   const currentDayOfWeek = today.getDay();
-  const daysUntilSaturday = (6 - currentDayOfWeek + 7) % 7;
-  const saturdayDate = new Date(today);
-  saturdayDate.setDate(today.getDate() + (daysUntilSaturday === 0 && currentDayOfWeek === 0 ? 6 : daysUntilSaturday));
+  let daysUntilSaturday = (6 - currentDayOfWeek + 7) % 7;
+  if (daysUntilSaturday < 4) {
+    daysUntilSaturday += 7;
+  }
+  const targetEndDate = new Date(today);
+  targetEndDate.setDate(today.getDate() + daysUntilSaturday);
 
   let iterDate = new Date(baseStart);
   iterDate.setDate(iterDate.getDate() + 1);
 
-  while (iterDate <= saturdayDate) {
+  while (iterDate <= targetEndDate) {
     if (iterDate.getDay() !== 0) { // Não vendemos no domingo
       const dStr = formatDateToInput(iterDate);
       const weekdayName = iterDate.toLocaleDateString("pt-BR", { weekday: "long" });

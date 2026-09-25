@@ -656,6 +656,17 @@
 - **Validação:** Compilação de todos os pacotes (`npm run build`) concluída com 100% de sucesso.
 - **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-25] Extensão de Atalhos Dinâmicos de Datas para a Semana Seguinte no Modal de Fornada
+
+- **Contexto:** Usuário observou que, ao acessar o modal de Fornada na sexta-feira ou próximo ao final de semana, a lista de atalhos de datas exibia apenas o sábado, impossibilitando planejar rapidamente a produção para a semana seguinte (segunda, terça, etc.).
+- **Implementações Realizadas:**
+  - **1. Algoritmo de Janela Contínua (`BakingSuggestionModal.tsx`):**
+    - Ajustado o gerador `getDynamicOptions()`: se a contagem de dias restantes até o sábado da semana corrente for menor que 4 dias (cenário de quarta a domingo), o limite do cálculo avança automaticamente para o sábado da semana subsequente (`daysUntilSaturday += 7`).
+    - Mantida a exclusão de domingos (dias em que não há vendas) e a formatação semântica ("Até amanhã", "Até depois de amanhã", "Até segunda-feira (dd/mm)", etc.).
+    - Na sexta-feira, os atalhos agora disponibilizam: Sábado (amanhã), Segunda, Terça, Quarta, Quinta, Sexta e Sábado da próxima semana.
+- **Validação:** Compilação de todos os pacotes (`npm run build`) concluída com 100% de sucesso.
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
 
 
 

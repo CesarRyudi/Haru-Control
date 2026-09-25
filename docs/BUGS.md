@@ -18,7 +18,7 @@
 | `BUG-007` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
 | `BUG-008` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Chave Pix de telefone rejeitada por ausência do padrão internacional E.164 (+55) | `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx` | 2026-09-25 |
 | `BUG-009` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Erro ao carregar previsão de fornada no modal por endpoint incorreto | `apps/mobile/src/components/BakingSuggestionModal.tsx` | 2026-09-25 |
-| `BUG-010` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile | `apps/mobile/src/components/BakingSuggestionModal.tsx`, `BakingSuggestionModal.css` | 2026-09-25 |
+| `BUG-010` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile | `apps/mobile/src/components/BakingSuggestionModal.tsx`, `BakingSuggestionModal.css` | 2026-09-25 |
 
 ---
 
@@ -395,12 +395,12 @@
 ---
 
 ### [BUG-010] Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟢 Baixa`
 - **Data de Registro:** 2026-09-25
 - **Data de Implementação:** 2026-09-25
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-25
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/components/BakingSuggestionModal.tsx`, `apps/mobile/src/components/BakingSuggestionModal.css`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
