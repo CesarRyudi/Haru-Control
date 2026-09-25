@@ -20,6 +20,82 @@ const formatDateToInput = (d: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+const getDynamicOptions = (startType: "today" | "tomorrow") => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const baseStart = new Date(today);
+  if (startType === "tomorrow") {
+    baseStart.setDate(baseStart.getDate() + 1);
+  }
+
+  const options: { value: string; label: string; dateStr: string }[] = [];
+
+  const baseStartStr = formatDateToInput(baseStart);
+  const baseStartWeekday = baseStart.toLocaleDateString("pt-BR", { weekday: "long" });
+  const baseStartShort = baseStart.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+
+  if (startType === "today") {
+    options.push({
+      value: baseStartStr,
+      label: `Hoje (${baseStartWeekday}, ${baseStartShort}) - Somente hoje`,
+      dateStr: baseStartStr,
+    });
+  } else {
+    options.push({
+      value: baseStartStr,
+      label: `Amanhã (${baseStartWeekday}, ${baseStartShort}) - 1 dia`,
+      dateStr: baseStartStr,
+    });
+  }
+
+  // Dias subsequentes até sábado daquela semana (0=domingo, 6=sábado)
+  const currentDayOfWeek = today.getDay();
+  const daysUntilSaturday = (6 - currentDayOfWeek + 7) % 7;
+  const saturdayDate = new Date(today);
+  saturdayDate.setDate(today.getDate() + (daysUntilSaturday === 0 && currentDayOfWeek === 0 ? 6 : daysUntilSaturday));
+
+  let iterDate = new Date(baseStart);
+  iterDate.setDate(iterDate.getDate() + 1);
+
+  while (iterDate <= saturdayDate) {
+    if (iterDate.getDay() !== 0) { // Não vendemos no domingo
+      const dStr = formatDateToInput(iterDate);
+      const weekdayName = iterDate.toLocaleDateString("pt-BR", { weekday: "long" });
+      const dayShort = iterDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+
+      const diffDaysFromToday = Math.round(
+        (iterDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      let labelText = "";
+      if (diffDaysFromToday === 1) {
+        labelText = `Até amanhã (${weekdayName})`;
+      } else if (diffDaysFromToday === 2) {
+        labelText = `Até depois de amanhã (${weekdayName})`;
+      } else {
+        labelText = `Até ${weekdayName} (${dayShort})`;
+      }
+
+      options.push({
+        value: dStr,
+        label: labelText,
+        dateStr: dStr,
+      });
+    }
+
+    iterDate.setDate(iterDate.getDate() + 1);
+  }
+
+  options.push({
+    value: "custom",
+    label: "Outra data... (definir data final)",
+    dateStr: "",
+  });
+
+  return options;
+};
+
 export default function BakingSuggestionModal({
   isOpen = true,
   onClose = () => {},
@@ -33,7 +109,10 @@ export default function BakingSuggestionModal({
   const [startType, setStartType] = useState<"today" | "tomorrow">("today");
 
   // Seletor dinâmico de término (Padrão dropdown nativo dos Insights)
-  const [selectedOptionValue, setSelectedOptionValue] = useState<string>("");
+  const [selectedOptionValue, setSelectedOptionValue] = useState<string>(() => {
+    const initialOpts = getDynamicOptions("today");
+    return (initialOpts.length > 2 ? initialOpts[1] : initialOpts[0])?.value || "";
+  });
   const [customEndDate, setCustomEndDate] = useState<string>("");
 
   // Expansão de detalhes dia a dia
@@ -48,82 +127,10 @@ export default function BakingSuggestionModal({
 
   // Gerar opções dinâmicas de término até sábado da semana corrente (sem domingo)
   const dynamicOptions = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const baseStart = new Date(today);
-    if (startType === "tomorrow") {
-      baseStart.setDate(baseStart.getDate() + 1);
-    }
-
-    const options: { value: string; label: string; dateStr: string }[] = [];
-
-    const baseStartStr = formatDateToInput(baseStart);
-    const baseStartWeekday = baseStart.toLocaleDateString("pt-BR", { weekday: "long" });
-    const baseStartShort = baseStart.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-
-    if (startType === "today") {
-      options.push({
-        value: baseStartStr,
-        label: `Hoje (${baseStartWeekday}, ${baseStartShort}) - Somente hoje`,
-        dateStr: baseStartStr,
-      });
-    } else {
-      options.push({
-        value: baseStartStr,
-        label: `Amanhã (${baseStartWeekday}, ${baseStartShort}) - 1 dia`,
-        dateStr: baseStartStr,
-      });
-    }
-
-    // Dias subsequentes até sábado daquela semana (0=domingo, 6=sábado)
-    const currentDayOfWeek = today.getDay();
-    const daysUntilSaturday = (6 - currentDayOfWeek + 7) % 7;
-    const saturdayDate = new Date(today);
-    saturdayDate.setDate(today.getDate() + (daysUntilSaturday === 0 && currentDayOfWeek === 0 ? 6 : daysUntilSaturday));
-
-    let iterDate = new Date(baseStart);
-    iterDate.setDate(iterDate.getDate() + 1);
-
-    while (iterDate <= saturdayDate) {
-      if (iterDate.getDay() !== 0) { // Não vendemos no domingo
-        const dStr = formatDateToInput(iterDate);
-        const weekdayName = iterDate.toLocaleDateString("pt-BR", { weekday: "long" });
-        const dayShort = iterDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-
-        const diffDaysFromToday = Math.round(
-          (iterDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        let labelText = "";
-        if (diffDaysFromToday === 1) {
-          labelText = `Até amanhã (${weekdayName})`;
-        } else if (diffDaysFromToday === 2) {
-          labelText = `Até depois de amanhã (${weekdayName})`;
-        } else {
-          labelText = `Até ${weekdayName} (${dayShort})`;
-        }
-
-        options.push({
-          value: dStr,
-          label: labelText,
-          dateStr: dStr,
-        });
-      }
-
-      iterDate.setDate(iterDate.getDate() + 1);
-    }
-
-    options.push({
-      value: "custom",
-      label: "Outra data... (definir data final)",
-      dateStr: "",
-    });
-
-    return options;
+    return getDynamicOptions(startType);
   }, [startType]);
 
-  // Garantir que selectedOptionValue tenha um valor inicial coerente (padrão: "Até amanhã" se houver)
+  // Garantir que selectedOptionValue tenha um valor coerente ao alternar startType
   useEffect(() => {
     if (
       !selectedOptionValue ||
@@ -182,7 +189,7 @@ export default function BakingSuggestionModal({
   const loadSuggestions = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/analytics/demand-forecast", {
+      const res = await api.get("/stock/baking-suggestion", {
         params: {
           startDate: startDateStr,
           targetDate: targetDateStr,

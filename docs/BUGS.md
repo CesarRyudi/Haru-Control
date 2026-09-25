@@ -17,6 +17,7 @@
 | `BUG-006` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
 | `BUG-007` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
 | `BUG-008` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Chave Pix de telefone rejeitada por ausência do padrão internacional E.164 (+55) | `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx` | 2026-09-25 |
+| `BUG-009` | `[x]` Implementado | `⏳ Pendente` | `🟡 Média` | Erro ao carregar previsão de fornada no modal por endpoint incorreto | `apps/mobile/src/components/BakingSuggestionModal.tsx` | 2026-09-25 |
 
 ---
 
@@ -355,6 +356,42 @@
 - Adicionar sanitização e normalização inteligente na biblioteca `generatePixPayload`: se uma chave de 10 ou 11 dígitos for informada e não for um CPF válido com algoritmo oficial, prefixar automaticamente com `+55` para garantir conformidade estrita e prevenir erros humanos de configuração em variáveis de ambiente.
 
 ---
+
+### [BUG-009] Erro ao carregar previsão de fornada no modal por endpoint incorreto (/analytics/demand-forecast)
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🟡 Média`
+- **Data de Registro:** 2026-09-25
+- **Data de Implementação:** 2026-09-25
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/components/BakingSuggestionModal.tsx`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao abrir o modal de Sugestão de Fornada através do menu flutuante na tela de Estoque (`/stock`), o aplicativo exibe um toast de erro vermelho com o texto: `"Erro ao carregar previsão de fornada."`. A tela modal permanece vazia sem exibir a lista de cookies e quantidades a assar.
+- **Passos para Reproduzir:**
+  1. Acessar a tela de Estoque (`/stock`).
+  2. Clicar no botão flutuante (FAB) e selecionar "Sugestão de Fornada" (ou abrir o modal diretamente).
+  3. Observar o toast de erro imediato `"Erro ao carregar previsão de fornada."`.
+- **Comportamento Esperado:** O modal deve carregar a previsão de demanda e o cálculo de fornadas calculados pelo backend (`/stock/baking-suggestion`) de forma transparente e exibir os cookies necessários para o período.
+- **Logs / Erros de Console:** `GET http://<host>:3000/analytics/demand-forecast?startDate=...&targetDate=... 404 (Not Found)`. `Erro ao carregar sugestão de fornada: AxiosError: Request failed with status code 404`.
+
+#### 2. Onde está o problema (Localização Técnica)
+- No arquivo `apps/mobile/src/components/BakingSuggestionModal.tsx`, a função `loadSuggestions` realizava a chamada HTTP via `api.get("/analytics/demand-forecast", ...)`.
+- No backend NestJS (`apps/api`), não existe nenhum módulo ou rota `/analytics/demand-forecast`. O endpoint canônico implementado em `StockController` (`apps/api/src/modules/stock/stock.controller.ts`) é `@Get("baking-suggestion")`, acessível via `GET /stock/baking-suggestion`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Durante a extração da funcionalidade de sugestão de fornada de um card estático para o novo modal responsivo (`BakingSuggestionModal.tsx`), o caminho do endpoint foi escrito incorretamente como `/analytics/demand-forecast` em vez de `/stock/baking-suggestion`. Além disso, o estado inicial `selectedOptionValue` começava como string vazia `""`, o que podia disparar requisições prematuras antes da seleção do período padrão.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Correção da Rota:** Alterada a chamada em `BakingSuggestionModal.tsx` para `api.get("/stock/baking-suggestion", ...)`, alinhando perfeitamente com os parâmetros `startDate` e `targetDate` esperados pelo `StockController` e `BakingSuggestionService`.
+- **Inicialização Síncrona do Período Padrão:** Extraída a função geradora de opções dinâmicas `getDynamicBakingOptions` e inicializado `selectedOptionValue` diretamente com o valor da primeira opção padrão válida, eliminando disparos duplicados ou inconsistentes na montagem inicial do modal.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Sempre verificar e validar os decorators de rota dos controllers NestJS ao criar ou refatorar serviços e componentes no frontend.
+- Tipar as URLs das rotas da API em constantes ou clientes de serviço centralizados para garantir checagem estática em tempo de compilação.
+
+---
+
 
 
 

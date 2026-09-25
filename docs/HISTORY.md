@@ -626,6 +626,22 @@
 - **Validação:** Compilação do monorepo (`npm run build`) concluída com 100% de sucesso e testes validados via script de execução.
 - **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-25] Resolução de BUG-009: Correção do Endpoint de Sugestão de Fornada no Modal
+
+- **Contexto:** Usuário reportou que, ao abrir o modal de Sugestão de Fornada na tela de Estoque (`/stock`), o aplicativo exibia imediatamente uma notificação de toast com erro: *"Erro ao carregar previsão de fornada."*.
+- **Investigação & Causa Raiz:**
+  - Durante a migração da sugestão de fornada de um card estático para o componente `BakingSuggestionModal.tsx`, a requisição foi configurada com o endpoint `GET /analytics/demand-forecast`.
+  - A API NestJS não possui nenhum módulo ou controller em `/analytics`, pois o endpoint canônico está declarado em `StockController` (`apps/api/src/modules/stock/stock.controller.ts`) sob `@Get("baking-suggestion")`, acessível via `GET /stock/baking-suggestion`.
+  - Além disso, `selectedOptionValue` inicializava como string vazia `""`, o que causava disparo de query prematura antes do período padrão ser atribuído.
+- **Implementações Realizadas:**
+  - **1. Correção do Endpoint (`BakingSuggestionModal.tsx`):**
+    - Substituída a rota de chamada para `api.get("/stock/baking-suggestion", ...)`, alinhando os parâmetros `startDate` e `targetDate` com o backend.
+  - **2. Inicialização Síncrona do Dropdown (`BakingSuggestionModal.tsx`):**
+    - Extraída a função auxiliar `getDynamicOptions()` e inicializado o estado `selectedOptionValue` diretamente com o valor do preset padrão, evitando re-renders e chamadas duplicadas ou desordenadas na abertura do modal.
+- **Validação:** Compilação completa do monorepo (`npm run build`) concluída com 100% de sucesso.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
+
 
 
 
