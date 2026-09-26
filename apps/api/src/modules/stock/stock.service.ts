@@ -17,6 +17,35 @@ export class StockService {
     });
   }
 
+  async addStockBatch(
+    items: { productId: string; quantity: number }[],
+    notes?: string
+  ): Promise<void> {
+    if (!items || items.length === 0) {
+      throw new BadRequestException("Nenhum item informado para entrada de estoque");
+    }
+
+    const validItems = items.filter((item) => Number(item.quantity) > 0);
+    if (validItems.length === 0) {
+      throw new BadRequestException("Todos os itens devem ter quantidade maior que zero");
+    }
+
+    console.log("Adding stock batch:", { count: validItems.length, notes });
+
+    await this.prisma.$transaction(
+      validItems.map((item) =>
+        this.prisma.ledgerEntry.create({
+          data: {
+            productId: item.productId,
+            quantity: Number(item.quantity),
+            type: LedgerOperationType.STOCK_IN,
+            notes: notes?.trim() || null,
+          },
+        })
+      )
+    );
+  }
+
   async adjustStock(productId: string, quantity: number): Promise<void> {
     console.log("Adjusting stock:", { productId, quantity });
     await this.prisma.ledgerEntry.create({

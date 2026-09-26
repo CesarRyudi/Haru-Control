@@ -1,0 +1,503 @@
+.baking-suggestion-panel {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+}
+
+.baking-suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border-bottom: 1px solid #fed7aa;
+  cursor: pointer;
+  user-select: none;
+}
+
+.baking-suggestion-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.baking-suggestion-title h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #9a3412;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.baking-badge-count {
+  background: #ea580c;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.baking-suggestion-toggle-icon {
+  font-size: 1.1rem;
+  color: #ea580c;
+  transition: transform 0.2s ease;
+}
+
+.baking-suggestion-content {
+  padding: 18px;
+}
+
+/* Controles de Período e Horizonte */
+.baking-horizon-controls {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.horizon-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.horizon-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.horizon-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.horizon-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.horizon-chip:hover {
+  border-color: #ea580c;
+  color: #ea580c;
+}
+
+.horizon-chip.active {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);
+}
+
+.horizon-custom-dates {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.horizon-custom-dates input[type="date"] {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  background: #ffffff;
+}
+
+.horizon-summary-text {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 500;
+  background: #f1f5f9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Ações Gerais de Topo */
+.baking-actions-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.baking-actions-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-baking-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-baking-copy:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.btn-baking-bake-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #ea580c;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btn-baking-bake-all:hover {
+  background: #c2410c;
+}
+
+/* Lista de Produtos Sugeridos */
+.baking-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.baking-product-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #ffffff;
+  transition: border-color 0.15s ease;
+}
+
+.baking-product-card.has-bake {
+  border-left: 4px solid #ea580c;
+}
+
+.baking-product-card.no-bake {
+  border-left: 4px solid #10b981;
+  opacity: 0.75;
+}
+
+.baking-product-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.baking-product-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.baking-product-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+/* Equação Transparente */
+.baking-equation-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #475569;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.equation-term {
+  font-weight: 600;
+}
+
+.equation-term.demand {
+  color: #0284c7;
+}
+
+.equation-term.stock {
+  color: #64748b;
+}
+
+.equation-term.result {
+  color: #ea580c;
+  font-size: 0.9rem;
+}
+
+.equation-term.result.zero {
+  color: #10b981;
+}
+
+.baking-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.badge-suggested-bake {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-suggested-bake.orange {
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.badge-suggested-bake.green {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.btn-expand-breakdown {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.btn-expand-breakdown:hover {
+  color: #1e293b;
+}
+
+/* Detalhes da Demanda Diária (Accordion) */
+.baking-breakdown-details {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.breakdown-day-item {
+  background: #f8fafc;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  color: #475569;
+}
+
+.breakdown-day-item span.day-name {
+  font-weight: 600;
+}
+
+/* Alerta de Insumos Faltantes (Informativo / Não Bloqueante) */
+.baking-bom-warning {
+  margin-top: 8px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: #92400e;
+}
+
+.baking-bom-warning-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.baking-bom-missing-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.baking-bom-missing-list li {
+  margin-bottom: 2px;
+}
+
+/* Modal de Confirmação da Fornada */
+.bake-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.bake-modal-sheet {
+  background: #ffffff;
+  border-radius: 14px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.bake-modal-header {
+  padding: 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bake-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bake-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.bake-modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bake-modal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.bake-modal-item-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.bake-modal-item-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.bake-modal-item-qty-input {
+  width: 70px;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.bake-modal-footer {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-bake-cancel {
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-bake-confirm {
+  padding: 8px 18px;
+  background: #10b981;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+.btn-bake-confirm:hover {
+  background: #059669;
+}

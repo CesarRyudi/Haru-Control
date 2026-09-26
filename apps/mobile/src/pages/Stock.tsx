@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import BroadcastMenuModal from "../components/BroadcastMenuModal";
+import BakingSuggestionModal from "../components/BakingSuggestionModal";
 import "./Stock.css";
 
 import { Category, Subcategory, Product } from "@haru-control/types";
@@ -24,6 +25,7 @@ export default function Stock() {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [newQuantity, setNewQuantity] = useState(0);
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [isBakingModalOpen, setIsBakingModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
@@ -526,14 +528,9 @@ export default function Stock() {
             onClick: () => setIsBroadcastModalOpen(true),
           },
           {
-            icon: "📥",
-            label: "Entrada de Estoque",
-            onClick: () => handleOpenModal("in"),
-          },
-          {
-            icon: "⚖️",
-            label: "Ajustar Estoque",
-            onClick: () => handleOpenModal("adjust"),
+            icon: "🍪",
+            label: "Sugestão de Fornada",
+            onClick: () => setIsBakingModalOpen(true),
           },
           {
             icon: "🗑️",
@@ -541,6 +538,13 @@ export default function Stock() {
             onClick: () => navigate("/orders/new?mode=waste"),
           },
         ]}
+      />
+
+      <BakingSuggestionModal
+        isOpen={isBakingModalOpen}
+        onClose={() => setIsBakingModalOpen(false)}
+        onStockUpdated={loadData}
+        onToast={(message, type) => setToast({ message, type })}
       />
 
       <BroadcastMenuModal

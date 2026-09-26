@@ -13,9 +13,12 @@
 | `BUG-002` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Quebra de layout e overflow no modal de pedidos históricos | `apps/mobile/src/pages/OrderHistory.tsx`, `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-11 |
 | `BUG-003` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/components/BottomNavigation.tsx` | 2026-09-17 |
 | `BUG-004` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm | `apps/mobile/src/pages/OrderForm.css` | 2026-09-17 |
-| `BUG-005` | `[ ]` Aberto | `⏳ Pendente` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
-| `BUG-006` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
-| `BUG-007` | `[x]` Implementado | `⏳ Pendente` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
+| `BUG-005` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Chips de seleção de motivo do descarte sem feedback visual | `apps/mobile/src/pages/OrderForm.tsx` | 2026-09-18 |
+| `BUG-006` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto | `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css` | 2026-09-19 |
+| `BUG-007` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban | `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css` | 2026-09-19 |
+| `BUG-008` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Chave Pix de telefone rejeitada por ausência do padrão internacional E.164 (+55) | `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx` | 2026-09-25 |
+| `BUG-009` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Erro ao carregar previsão de fornada no modal por endpoint incorreto | `apps/mobile/src/components/BakingSuggestionModal.tsx` | 2026-09-25 |
+| `BUG-010` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile | `apps/mobile/src/components/BakingSuggestionModal.tsx`, `BakingSuggestionModal.css` | 2026-09-25 |
 
 ---
 
@@ -191,12 +194,12 @@
 ---
 
 ### [BUG-005] Chips de seleção de motivo do descarte sem feedback visual
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟢 Baixa`
 - **Data de Registro:** 2026-09-18
 - **Data de Implementação:** 2026-09-18
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-23
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -226,12 +229,12 @@
 ---
 
 ### [BUG-006] Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟢 Baixa`
 - **Data de Registro:** 2026-09-19
 - **Data de Implementação:** 2026-09-19
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-23
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderForm.tsx`, `apps/mobile/src/pages/OrderForm.css`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -271,12 +274,12 @@
 ---
 
 ### [BUG-007] Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🟢 Baixa`
 - **Data de Registro:** 2026-09-19
 - **Data de Implementação:** 2026-09-19
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-23
 - **Componentes / Arquivos Afetados:** `apps/mobile/src/pages/OrderBoard.tsx`, `apps/mobile/src/pages/OrderBoard.css`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
@@ -317,6 +320,121 @@
 - Sempre aplicar `user-select: none` em elementos com manipuladores de gestos touch/long-press.
 - Integrar ações contextuais de listas diretamente no cabeçalho da seção quando já existirem outros elementos flutuantes na tela.
 
+### [BUG-008] Chave Pix de telefone rejeitada pelos bancos por ausência do prefixo internacional E.164 (+55)
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🔴 Alta`
+- **Data de Registro:** 2026-09-25
+- **Data de Implementação:** 2026-09-25
+- **Data de Validação:** 2026-09-25
+- **Componentes / Arquivos Afetados:** `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx`, `libs/utils/src/lib/pix.spec.ts`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao copiar o código Pix Copia e Cola gerado pelo Haru Control ou escanear o QR Code gerado nos aplicativos bancários (Nubank, Itaú, Inter, etc.), o banco rejeita a transação exibindo erro de que a chave Pix não foi encontrada, que os dados do recebedor não puderam ser identificados ou que o código é inválido. A captura de tela do app bancário fica totalmente preta devido à proteção `FLAG_SECURE` do Android em telas de transação bancária.
+- **Passos para Reproduzir:**
+  1. No Haru Control, abrir um pedido com valor definido e copiar o código Pix Copia e Cola.
+  2. Abrir qualquer aplicativo bancário no celular e selecionar "Pix Copia e Cola".
+  3. Colar o código gerado.
+  4. O banco retorna erro de consulta de chave ou chave não localizada no DICT.
+- **Comportamento Esperado:** O banco deve reconhecer o recebedor (Haru Cookies), o valor monetário exato e permitir a confirmação imediata da transferência Pix.
+- **Logs / Erros de Console:** Aplicativo bancário rejeita o payload com erro de dados do destinatário/chave não encontrada.
+
+#### 2. Onde está o problema (Localização Técnica)
+- No arquivo `apps/mobile/src/pages/OrderBoard.tsx`, o valor padrão de `pixKey` foi definido como `"11976952264"` (apenas DDD + número, sem `+55`).
+- Na especificação técnica do Banco Central do Brasil para o Diretório de Identificadores de Contas Transacionais (DICT), chaves Pix do tipo telefone celular **obrigatoriamente** seguem o formato internacional **E.164** (`+55` seguido do DDD e dos 9 dígitos, totalizando 14 caracteres com o prefixo `+`).
+- Quando um número com 11 dígitos sem `+55` é inserido na subtag `01` do EMVCo BR Code, os sistemas bancários tentam interpretá-lo como um CPF (já que CPFs possuem 11 dígitos numéricos). Como o número não possui os dígitos verificadores de um CPF nem corresponde a um CPF cadastrado, o banco falha na busca e rejeita o pagamento.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- O número de telefone celular de contato da Haru Cookies (`11976952264`) foi inserido como chave sem o prefixo internacional `+55` exigido pelo padrão DICT do BACEN para números telefônicos.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Normalização Automática de Chaves E.164 (`normalizePixKey`):** Criada função utilitária em `libs/utils/src/lib/pix.ts` com validação matemática de CPF (módulo 11). Se a chave possuir 10 ou 11 dígitos e não for um CPF válido, ou se começar com `55` sem o prefixo `+`, o sistema adiciona automaticamente o prefixo internacional `+55` (ex: `11976952264` ➔ `+5511976952264`), garantindo que o banco reconheça imediatamente como telefone celular no DICT. Chaves de e-mail, EVP (UUID), CPF válido e CNPJ são preservadas.
+- **Fallback Seguro em `OrderBoard.tsx`:** Atualizado o valor padrão de `pixKey` para `+5511976952264`.
+- **Validação por Testes:** Testes unitários adicionados em `pix.spec.ts` cobrindo normalização com/sem formatação, e-mails, UUIDs, CNPJs e geração do payload canônico.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Chaves Pix de telefone no Brasil devem sempre seguir rigorosamente a norma internacional E.164 (`+55XXXXXXXXXXX`).
+- Adicionar sanitização e normalização inteligente na biblioteca `generatePixPayload`: se uma chave de 10 ou 11 dígitos for informada e não for um CPF válido com algoritmo oficial, prefixar automaticamente com `+55` para garantir conformidade estrita e prevenir erros humanos de configuração em variáveis de ambiente.
+
 ---
+
+### [BUG-009] Erro ao carregar previsão de fornada no modal por endpoint incorreto (/analytics/demand-forecast)
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🟡 Média`
+- **Data de Registro:** 2026-09-25
+- **Data de Implementação:** 2026-09-25
+- **Data de Validação:** 2026-09-25
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/components/BakingSuggestionModal.tsx`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao abrir o modal de Sugestão de Fornada através do menu flutuante na tela de Estoque (`/stock`), o aplicativo exibe um toast de erro vermelho com o texto: `"Erro ao carregar previsão de fornada."`. A tela modal permanece vazia sem exibir a lista de cookies e quantidades a assar.
+- **Passos para Reproduzir:**
+  1. Acessar a tela de Estoque (`/stock`).
+  2. Clicar no botão flutuante (FAB) e selecionar "Sugestão de Fornada" (ou abrir o modal diretamente).
+  3. Observar o toast de erro imediato `"Erro ao carregar previsão de fornada."`.
+- **Comportamento Esperado:** O modal deve carregar a previsão de demanda e o cálculo de fornadas calculados pelo backend (`/stock/baking-suggestion`) de forma transparente e exibir os cookies necessários para o período.
+- **Logs / Erros de Console:** `GET http://<host>:3000/analytics/demand-forecast?startDate=...&targetDate=... 404 (Not Found)`. `Erro ao carregar sugestão de fornada: AxiosError: Request failed with status code 404`.
+
+#### 2. Onde está o problema (Localização Técnica)
+- No arquivo `apps/mobile/src/components/BakingSuggestionModal.tsx`, a função `loadSuggestions` realizava a chamada HTTP via `api.get("/analytics/demand-forecast", ...)`.
+- No backend NestJS (`apps/api`), não existe nenhum módulo ou rota `/analytics/demand-forecast`. O endpoint canônico implementado em `StockController` (`apps/api/src/modules/stock/stock.controller.ts`) é `@Get("baking-suggestion")`, acessível via `GET /stock/baking-suggestion`.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Durante a extração da funcionalidade de sugestão de fornada de um card estático para o novo modal responsivo (`BakingSuggestionModal.tsx`), o caminho do endpoint foi escrito incorretamente como `/analytics/demand-forecast` em vez de `/stock/baking-suggestion`. Além disso, o estado inicial `selectedOptionValue` começava como string vazia `""`, o que podia disparar requisições prematuras antes da seleção do período padrão.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Correção da Rota:** Alterada a chamada em `BakingSuggestionModal.tsx` para `api.get("/stock/baking-suggestion", ...)`, alinhando perfeitamente com os parâmetros `startDate` e `targetDate` esperados pelo `StockController` e `BakingSuggestionService`.
+- **Inicialização Síncrona do Período Padrão:** Extraída a função geradora de opções dinâmicas `getDynamicBakingOptions` e inicializado `selectedOptionValue` diretamente com o valor da primeira opção padrão válida, eliminando disparos duplicados ou inconsistentes na montagem inicial do modal.
+- **Validação Prática:** Validado no ambiente Dev (`haru-control.dev.com.br`) pelo usuário ao abrir o modal e visualizar os dados de previsão sem erros.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Sempre verificar e validar os decorators de rota dos controllers NestJS ao criar ou refatorar serviços e componentes no frontend.
+- Tipar as URLs das rotas da API em constantes ou clientes de serviço centralizados para garantir checagem estática em tempo de compilação.
+
+---
+
+### [BUG-010] Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
+- **Severidade:** `🟢 Baixa`
+- **Data de Registro:** 2026-09-25
+- **Data de Implementação:** 2026-09-25
+- **Data de Validação:** 2026-09-25
+- **Componentes / Arquivos Afetados:** `apps/mobile/src/components/BakingSuggestionModal.tsx`, `apps/mobile/src/components/BakingSuggestionModal.css`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao abrir o modal de Sugestão de Fornada em telas móveis/touch na tela de Estoque (`/stock`) e arrastar o dedo para navegar na lista de cookies sugeridos, a página de estoque ao fundo rola indevidamente (scroll chaining / vazamento de rolagem), tornando a rolagem interna do modal truncada e confusa.
+- **Passos para Reproduzir:**
+  1. Acessar `/stock` no smartphone ou DevTools touch mode.
+  2. Abrir o modal de Sugestão de Fornada pelo menu flutuante.
+  3. Deslizar o dedo verticalmente na área de itens ou cabeçalho do modal.
+  4. Observar que a página ao fundo rola simultaneamente ou bloqueia a rolagem interna do modal.
+- **Comportamento Esperado:** O fundo da página deve permanecer perfeitamente fixo (`overflow: hidden; touch-action: none;`), e o scroll touch deve operar única e exclusivamente no corpo interno do modal com inércia nativa (`-webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain;`).
+- **Logs / Erros de Console:** Nenhum erro de console reportado (comportamento de scroll chaining em touch screens).
+
+#### 2. Onde está o problema (Localização Técnica)
+1. **Conflito de Classes CSS e Sobrescrita de Overflow:** O elemento rolável em `BakingSuggestionModal.tsx` recebia duas classes: `<div className="baking-modal-body baking-suggestion-panel">`. Em `BakingSuggestionModal.css`, a classe `.baking-suggestion-panel` declarava `overflow: visible;` após a definição de `.baking-modal-body { overflow-y: auto; }`. Como ambas tinham mesma especificidade, `overflow: visible` sobrescreveu a rolagem, desativando o contêiner de scroll.
+2. **Restrição de Flexbox (`min-height: 0`):** Em contêineres `flex-direction: column` (`.baking-modal-container`), os filhos possuem `min-height: auto` por especificação. Sem `min-height: 0;`, o corpo interno não encolhia para caber nos `90vh`, expandindo todo o conteúdo e sendo cortado pelo `overflow: hidden` do pai sem ativar a barra de rolagem.
+3. **Supressão Global de Gestos Touch:** A atribuição de `document.body.style.touchAction = "none"` e o uso de `onTouchMove={(e) => e.stopPropagation()}` no contêiner do modal bloqueavam os gestos nativos de arrasto (`pan-y`) em navegadores móveis (Chrome/WebKit).
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- O modal de sugestão de fornada herdou o seletor `.baking-suggestion-panel` da época em que era um painel estático em `Stock.tsx` com `overflow: visible`. Na primeira tentativa de corrigir o vazamento de scroll, a inclusão de `touchAction: "none"` no body e no container acabou bloqueando os gestos de toque no próprio modal.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+- **Eliminação do Conflito de Overflow:** Removida a classe e a propriedade conflitante `overflow: visible;` de `.baking-suggestion-panel`. O contêiner de conteúdo agora é puramente `<div className="baking-modal-body">`.
+- **Habilitação de Encolhimento Flex (`min-height: 0`):** Aplicados `flex: 1 1 auto; min-height: 0; overflow-y: auto;` em `.baking-modal-body`, `.bake-modal-body` e `.broadcast-modal-body`, garantindo que os corpos roláveis encolham perfeitamente dentro dos limites da viewport móvel.
+- **Liberação dos Gestos de Toque:**
+  - O lock do body agora altera estritamente `document.body.style.overflow = "hidden"`, sem travar o `touchAction` global do documento.
+  - Removido `onTouchMove stopPropagation` dos contêineres, permitindo que o navegador reconheça livremente os gestos verticais de `pan-y`.
+  - Mantido `onTouchMove` condicional (`if (e.target === e.currentTarget) e.preventDefault()`) no overlay para impedir scroll ao tocar no fundo.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Em contêineres Flexbox verticais com modais/drawers, sempre declarar `min-height: 0;` no elemento rolável (`overflow-y: auto`), caso contrário o flex item se expande além do contêiner e o scroll quebra.
+- Nunca aplicar `touch-action: none` globalmente em `document.body`, pois isso desativa os gestos de arrasto em todos os elementos filhos que precisem de `pan-y`.
+
+---
+
+
 
 

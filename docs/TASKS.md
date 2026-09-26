@@ -3,13 +3,16 @@
 ## 🐛 Bugs Prioritários (BUGS.md)
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
+- `[x]` **[BUG-008]** Chave Pix de telefone rejeitada por ausência de prefixo internacional E.164 (+55) — *[✅ Resolvido e validado na prática pelo usuário no aplicativo bancário: código Pix Copia e Cola reconhecido com sucesso com chave internacional +55]*
+- `[x]` **[BUG-010]** Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile — *[✅ Resolvido e validado na prática em Dev: flex min-height 0, remoção de overflow visible e liberação de gestos touch]*
+- `[x]` **[BUG-009]** Erro ao carregar previsão de fornada no modal por endpoint incorreto — *[✅ Resolvido e validado na prática em Dev: endpoint corrigido para /stock/baking-suggestion]*
 - `[x]` **[BUG-001]** Erros de CORS nas requisições da API no frontend — *[✅ Resolvido e validado na prática em Dev e Produção no Coolify]*
 - `[x]` **[BUG-002]** Quebra de layout e overflow no modal de pedidos históricos — *[✅ Resolvido e validado na prática em Dev e Produção]*
 - `[x]` **[BUG-003]** Botão redundante de Histórico no cabeçalho e posição incorreta na BottomNavigation — *[✅ Resolvido e validado na prática: remoção do botão de topo e reposicionamento como última aba da barra inferior]*
 - `[x]` **[BUG-004]** Limite de altura forçando rolagem interna nas categorias de produtos em OrderForm — *[✅ Resolvido e validado na prática: remoção do max-height/overflow-y da grid para expansão natural dos produtos]*
-- `[ ]` **[BUG-005]** Chips de seleção de motivo do descarte sem feedback visual em OrderForm — *[🟡 Implementado: unificação de classes CSS e estilo .active nos chips — ⏳ Aguardando Validação Prática]*
-- `[ ]` **[BUG-006]** Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto — *[🟡 Implementado: bloqueio de scroll/touch no body, inclusão de taxa de entrega e total no drawer, ícone alterado para 🛒 — ⏳ Aguardando Validação Prática]*
-- `[ ]` **[BUG-007]** Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban — *[🟡 Implementado: user-select none nos cards, abas 100% width, container fit-content e ações de lote no cabeçalho da coluna — ⏳ Aguardando Validação Prática]*
+- `[x]` **[BUG-005]** Chips de seleção de motivo do descarte sem feedback visual em OrderForm — *[✅ Resolvido e validado na prática em Dev]*
+- `[x]` **[BUG-006]** Vazamento de scroll da página ao mover drawer do carrinho, ausência de taxa de entrega e ícone incorreto — *[✅ Resolvido e validado na prática em Dev]*
+- `[x]` **[BUG-007]** Seleção de texto no long-press dos cards, overflow horizontal nas abas e altura excessiva do container no Kanban — *[✅ Resolvido e validado na prática em Dev]*
 
 ---
 
@@ -60,15 +63,22 @@
     - Testes de ponta a ponta dos fluxos centrais: autenticação (PIN correto e inválido), criação de pedido e movimentação completa de status até conclusão com confirmação ACK, navegação por abas e gestos de swipe horizontal por toque, e cadastro de pedidos retroativos com filtros.
   - **Automação & Execução:**
     - Scripts de execução adicionados ao `package.json` (`test:e2e`, `test:e2e:ui`, `test:e2e:headed`, `test:e2e:codegen`) e guia completo para novos QAs em `e2e/README.md`.
-- `[ ]` **Integração de Pix Copia e Cola Dinâmico no Pedido com Gestão de Status:**
-  - **Geração de Código Pix:** Gerar código Pix "Copia e Cola" (e QR Code) com o valor exato final do pedido (produtos + taxa de entrega) e identificador único (`txid`).
-  - **Ciclo de Vida & Status do Pagamento:**
-    - Novos campos no modelo `Order` (ex: `pix_code`, `pix_txid`, `pix_status` [PENDING, PAID, EXPIRED], `pix_generated_at`, `pix_paid_at`).
-    - Registro de histórico e auditoria de quando o código foi gerado e quando o pagamento foi confirmado.
-  - **UI/UX Mobile:**
-    - Botão de ação rápida no card/modal para gerar e copiar a chave Pix com 1 toque.
-    - Opção de anexar o código Pix diretamente na mensagem formatada enviada ao cliente via WhatsApp.
-    - Badges visuais de status do Pix no card (ex: 🟡 Aguardando Pix, 🟢 Pix Pago).
+- `[x]` **Integração de Pix Copia e Cola Local com Valor Exato no Pedido:**
+  - **Geração Matemática Local (EMVCo BR Code / BACEN):**
+    - Implementação da biblioteca matemática pura `generatePixPayload` em `@haru-control/utils` calculando o padrão BR Code com checksum CRC16-CCITT (0x1021) sem dependência de APIs bancárias externas.
+    - Embutimento automático do valor exato do pedido (`totalPrice + deliveryFee`), chave Pix configurável via env `VITE_PIX_KEY`, nome fantasia e cidade.
+    - Adequação do padrão BR Code para Pix Estático: omissão da tag `01` (`010212`) e padronização do `txid` estático para `***` (`62070503***`), removendo subtags redundantes para compatibilidade universal com 100% dos apps bancários.
+  - **Comanda WhatsApp Original (Mensagem de Confirmação):**
+    - Retorno da mensagem de confirmação do WhatsApp ao seu formato original e limpo ("Então são: ... Valor total: ... Certo?"), mantendo o código Pix para envio avulso e facilitando a cópia/pagamento direto pelo cliente no WhatsApp.
+    - Cópia automática da mensagem de confirmação para a área de transferência no momento da criação do pedido em `OrderForm.tsx`, pronta para envio imediato.
+  - **UI/UX Mobile no Kanban & Modal:**
+    - Remoção dos botões de cópia dos cards no Kanban, garantindo layout visual limpo e foco na leitura dos itens e movimentação de status.
+    - Seção Pix no modal de detalhes colapsável e compacta por padrão (`isPixExpanded: false`), exibindo apenas valor e botão `📋 Copiar Código` em uma única linha.
+    - Abertura suave do QR Code e código monoespaçado sob demanda ao tocar no cabeçalho ou no indicador `▼ QR Code`.
+    - Botão dedicado `💬 Copiar Mensagem de Confirmação` no modal com feedback via Toast.
+  - **Suíte de Testes Automatizados E2E (`e2e/specs/09-pix-payment.spec.ts`) & Unitários (`pix.spec.ts`):**
+    - Teste Playwright validando a ausência de botões no card, estado inicial colapsado do Pix, cópia do código Pix, expansão do QR Code ao toque, cópia da mensagem de confirmação no formato original e fechamento do modal.
+    - Testes unitários de conformidade com as regras do BACEN em `libs/utils/src/lib/pix.spec.ts`.
 - `[x]` **Confirmação Interna de Pedidos (ACK no App) e Controle de Notificações:**
   - **Controle Opcional de Notificação na Criação/Edição:**
     - Adicionar checkbox no formulário do pedido (`OrderForm.tsx`): *"Enviar alerta sonoro de emergência (Pushover)"*, com **valor padrão marcado (`true`)**.
@@ -81,19 +91,27 @@
   - **Exibição na UI:** Exibir card destacado de métrica na tela `/insights` com o valor projetado, indicando a média diária e o número de dias restantes do mês.
   - **Refinamento de UI/UX:** Substituição dos chips de filtro por dropdown nativo responsivo e remoção de emojis gráficos decorativos da projeção.
   - **Evolução Futura:** Deixar a arquitetura preparada para modelos preditivos mais avançados (levando em conta sazonalidade de dias da semana, quinta a domingo com maior pico de vendas).
-- `[ ]` **Previsão Estatística de Demanda e Sugestão de Fornada Multi-Dias (Planejamento de Produção):**
+- `[x]` **Previsão Estatística de Demanda e Sugestão de Fornada Multi-Dias (Planejamento de Produção):**
   - *Documento de Especificação detalhado:* [docs/DRAFT_SUGESTAO_FORNADA.md](docs/DRAFT_SUGESTAO_FORNADA.md)
-  - **Horizonte de Planejamento Flexível (Data Alvo):**
-    - Permitir que o operador selecione até que data pretende cobrir o estoque (ex: assar na segunda para cobrir segunda, terça e quarta).
-    - Somar a demanda histórica individual de cada dia da semana do intervalo, aplicando margem de segurança e alerta de frescor/validade (*shelf life*).
+  - **Horizonte de Planejamento Flexível:**
+    - Alternância rápida entre assar para consumo a partir de "De Hoje" ou "A partir de Amanhã" com chips de data alvo (`Hoje`, `Amanhã`, `Até Quarta`, `Fim de Semana`, `Outra Data`).
+    - Somatório da demanda ponderada dia a dia com margem de segurança de 10%.
   - **Motor de Recomendação Baseado em Dados:**
-    - Analisar o histórico de vendas por dia da semana nas últimas 4 semanas via média móvel ponderada.
-    - Subtrair o saldo atual de cookies prontos em estoque para obter a necessidade líquida de produção.
-    - Ajuste opcional para tamanho de assadeira/lote de forno.
-  - **Cruzamento com Ficha Técnica (BOM):**
-    - Alertar se há massa/ingredientes suficientes no estoque para cobrir a fornada recomendada no período.
-  - **Interface Mobile-First no Estoque (`Stock.tsx`):**
-    - Painel colapsável no topo da tela com chips de atalho rápido de período (`Hoje`, `Até Amanhã`, `Até Quarta`, `Fim de Semana`, `Data Personalizada...`) e botão para lançamento rápido no Ledger contábil.
+    - Análise do histórico de vendas por dia da semana nas últimas 4 semanas via média móvel ponderada decrescente (pesos 4, 3, 2, 1).
+    - Dedução do saldo físico de cookies em estoque para cálculo da necessidade líquida de produção.
+    - Exibição transparente da equação de necessidade individual por produto (`Demanda - Estoque = Assar`).
+  - **Cruzamento Informativo com Ficha Técnica (BOM):**
+    - Verificação não-bloqueante de insumos, alertando quais ingredientes estão em falta na cozinha sem travar a produção.
+  - **Interface Mobile-First no Estoque (`Stock.tsx` & `BakingSuggestionModal.tsx`):**
+    - Sugestão de fornada convertida em modal responsivo (`BakingSuggestionModal.tsx` & `.css`), liberando espaço visual no topo da lista de estoque.
+    - Nova ação `🍪 Sugestão de Fornada` integrada ao menu do botão flutuante (FAB) em `Stock.tsx`.
+    - Remoção dos botões redundantes de "Entrada de Estoque" e "Ajustar Estoque" do menu flutuante (FAB), uma vez que a interação é feita diretamente ao tocar nos cards dos produtos.
+    - Atalhos de datas dinâmicos em dropdown nativo (padrão `Insights.tsx`): calcula automaticamente os dias úteis da semana atual até sábado ("Até amanhã", "Até depois de amanhã (dia da semana)", etc.), excluindo domingos.
+    - Painel inteligente com badge de total a assar, controles de início ("De Hoje" / "A partir de Amanhã") e expansão dia a dia.
+    - Botão de 1 toque para copiar o resumo da fornada formatado para WhatsApp ou anotações.
+    - Modal de confirmação e lançamento atômico no Ledger contábil (`POST /stock/in/batch`).
+  - **Suíte de Testes Automatizados E2E (`e2e/specs/08-baking-suggestion.spec.ts`):**
+    - Teste Playwright de ponta a ponta validando renderização, alternância hoje/amanhã, presets, expansão de equação, cópia para WhatsApp e modal de fornada com 100% de sucesso (13/13 testes passando).
 - `[x]` **Módulo de Descarte de Produtos / Insumos (Controle de Perdas & Validade):**
   - **Ledger Contábil de Descarte:**
     - Adicionar operação `WASTE` ao enum `LedgerOperationType` no Prisma.
@@ -154,6 +172,7 @@
     - Mensagem contextual/gancho opcional (ex: sobre friozinho, chuva), completamente omitida se vazia.
     - Seleção de produtos vendáveis (`isSellable === true`), com pré-seleção automática dos itens com estoque > 0.
     - Agrupamento inteligente por Subcategoria/Categoria com detecção de preço uniforme (ex: `*Cookies Tradicionais R$8,00*`) ou preços variados com subgrupos de valor (ex: `*Cookies Especiais:*` ➔ `*R$11,00*` ➔ `*R$14,00*`).
+    - Ordenação estrita das categorias e subcategorias pelo menor preço (ascendente, do mais barato ao mais caro) tanto na mensagem quanto no checklist do modal.
     - Formatação fiel ao modelo oficial da Haru Cookies com links do catálogo WhatsApp e texto de encomenda.
     - Pré-visualização em tempo real da mensagem formatada no próprio modal.
     - Cópia para o clipboard com 1 toque e toast de confirmação.
@@ -161,6 +180,16 @@
     - Nova ação `📢 Divulgar Cookies Disponíveis` integrada ao menu do botão flutuante (FAB).
   - **Suíte de Testes Automatizados E2E (`e2e/`):**
     - Criado teste `07-broadcast-menu.spec.ts` cobrindo abertura, preenchimento, preview e cópia via clipboard, com 100% de sucesso (12/12 testes passando).
+- `[ ]` **Módulo Seguro de Sincronização e Importação de Dados (Produção ➔ Dev):**
+  - **Exportação Segura em Produção (`apps/api`):**
+    - Endpoint fechado `GET /admin/database/export` protegido por chave secreta dedicada no header (`X-Database-Sync-Key`) com comparação em tempo constante (`crypto.timingSafeEqual`).
+    - Despejo estruturado em JSON de todas as tabelas em ordem topológica de dependência (`categories`, `subcategories`, `products`, `recipe_items`, `customers`, `orders`, `order_items`, `sales`, `ledger_entries`).
+    - Endpoint desativado por padrão caso a variável secreta de ambiente não esteja configurada.
+  - **Importação e Carga Atômica em Desenvolvimento (`apps/api`):**
+    - Endpoint `POST /admin/database/import` habilitado estritamente em ambiente de desenvolvimento (`NODE_ENV !== 'production'`).
+    - Limpeza prévia atômica com `TRUNCATE ... CASCADE` e recarga ordenada de todos os registros via transação Prisma, tratando compatibilidade de migrations entre ambientes.
+  - **Automação & Script de Carga:**
+    - Script no monorepo (`npm run db:pull-prod`) para sincronizar a base de dev com a produção sob demanda ou semanalmente com 1 comando.
 
 ---
 

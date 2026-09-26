@@ -458,6 +458,238 @@
 - **Ação Executada:**
   - Criada Pull Request [#2](https://github.com/CesarRyudi/Haru-Control/pull/2) no GitHub: `chore(release): sincronizar produção com melhorias operacionais da Fase 2 e correções`.
 
+### [2026-09-23] Validação Prática de BUG-005, BUG-006 e BUG-007 pelo Usuário
+
+- **Contexto:** Confirmação explícita pelo usuário após testes práticos em ambiente de desenvolvimento de que as correções comportamentais e visuais implementadas resolveram completamente os problemas apontados.
+- **Bugs Validados:**
+  - `[BUG-005]`: Chips de seleção de motivo de descarte no `OrderForm` agora apresentam feedback visual claro de seleção (`.active`).
+  - `[BUG-006]`: Rolagem da página ao fundo travada durante a abertura do drawer do carrinho, discriminação de taxa de entrega e total consolidado, e ícone do carrinho atualizado para `🛒`.
+  - `[BUG-007]`: Supressão da seleção nativa de texto no long-press dos cards de pedidos, abas do Kanban 100% responsivas sem scroll horizontal, contenção da altura vertical da tela e botões de ação em massa integrados ao cabeçalho da coluna.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-23] Implementação da Previsão de Demanda e Sugestão de Fornada Multi-Dias
+
+- **Contexto:** Necessidade da confeitaria de planejar lotes de cookies que cubram múltiplos dias consecutivos de venda (ex: assar na segunda à noite para cobrir terça e quarta), com visibilidade clara da demanda individual por produto, dedução do estoque atual e checagem de matérias-primas.
+- **Implementações Realizadas:**
+  - **1. Tipos Compartilhados (`libs/types/src/lib/types.ts`):**
+    - Criadas as interfaces `BakingSuggestionDayBreakdown`, `MissingIngredient`, `BakingSuggestionItem`, `BakingSuggestionResponse`, `StockInBatchItemDto` e `StockInBatchDto`.
+  - **2. Backend API NestJS (`apps/api/src/modules/stock/`):**
+    - **`BakingSuggestionService`:** Motor estatístico que analisa as últimas 4 semanas de pedidos concluídos (`COMPLETED`), aplicando média móvel ponderada decrescente (pesos 4, 3, 2, 1) para cada dia da semana do intervalo planejado, margem de segurança configurável (padrão 10%), dedução do saldo atual de estoque (`LedgerEntry`) e cálculo da necessidade líquida individual por sabor.
+    - **Checagem Informativa de BOM:** Cruzamento com as receitas (`RecipeItem`), gerando lista detalhada de insumos em falta sem bloquear a produção.
+    - **Entrada em Lote no Ledger Contábil (`StockService.addStockBatch`):** Criação atômica de múltiplos registros `STOCK_IN` via `prisma.$transaction`.
+    - **`StockController`:** Adicionados endpoints `GET /stock/baking-suggestion` (com suporte a `startDate`, `targetDate` e `safetyMargin`) e `POST /stock/in/batch`.
+    - **`StockModule`:** Registrado `BakingSuggestionService` em providers e exports.
+  - **3. Frontend Mobile-First (`apps/mobile/src/`):**
+    - **Componente `BakingSuggestionCard.tsx` & `BakingSuggestionCard.css`:**
+      - Painel retrátil no topo da tela de Estoque com badge de contagem de cookies a fornar.
+      - Seletor flexível de início: `📅 De Hoje` vs `🌙 A partir de Amanhã` (ex: assando à noite para os dias seguintes).
+      - Chips de atalho rápido de data alvo: `Mesmo Dia`, `Até Amanhã`, `Até Quarta-feira`, `Fim de Semana (até Domingo)` e `Outra Data...` com seletor `<input type="date">`.
+      - Exibição transparente da equação por produto: `Demanda (X) − Estoque (Y) = Assar (Z)`.
+      - Accordion expansível com o discriminativo da demanda prevista de cada dia individual do período.
+      - Alerta visual suave listando insumos em falta caso a cozinha não tenha ingredientes suficientes, sem travar a fornada.
+      - Botão `📋 Copiar Resumo`: gera texto formatado com links e totais e copia instantaneamente para o clipboard com Toast de confirmação.
+      - Modal `🔥 Fornar Sugestão`: permite conferir e ajustar as quantidades e lançar a entrada de estoque em lote no Ledger contábil.
+    - **`Stock.tsx`:** Integrado o painel no topo da página de Estoque com recarregamento reativo automático dos dados.
+  - **4. Suíte de Testes Automatizados E2E com Playwright (`e2e/`):**
+    - Criado teste `08-baking-suggestion.spec.ts` validando o fluxo completo de ponta a ponta (renderização, alternância de início hoje/amanhã, presets, equação transparente, accordion dia a dia, cópia para WhatsApp e modal de fornada).
+- **Validação:**
+  - Build do monorepo (`npm run build`) concluído com 100% de sucesso para todos os 4 projetos (`types`, `utils`, `api`, `mobile`).
+  - Suíte completa de 13 testes E2E Playwright executada e aprovada com 100% de sucesso (34.8s).
+- **Documentação Atualizada:** `docs/TASKS.md`, `docs/HISTORY.md` e `HARU_CONTROL_INDEX.md`.
+
+### [2026-09-24] Implementação de Pix Copia e Cola com Valor Exato e Integração na Comanda WhatsApp
+
+- **Contexto:** Agilização do fechamento e recebimento de pedidos diretamente pelo WhatsApp e no Quadro de Pedidos (Kanban), eliminando a dependência de APIs bancárias externas e sem gerar complexidade de schema ou poluição visual na interface.
+- **Implementações Realizadas:**
+  - **1. Utilitário BR Code EMVCo (`libs/utils/src/lib/pix.ts`):**
+    - Implementação da especificação oficial do Banco Central do Brasil para arranjos de pagamento Pix (EMVCo BR Code padrão).
+    - Cálculo matemático de redundância cíclica `CRC16-CCITT` (polinômio `0x1021`, inicial `0xFFFF`) com padding de 4 caracteres hexadecimais em caixa alta.
+    - Suporte a geração dinâmica com chave Pix (`harucookiesdf@gmail.com`), nome do recebedor (`HARU COOKIES`), cidade (`BRASILIA`), identificador de transação e valor exato formatado (`00.00`).
+    - Exportado em `libs/utils/src/index.ts` e compartilhado no monorepo.
+  - **2. Integração no Quadro de Pedidos (`apps/mobile/src/pages/OrderBoard.tsx` & `.css`):**
+    - **Comanda WhatsApp:** O botão de cópia rápida da comanda (`📋`) agora anexa automaticamente ao final da mensagem o bloco formatado com o código Pix Copia e Cola referente ao valor total do pedido (`totalPrice + deliveryFee`).
+    - **Botão Rápido no Card:** Adicionado botão `🔑` (`.btn-copy-pix`) ao lado do botão da comanda em cada card do Kanban, permitindo copiar exclusivamente o código Pix para a área de transferência com um único toque, com feedback visual via Toast.
+    - **Modal de Detalhes:** Seção Pix no modal de detalhes com visualização monoespaçada do código, botão dedicado de cópia e QR Code gerado para leitura presencial.
+    - **Fluxo Operacional Enxuto:** Conforme alinhado, a confirmação do pagamento ocorre de forma natural ao mover o pedido de `Rascunho` para `Em Produção`, mantendo a interface limpa e sem necessidade de migrações ou badges de pendência.
+  - **3. Suíte de Testes Automatizados E2E (`e2e/specs/09-pix-payment.spec.ts`):**
+    - Cobertura completa de ponta a ponta validando o botão `🔑` no card, validação da string EMVCo no clipboard (`000201...`, `br.gov.bcb.pix`, `HARU COOKIES`), inclusão do Pix na comanda copiada e QR Code / cópia no modal de detalhes.
+- **Validação:**
+  - Build limpo do monorepo (`npm run build`) concluído com 100% de sucesso (`types`, `utils`, `api`, `mobile`).
+  - Suíte completa de 14 testes E2E Playwright executada e aprovada com 100% de sucesso.
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-24] Refinamento de UI/UX do Pix no Modal, Remoção de Botões no Card e Envio Isolado da Comanda
+
+- **Contexto:** Solicitação do usuário para otimização de espaço visual no modal de detalhes do pedido (seção Pix excessivamente alta em telas mobile), remoção dos botões de cópia dos cards no Kanban para layout mais limpo, centralização da cópia de comanda dentro do modal e desvinculação do Pix da mensagem de confirmação (para que o Pix possa ser enviado como mensagem avulsa e independente no WhatsApp, facilitando a cópia/pagamento pelo cliente).
+- **Implementações Realizadas:**
+  - **1. Seção Pix Colapsável no Modal (`OrderBoard.tsx` & `OrderBoard.css`):**
+    - Estado `isPixExpanded` com valor inicial `false` garantido ao abrir ou fechar o modal.
+    - Quando colapsada (default), ocupa apenas uma linha compacta contendo o valor total `🔑 Pix Copia e Cola (R$ XX,XX)`, botão `📋 Copiar Código` e badge interativo `▼ QR Code`.
+    - Ao tocar no cabeçalho ou no badge, expande suavemente exibindo o QR Code gerado em alta resolução e o bloco monoespaçado do código, com badge alternado para `▲ Fechar QR`.
+    - Cópia do código via botão `📋 Copiar Código` isolada com `e.stopPropagation()` para não disparar expansão/recolhimento acidental.
+  - **2. Limpeza dos Cards no Kanban (`OrderBoard.tsx`):**
+    - Removidos completamente os botões de ação rápida (`.order-item-actions`, contendo `btn-copy` e `btn-copy-pix`) dos cards de pedidos.
+    - A lista de itens dos cookies passa a ocupar a largura total do container, eliminando poluição visual no quadro.
+  - **3. Botão Dedicado de Cópia da Confirmação no Modal (`OrderBoard.tsx` & `OrderBoard.css`):**
+    - Adicionado botão `.btn-modal-copy-confirmation` (*"💬 Copiar Mensagem de Confirmação"*) em verde WhatsApp (`#25d366`) destacado na base dos totais do pedido, com feedback visual via Toast (*"Mensagem de confirmação copiada!"*).
+  - **4. Restauração da Comanda Original sem Pix (`OrderBoard.tsx`):**
+    - Removido o bloco `${pixBlock}` do gerador de texto em `handleCopyOrder()`, restaurando rigorosamente a mensagem original enxuta (*"Então são: ... Valor total: ... Certo?"*).
+  - **5. Atualização da Suíte de Testes E2E (`e2e/specs/09-pix-payment.spec.ts`):**
+    - Validação de ausência de botões nos cards, estado inicial colapsado no modal, cópia do código Pix, expansão do QR Code ao toque, cópia da mensagem de confirmação sem Pix e fechamento do modal.
+- **Validação:**
+  - `npx prisma generate` executado com sucesso sincronizando novos modelos com o cliente Prisma local.
+  - Build limpo do monorepo (`npm run build`) concluído com 100% de sucesso (`types`, `utils`, `api`, `mobile`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Correção do Padrão EMVCo BR Code do Pix Copia e Cola (Remoção da Tag 010212)
+
+- **Contexto:** Identificada inconsistência técnica na geração do payload de Pix Copia e Cola: a inclusão indevida da tag `010212` (`Point of Initiation Method = 12`) indicava aos aplicativos bancários tratar-se de um QR Code Dinâmico (que exige URL de cobrança via API bancária). Como o Haru Control opera com QR Code Estático offline (chave Pix direta na subtag 01), os bancos rejeitavam o código com erro de formato ou QR code inválido.
+- **Implementações Realizadas:**
+  - **1. Utilitário BR Code (`libs/utils/src/lib/pix.ts`):**
+    - Removida a emissão da Tag `01` (`010212`) para estrita conformidade com a especificação do Banco Central (Manual BR Code / EMVCo) para Pix Estático com valor fixo.
+    - Adicionada sanitização de espaços em branco na chave (`key.replace(/\s+/g, "").trim()`) para prevenir falhas decorrentes de espaçamentos acidentais em variáveis de ambiente.
+  - **2. Variáveis de Ambiente & Documentação (`.env.example`):**
+    - Documentadas as variáveis `VITE_PIX_KEY`, `VITE_PIX_NAME` e `VITE_PIX_CITY`.
+  - **3. Testes Unitários (`libs/utils/src/lib/pix.spec.ts`):**
+    - Criados testes unitários validando a estrutura BR Code (início em `00020126`, ausência de `010212`, presença de `br.gov.bcb.pix`, chave, valor monetário formatado e cálculo do CRC16).
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Auto-cópia da Confirmação do Pedido, Ordenação por Preço no Menu de Divulgação e Otimização do Pix
+
+- **Contexto:** Solicitação do usuário para:
+  1. Copiar automaticamente a mensagem de confirmação para a área de transferência no momento em que um pedido for criado no `OrderForm`, agilizando o envio imediato no WhatsApp.
+  2. Ordenar as categorias e subcategorias na mensagem de divulgação e no checklist do modal pelo preço (do mais barato para o mais caro), criando um padrão uniforme de apresentação.
+  3. Diagnóstico e otimização do código Pix Copia e Cola, removendo parâmetros redundantes na Tag 26 e padronizando txid estático (`***`).
+- **Implementações Realizadas:**
+  - **1. Auto-cópia da Confirmação de Pedido (`OrderForm.tsx`, `OrderBoard.tsx`, `libs/utils`):**
+    - Criada a função compartilhada `formatOrderConfirmationMessage()` em `libs/utils/src/lib/utils.ts`.
+    - `OrderForm.tsx`: Ao salvar o pedido (ou continuar com avisos), copia automaticamente a mensagem de confirmação formatada para o clipboard e redireciona com estado `{ toastMessage: "Pedido criado e confirmação copiada!" }`.
+    - `OrderBoard.tsx`: Escuta `location.state?.toastMessage` exibindo feedback visual imediato via Toast; refatorado `handleCopyOrder` para utilizar o mesmo utilitário compartilhado.
+  - **2. Ordenação por Preço no Menu de Divulgação (`BroadcastMenuModal.tsx`):**
+    - `generateBroadcastText`: Categorias e subgrupos agora são ordenados estritamente pelo menor preço (ascendente, do mais barato ao mais caro), com desempate alfabético por nome.
+    - Modal de Divulgação: Lista de produtos vendáveis (`sellableProducts`) também passa a ordenar os itens em ordem crescente de valor monetário.
+  - **3. Otimização do Payload Pix (`OrderBoard.tsx`):**
+    - Removida a subtag redundante `description: "Haru Cookies"` dentro da tag 26, eliminando espaços no campo e mantendo a identificação exclusivamente na tag 59 (`Merchant Name`).
+    - Padronizado o identificador de transação estático para `txid: "***"`, compatível com 100% dos aplicativos bancários.
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Conversão da Sugestão de Fornada para Modal Acionado pelo Menu Flutuante (FAB)
+
+- **Contexto:** Solicitação do usuário para mover o painel de sugestão de fornada (que anteriormente ficava fixo no topo da página de estoque ocupando espaço vertical) para dentro de um modal sob demanda, acessível diretamente pelo menu do botão de ação flutuante (`FloatingActionButton`).
+- **Implementações Realizadas:**
+  - **1. Componente de Modal Responsivo (`BakingSuggestionModal.tsx` & `.css`):**
+    - Criado componente `BakingSuggestionModal` com overlay com efeito blur, container animado (`bakingModalPop`), cabeçalho temático com badge de unidades a fornar, botão de fechar (`✕`), corpo com rolagem suave independente e rodapé com botões de fechar e fornar sugestão.
+    - Suporte a fechamento ao clicar no backdrop e pela tecla `Escape`.
+    - Ajustado o z-index do modal aninhado de registro de fornada no estoque (`.bake-modal-backdrop`, z-index 10000) para sobrepor com perfeição o modal de sugestão.
+    - Re-exportação mantida em `BakingSuggestionCard.tsx` para compatibilidade retroativa integral.
+  - **2. Integração no Menu Flutuante e Limpeza da Tela de Estoque (`Stock.tsx`):**
+    - Removido o componente fixo do topo de `Stock.tsx`, permitindo visualização imediata da listagem de produtos e categorias do estoque sem rolagem preliminar.
+    - Adicionada a ação `🍪 Sugestão de Fornada` ao menu de ações do `FloatingActionButton`.
+    - Integração de estado `isBakingModalOpen` com recarregamento reativo dos dados ao abrir.
+  - **3. Atualização dos Testes Automatizados E2E (`08-baking-suggestion.spec.ts`):**
+    - Atualizado o fluxo de teste Playwright para abrir o FAB e selecionar "Sugestão de Fornada", mantendo todas as validações de horizonte, breakdown, cópia e lançamento no estoque ativas.
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Atalhos de Datas Dinâmicos no Modal de Fornada e Otimização do Menu Flutuante (FAB)
+
+- **Contexto:** Solicitação do usuário para:
+  1. Substituir os botões fixos de presets por um seletor dropdown nativo idêntico ao utilizado nos Insights, calculando dinamicamente as opções com base no dia atual ("Até amanhã", "Até depois de amanhã (dia da semana)", etc.), abrangendo todos os dias da semana corrente até sábado (omitindo domingo, pois não há vendas).
+  2. Remover as opções "Entrada de Estoque" e "Ajustar Estoque" do menu flutuante (FAB), visto que o fluxo já é acessado intuitivamente com um toque direto nos cards dos produtos.
+- **Implementações Realizadas:**
+  - **1. Atalhos Dinâmicos em Dropdown Nativo (`BakingSuggestionModal.tsx` & `.css`):**
+    - Criado gerador `dynamicOptions` calculando automaticamente os dias úteis a partir de hoje/amanhã até o sábado da semana em curso.
+    - Rótulos formatados fielmente: "Até amanhã (dia)", "Até depois de amanhã (dia)", "Até sábado", etc., com exclusão inteligente de domingos.
+    - Seletor estilizado com o padrão `Insights.tsx` (`baking-period-select-wrapper` e `baking-period-select`), acompanhado de campo de data customizada quando "Outra data..." for selecionada.
+  - **2. Simplificação do Menu Flutuante (`Stock.tsx`):**
+    - Removidos os itens de menu redundantes `Entrada de Estoque` e `Ajustar Estoque`, mantendo `Divulgar Cookies Disponíveis`, `Sugestão de Fornada` e `Registrar Descarte / Perda`.
+  - **3. Atualização dos Testes Automatizados E2E (`08-baking-suggestion.spec.ts`):**
+    - Adaptada a asserção Playwright para interagir com o novo dropdown nativo de período dinâmico.
+- **Validação:** Compilação de todos os pacotes concluída com 100% de sucesso (`npm run build`).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Resolução de BUG-008: Normalização Automática de Chaves Pix para Padrão Internacional E.164 (+55)
+
+- **Contexto:** Identificado que aplicativos bancários rejeitavam o código Pix Copia e Cola gerado para chaves de telefone celular quando informadas sem o prefixo internacional `+55` (ex: `11976952264`). De acordo com a especificação técnica do DICT (Banco Central do Brasil), telefones exigem estritamente o formato E.164 (`+55XXXXXXXXXXX`). Na ausência do `+`, os bancos interpretavam o valor de 11 dígitos como um CPF e rejeitavam a transação.
+- **Implementações Realizadas:**
+  - **1. Normalizador de Chaves Pix (`libs/utils/src/lib/pix.ts`):**
+    - Implementada a função `normalizePixKey()` com algoritmo de validação matemática de CPF (módulo 11).
+    - Se a chave for composta por 10 ou 11 dígitos que não correspondam a um CPF válido, ou se começar com `55` sem o `+`, é automaticamente prefixada com `+55` (ex: `11976952264` ou `(11) 97695-2264` ➔ `+5511976952264`).
+    - Chaves do tipo e-mail, EVP (UUID), CPF válido e CNPJ continuam preservadas sem alteração.
+    - Integrada a normalização diretamente no ponto de entrada de `generatePixPayload()`.
+  - **2. Fallback Seguro no Frontend (`OrderBoard.tsx`):**
+    - Atualizado o valor padrão de `pixKey` para `+5511976952264` caso a variável `VITE_PIX_KEY` não seja fornecida.
+  - **3. Testes Unitários (`libs/utils/src/lib/pix.spec.ts`):**
+    - Testes unitários atualizados e expandidos cobrindo chaves com e sem `+55`, com caracteres especiais de máscara, e-mails, UUIDs, CNPJs e validação da subtag `0114+5511976952264`.
+- **Validação:** Compilação do monorepo (`npm run build`) concluída com 100% de sucesso e testes validados via script de execução.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Resolução de BUG-009: Correção do Endpoint de Sugestão de Fornada no Modal
+
+- **Contexto:** Usuário reportou que, ao abrir o modal de Sugestão de Fornada na tela de Estoque (`/stock`), o aplicativo exibia imediatamente uma notificação de toast com erro: *"Erro ao carregar previsão de fornada."*.
+- **Investigação & Causa Raiz:**
+  - Durante a migração da sugestão de fornada de um card estático para o componente `BakingSuggestionModal.tsx`, a requisição foi configurada com o endpoint `GET /analytics/demand-forecast`.
+  - A API NestJS não possui nenhum módulo ou controller em `/analytics`, pois o endpoint canônico está declarado em `StockController` (`apps/api/src/modules/stock/stock.controller.ts`) sob `@Get("baking-suggestion")`, acessível via `GET /stock/baking-suggestion`.
+  - Além disso, `selectedOptionValue` inicializava como string vazia `""`, o que causava disparo de query prematura antes do período padrão ser atribuído.
+- **Implementações Realizadas:**
+  - **1. Correção do Endpoint (`BakingSuggestionModal.tsx`):**
+    - Substituída a rota de chamada para `api.get("/stock/baking-suggestion", ...)`, alinhando os parâmetros `startDate` e `targetDate` com o backend.
+  - **2. Inicialização Síncrona do Dropdown (`BakingSuggestionModal.tsx`):**
+    - Extraída a função auxiliar `getDynamicOptions()` e inicializado o estado `selectedOptionValue` diretamente com o valor do preset padrão, evitando re-renders e chamadas duplicadas ou desordenadas na abertura do modal.
+### [2026-09-25] Resolução de BUG-010: Isolamento de Scroll Mobile, Conflito de Overflow e Touch Lock no Modal de Fornada
+
+- **Contexto:** Usuário identificou que, ao abrir o modal de Sugestão de Fornada no mobile, a rolagem dos cookies travava e/ou movia a página de Estoque ao fundo.
+- **Investigação & Causa Raiz:**
+  1. A classe herdada `.baking-suggestion-panel` continha `overflow: visible;`, sobrescrevendo o `overflow-y: auto;` de `.baking-modal-body` por especificidade CSS e destruindo o contêiner de rolagem.
+  2. Como o contêiner `.baking-modal-container` é um flexbox vertical com limite de `90vh`, a ausência de `min-height: 0;` no elemento rolável impedia o encolhimento do flex item, extrapolando a altura e sendo cortado pelo `overflow: hidden` do modal.
+  3. A aplicação de `document.body.style.touchAction = "none"` e de `onTouchMove stopPropagation` no contêiner suprimia o reconhecimento de gestos verticais (`pan-y`) em navegadores móveis.
+- **Implementações Realizadas:**
+  - **1. Remoção de Conflito de Overflow & Habilitação de Flex Shrink:**
+    - Removida a propriedade `overflow: visible;` de `.baking-suggestion-panel` e removida a classe do JSX de `BakingSuggestionModal.tsx`.
+    - Inseridos `flex: 1 1 auto; min-height: 0; overflow-y: auto;` em `.baking-modal-body`, `.bake-modal-body` e `.broadcast-modal-body`.
+  - **2. Ajuste Fino de Eventos Touch:**
+    - O lock do body agora restringe estritamente `document.body.style.overflow = "hidden"`, sem afetar o `touchAction` global da página.
+    - Removido `onTouchMove stopPropagation` dos contêineres, liberando o arrasto touch vertical nativo dentro do modal.
+    - Mantido `preventDefault()` condicional no overlay (`if (e.target === e.currentTarget)`) para impedir rolagem de fundo ao tocar fora.
+- **Validação:** Compilação de todos os pacotes (`npm run build`) concluída com 100% de sucesso.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Ajuste nos Atalhos de Fornada: Janela Fixa de 1 Semana (5 Dias Úteis à Frente)
+
+- **Contexto:** Alinhamento com o usuário para evitar excesso de opções no seletor de datas: foi estabelecido que uma semana de horizonte operacional é o suficiente (exatamente 5 dias úteis de vendas à frente).
+- **Implementações Realizadas:**
+  - **1. Janela Rolante de 5 Dias Úteis (`BakingSuggestionModal.tsx`):**
+    - Refatorada a função `getDynamicOptions()` para gerar estritamente os próximos 5 dias de vendas subsequentes à data inicial base (`baseStart`), ignorando domingos.
+    - Qualquer que seja o dia atual (segunda, quarta, sexta ou sábado), a lista sempre oferece exatamente os próximos 5 dias úteis com formatação semântica ("Até amanhã", "Até depois de amanhã", "Até dia_da_semana (dd/mm)").
+    - Opção "Outra data..." permanece disponível ao final para períodos maiores.
+- **Validação:** Compilação de todos os pacotes (`npm run build`) concluída com 100% de sucesso.
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-09-25] Validação Prática de BUG-008 (Pix E.164) e Preparação de Sincronização com Produção
+
+- **Contexto:** Confirmação prática pelo usuário da geração e aceite do Pix Copia e Cola nos aplicativos bancários, encerrando com 100% de sucesso todos os bugs reportados. Solicitação de sincronização da branch `main` com a branch de `production`.
+- **Validações Práticas:**
+  - **BUG-008 (Pix Internacional E.164):** Usuário testou no aplicativo bancário e confirmou que a chave telefônica com o prefixo internacional `+55` (`+5511976952264`) e payload EMVCo sem a tag 01 de QR dinâmico foi imediatamente reconhecida, processando o recebedor Haru Cookies e o valor exato.
+- **Preparação de Release para Produção:**
+  - Auditoria completa dos 11 commits acumulados em `main` subsequentes à PR #2.
+  - O pacote a ser promovido para produção engloba:
+    1. Resolução e blindagem de `BUG-005`, `BUG-006`, `BUG-007`, `BUG-008`, `BUG-009` e `BUG-010`.
+    2. Suporte a cálculo de sugestão de fornada multi-dias no backend e no frontend com modal responsivo e atalhos dinâmicos calibrados para 5 dias úteis de vendas.
+    3. Geração instantânea e colapsável de código Pix Copia e Cola com valor exato na comanda do Kanban.
+    4. Auto-cópia inteligente de confirmação do pedido ao criar no `OrderForm`.
+    5. Ordenação decrescente de produtos por preço na seleção de pedidos.
+    6. Suíte de testes E2E e sanitizações de código.
+- **Criação da Pull Request:**
+  - Aberta a [Pull Request #3](https://github.com/CesarRyudi/Haru-Control/pull/3) (`main` ➔ `production`), totalizando 12 commits de melhorias e correções sem conflitos.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
+
+
+
+
+
 
 
 

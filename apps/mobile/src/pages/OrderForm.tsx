@@ -9,7 +9,7 @@ import {
   Subcategory,
 } from "@haru-control/types";
 import { NumberInput } from "@haru-control/ui";
-import { formatCurrency } from "@haru-control/utils";
+import { formatCurrency, formatOrderConfirmationMessage } from "@haru-control/utils";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from "../services/api";
@@ -447,12 +447,17 @@ export default function OrderForm() {
           bottomCheckoutRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 150);
       } else {
+        copyConfirmationToClipboard();
         clear();
         setIsCartDrawerOpen(false);
         if (isHistorical) {
-          navigate("/orders/history");
+          navigate("/orders/history", {
+            state: { toastMessage: "Pedido salvo e confirmação copiada!" },
+          });
         } else {
-          navigate(-1);
+          navigate("/", {
+            state: { toastMessage: "Pedido criado e confirmação copiada!" },
+          });
         }
       }
     } catch (error: any) {
@@ -460,6 +465,47 @@ export default function OrderForm() {
       alert(error.response?.data?.message || "Erro ao salvar pedido");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const copyConfirmationToClipboard = () => {
+    if (formMode === "waste") return;
+    try {
+      const confirmationMsg = formatOrderConfirmationMessage({
+        items: items.map((i) => ({
+          quantity: i.quantity,
+          productName: i.productName,
+          unitPrice: i.unitPrice,
+        })),
+        orderTotal: totalCartPrice,
+        deliveryFee: Number(deliveryFee),
+        address,
+      });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(confirmationMsg).catch(() => {
+          fallbackCopyText(confirmationMsg);
+        });
+      } else {
+        fallbackCopyText(confirmationMsg);
+      }
+    } catch (err) {
+      console.error("Erro ao copiar confirmação do pedido:", err);
+    }
+  };
+
+  const fallbackCopyText = (text: string) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+    } catch (e) {
+      console.error("Fallback copy error:", e);
     }
   };
 
@@ -497,11 +543,16 @@ export default function OrderForm() {
   };
 
   const handleContinueWithWarnings = () => {
+    copyConfirmationToClipboard();
     clear();
     if (isHistorical) {
-      navigate("/orders/history");
+      navigate("/orders/history", {
+        state: { toastMessage: "Pedido salvo e confirmação copiada!" },
+      });
     } else {
-      navigate(-1);
+      navigate("/", {
+        state: { toastMessage: "Pedido criado e confirmação copiada!" },
+      });
     }
   };
 
