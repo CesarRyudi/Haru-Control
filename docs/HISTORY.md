@@ -681,6 +681,8 @@
     4. Auto-cópia inteligente de confirmação do pedido ao criar no `OrderForm`.
     5. Ordenação decrescente de produtos por preço na seleção de pedidos.
     6. Suíte de testes E2E e sanitizações de código.
+- **Criação da Pull Request:**
+  - Aberta a [Pull Request #3](https://github.com/CesarRyudi/Haru-Control/pull/3) (`main` ➔ `production`), totalizando 12 commits de melhorias e correções sem conflitos.
 - **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
 
 
