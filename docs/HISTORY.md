@@ -667,6 +667,22 @@
 - **Validação:** Compilação de todos os pacotes (`npm run build`) concluída com 100% de sucesso.
 - **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-25] Validação Prática de BUG-008 (Pix E.164) e Preparação de Sincronização com Produção
+
+- **Contexto:** Confirmação prática pelo usuário da geração e aceite do Pix Copia e Cola nos aplicativos bancários, encerrando com 100% de sucesso todos os bugs reportados. Solicitação de sincronização da branch `main` com a branch de `production`.
+- **Validações Práticas:**
+  - **BUG-008 (Pix Internacional E.164):** Usuário testou no aplicativo bancário e confirmou que a chave telefônica com o prefixo internacional `+55` (`+5511976952264`) e payload EMVCo sem a tag 01 de QR dinâmico foi imediatamente reconhecida, processando o recebedor Haru Cookies e o valor exato.
+- **Preparação de Release para Produção:**
+  - Auditoria completa dos 11 commits acumulados em `main` subsequentes à PR #2.
+  - O pacote a ser promovido para produção engloba:
+    1. Resolução e blindagem de `BUG-005`, `BUG-006`, `BUG-007`, `BUG-008`, `BUG-009` e `BUG-010`.
+    2. Suporte a cálculo de sugestão de fornada multi-dias no backend e no frontend com modal responsivo e atalhos dinâmicos calibrados para 5 dias úteis de vendas.
+    3. Geração instantânea e colapsável de código Pix Copia e Cola com valor exato na comanda do Kanban.
+    4. Auto-cópia inteligente de confirmação do pedido ao criar no `OrderForm`.
+    5. Ordenação decrescente de produtos por preço na seleção de pedidos.
+    6. Suíte de testes E2E e sanitizações de código.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
 
 
 

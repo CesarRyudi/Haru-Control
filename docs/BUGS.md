@@ -321,12 +321,12 @@
 - Integrar ações contextuais de listas diretamente no cabeçalho da seção quando já existirem outros elementos flutuantes na tela.
 
 ### [BUG-008] Chave Pix de telefone rejeitada pelos bancos por ausência do prefixo internacional E.164 (+55)
-- **Status:** `[x]` Implementado
-- **Validação Prática:** `⏳ Pendente`
+- **Status:** `[x]` Resolvido
+- **Validação Prática:** `✅ Validado`
 - **Severidade:** `🔴 Alta`
 - **Data de Registro:** 2026-09-25
 - **Data de Implementação:** 2026-09-25
-- **Data de Validação:** N/A
+- **Data de Validação:** 2026-09-25
 - **Componentes / Arquivos Afetados:** `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx`, `libs/utils/src/lib/pix.spec.ts`
 
 #### 1. O que acontece (Sintomas & Comportamento Observado)
