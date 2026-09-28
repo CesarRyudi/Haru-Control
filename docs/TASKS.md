@@ -3,6 +3,7 @@
 ## 🐛 Bugs Prioritários (BUGS.md)
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
+- `[ ]` **[BUG-011]** Subestimação severa na sugestão de fornada e filtro por completedAt em vez de createdAt — *[🟡 Implementado: filtro corrigido para createdAt no fuso BR e normalização dinâmica de pesos das semanas — ⏳ Aguardando Validação Prática]*
 - `[x]` **[BUG-008]** Chave Pix de telefone rejeitada por ausência de prefixo internacional E.164 (+55) — *[✅ Resolvido e validado na prática pelo usuário no aplicativo bancário: código Pix Copia e Cola reconhecido com sucesso com chave internacional +55]*
 - `[x]` **[BUG-010]** Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile — *[✅ Resolvido e validado na prática em Dev: flex min-height 0, remoção de overflow visible e liberação de gestos touch]*
 - `[x]` **[BUG-009]** Erro ao carregar previsão de fornada no modal por endpoint incorreto — *[✅ Resolvido e validado na prática em Dev: endpoint corrigido para /stock/baking-suggestion]*

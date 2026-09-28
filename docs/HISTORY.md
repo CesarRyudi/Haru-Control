@@ -685,6 +685,33 @@
   - Aberta a [Pull Request #3](https://github.com/CesarRyudi/Haru-Control/pull/3) (`main` ➔ `production`), totalizando 12 commits de melhorias e correções sem conflitos.
 - **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
 
+### [2026-09-28] Resolução de BUG-011: Filtro por Data de Criação e Normalização Dinâmica da Fornada
+
+- **Contexto:** Usuário reportou que, mesmo vendendo cerca de 6 cookies por dia na prática, a sugestão de fornada para uma semana inteira (5 dias úteis) sugeriu apenas 7 cookies no total. Além disso, identificou que os pedidos concluídos estavam sendo buscados e filtrados pela data de conclusão (`completedAt`) em vez da data de criação (`createdAt`).
+- **Investigação & Causa Raiz:**
+  1. **Filtro Inadequado por `completedAt`:** Pedidos concluídos com `completedAt` nulo eram sumariamente ignorados na query do Prisma (`completedAt: { gte: minHistoryDate }`). Pedidos concluídos dias após a criação tinham sua demanda atribuída ao dia de conclusão em vez do dia real da venda/consumo.
+  2. **Denominador Fixo = 10 (`weightSum = 10`):** O algoritmo de média móvel ponderada acumulava pesos de 4 semanas passadas ($4 + 3 + 2 + 1 = 10$) sem verificar se a loja ou o produto existiam naquelas semanas. Se a loja possui dados de apenas 1 semana atrás ($w=1$), a venda de 6 cookies/dia era multiplicada por 4 e dividida por 10, gerando $2{,}4$ cookies/dia (redução artificial de 60%). Em 5 dias, a demanda prevista ficava em 12 cookies (+10% = 14); deduzindo o estoque de 7 cookies, a sugestão desabava para 7 cookies.
+  3. **Ausência de Testes Unitários:** Não existia suíte de testes unitários para validar a exatidão matemática do algoritmo do `BakingSuggestionService`.
+- **Implementações Realizadas:**
+  - **1. Filtro e Agrupamento por `createdAt` com Conversão de Fuso Horário (`baking-suggestion.service.ts`):**
+    - A query no Prisma agora filtra estritamente por `createdAt: { gte: minHistoryDate }`.
+    - Criada a função `formatUtcDateToBrazilDateString(date)` que converte datas UTC para a data civil brasileira (`America/Sao_Paulo`, UTC-3), prevenindo deslocamentos de dia para pedidos noturnos.
+  - **2. Normalização Dinâmica dos Pesos das Semanas (`baking-suggestion.service.ts`):**
+    - Identificada a data do primeiro pedido registrado na loja (`earliestOrder`) e a data de criação do produto (`product.createdAt`).
+    - Semanas passadas anteriores ao histórico da loja ou à criação do produto são ignoradas (`continue`), evitando divisão por semanas inexistentes.
+    - Se a loja só possui dados da semana passada, o peso é normalizado por 4 ($24 / 4 = 6$), mantendo rigorosamente a previsão real de 6 cookies/dia. Para 5 dias ($6 \times 5 = 30$ + 10% = 33), com 7 em estoque, sugere 26 cookies (e nunca 7).
+    - Adicionado fallback estatístico para produtos recém-lançados com menos de 7 dias de existência.
+  - **3. Suíte de Testes Unitários Dedicada (`baking-suggestion.service.spec.ts`):**
+    - Cobertura de testes unitários para: 1 semana de histórico (BUG-011), pedidos com `completedAt` nulo, 4 semanas completas (pesos 4, 3, 2, 1), cobertura de estoque excedente e arredondamento estrito para cima.
+  - **4. Arredondamento Estrito para Cima (`Math.ceil`):**
+    - Demanda total acumulada com margem de segurança (`totalDemand`) e sugestão a fornar (`suggestedBake`) agora utilizam `Math.ceil()`, expressando valores inteiros sem casas decimais na equação transparente da interface.
+- **Validação:**
+  - Compilação dos projetos `api` e `mobile` concluída com 100% de sucesso (`nx build api`, `nx build mobile`).
+  - Execução dos testes matemáticos com 100% de aprovação.
+- **Criação da Pull Request:**
+  - Aberta a [Pull Request #4](https://github.com/CesarRyudi/Haru-Control/pull/4) (`main` ➔ `production`) para sincronizar a correção do `BUG-011` com o ambiente de Produção.
+- **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
+
 
 
 
