@@ -708,6 +708,8 @@
 - **Validação:**
   - Compilação dos projetos `api` e `mobile` concluída com 100% de sucesso (`nx build api`, `nx build mobile`).
   - Execução dos testes matemáticos com 100% de aprovação.
+- **Criação da Pull Request:**
+  - Aberta a [Pull Request #4](https://github.com/CesarRyudi/Haru-Control/pull/4) (`main` ➔ `production`) para sincronizar a correção do `BUG-011` com o ambiente de Produção.
 - **Documentação Atualizada:** `docs/BUGS.md`, `docs/TASKS.md` e `docs/HISTORY.md`.
 
 
