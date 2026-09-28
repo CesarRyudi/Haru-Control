@@ -15,7 +15,7 @@ export class BakingSuggestionService {
 
   private parseLocalDate(dateStr: string): Date {
     const [year, month, day] = dateStr.split("-").map(Number);
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
+    return new Date(year, month - 1, day, 12, 0, 0, 0);
   }
 
   private formatDateToString(date: Date): string {
@@ -25,13 +25,22 @@ export class BakingSuggestionService {
     return `${y}-${m}-${d}`;
   }
 
+  private formatUtcDateToBrazilDateString(date: Date): string {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+
   async getBakingSuggestion(
     startDateStr?: string,
     targetDateStr?: string,
     safetyMargin: number = 0.1
   ): Promise<BakingSuggestionResponse> {
     const today = new Date();
-    const todayStr = this.formatDateToString(today);
+    const todayStr = this.formatUtcDateToBrazilDateString(today);
 
     const effectiveStartStr = startDateStr || todayStr;
     const effectiveTargetStr = targetDateStr || effectiveStartStr;
@@ -76,15 +85,31 @@ export class BakingSuggestionService {
       curr.setDate(curr.getDate() + 1);
     }
 
-    // 2. Busca histórico de pedidos concluídos das últimas 5 semanas para cobrir 4 semanas anteriores
+    // 2. Busca data do primeiro pedido registrado na loja para determinar o início real do histórico
+    const earliestOrder = await this.prisma.order.findFirst({
+      where: {
+        status: OrderStatus.COMPLETED,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        createdAt: true,
+      },
+    });
+    const earliestOrderDateStr = earliestOrder
+      ? this.formatUtcDateToBrazilDateString(new Date(earliestOrder.createdAt))
+      : null;
+
+    // 3. Busca histórico de pedidos concluídos das últimas semanas baseado em createdAt
     const minHistoryDate = new Date(startDate);
-    minHistoryDate.setDate(minHistoryDate.getDate() - 35);
+    minHistoryDate.setDate(minHistoryDate.getDate() - 36);
     minHistoryDate.setHours(0, 0, 0, 0);
 
     const completedOrders = await this.prisma.order.findMany({
       where: {
         status: OrderStatus.COMPLETED,
-        completedAt: {
+        createdAt: {
           gte: minHistoryDate,
         },
       },
@@ -93,12 +118,11 @@ export class BakingSuggestionService {
       },
     });
 
-    // Mapeamento: data (YYYY-MM-DD) -> Map<productId, totalQuantitySold>
+    // Mapeamento: data (YYYY-MM-DD no fuso BR) -> Map<productId, totalQuantitySold>
     const salesByDateAndProduct = new Map<string, Map<string, number>>();
 
     for (const order of completedOrders) {
-      const orderDate = order.completedAt || order.createdAt;
-      const dateKey = this.formatDateToString(new Date(orderDate));
+      const dateKey = this.formatUtcDateToBrazilDateString(new Date(order.createdAt));
       let prodMap = salesByDateAndProduct.get(dateKey);
       if (!prodMap) {
         prodMap = new Map<string, number>();
@@ -110,7 +134,7 @@ export class BakingSuggestionService {
       }
     }
 
-    // 3. Busca produtos vendáveis com suas categorias, subcategorias e receitas (BOM)
+    // 4. Busca produtos vendáveis com suas categorias, subcategorias e receitas (BOM)
     const products = await this.prisma.product.findMany({
       where: {
         isSellable: true,
@@ -131,7 +155,7 @@ export class BakingSuggestionService {
       ],
     });
 
-    // 4. Saldo atual de todos os produtos do estoque via Ledger
+    // 5. Saldo atual de todos os produtos do estoque via Ledger
     const ledgerAggregates = await this.prisma.ledgerEntry.groupBy({
       by: ["productId"],
       _sum: {
@@ -144,7 +168,7 @@ export class BakingSuggestionService {
       stockMap.set(entry.productId, Number(entry._sum.quantity || 0));
     }
 
-    // 5. Para cada produto, calcular a previsão ponderada, equação e checagem BOM
+    // 6. Para cada produto, calcular a previsão ponderada, equação e checagem BOM
     const items: BakingSuggestionItem[] = [];
 
     for (const product of products) {
@@ -152,8 +176,12 @@ export class BakingSuggestionService {
       const dailyForecast: BakingSuggestionDayBreakdown[] = [];
       let totalPredictedDemand = 0;
 
+      const productCreatedAtStr = product.createdAt
+        ? this.formatUtcDateToBrazilDateString(new Date(product.createdAt))
+        : null;
+
       for (const day of calendarDays) {
-        // Busca as 4 semanas anteriores relativas a este dia específico da semana
+        // Busca até 4 semanas anteriores relativas a este dia da semana
         const qWeights = [4, 3, 2, 1];
         let weightedSum = 0;
         let weightSum = 0;
@@ -163,13 +191,41 @@ export class BakingSuggestionService {
           pastDate.setDate(pastDate.getDate() - w * 7);
           const pastKey = this.formatDateToString(pastDate);
 
+          // Uma semana só compõe o divisor (weightSum) se já existia histórico para a loja e para o produto
+          const isBeforeStoreHistory =
+            earliestOrderDateStr && pastKey < earliestOrderDateStr;
+          const isBeforeProductCreation =
+            productCreatedAtStr && pastKey < productCreatedAtStr;
+
+          if (isBeforeStoreHistory || isBeforeProductCreation) {
+            // Semana anterior ao início dos dados — não penaliza dividindo por semanas fantasmas
+            continue;
+          }
+
           const pastSales = salesByDateAndProduct.get(pastKey)?.get(product.id) || 0;
           const weight = qWeights[w - 1];
           weightedSum += pastSales * weight;
           weightSum += weight;
         }
 
-        const predictedForDay = Number((weightedSum / weightSum).toFixed(2));
+        let predictedForDay = 0;
+        if (weightSum > 0) {
+          predictedForDay = Number((weightedSum / weightSum).toFixed(2));
+        } else {
+          // Fallback para produto novo (sem amostragem no mesmo dia da semana):
+          const recentDaysSales: number[] = [];
+          for (const [dKey, pMap] of salesByDateAndProduct.entries()) {
+            if (!productCreatedAtStr || dKey >= productCreatedAtStr) {
+              const qty = pMap.get(product.id) || 0;
+              if (qty > 0) recentDaysSales.push(qty);
+            }
+          }
+          if (recentDaysSales.length > 0) {
+            const sumSales = recentDaysSales.reduce((a, b) => a + b, 0);
+            predictedForDay = Number((sumSales / recentDaysSales.length).toFixed(2));
+          }
+        }
+
         dailyForecast.push({
           date: day.dateStr,
           dayOfWeek: day.dayOfWeek,
@@ -181,13 +237,15 @@ export class BakingSuggestionService {
         totalPredictedDemand += predictedForDay;
       }
 
-      const totalDemandWithMargin = Number(
-        (totalPredictedDemand * (1 + safetyMargin)).toFixed(2)
+      // Arredonda a demanda total com margem de segurança sempre para cima (inteiro)
+      const totalDemandWithMargin = Math.ceil(
+        Number((totalPredictedDemand * (1 + safetyMargin)).toFixed(4))
       );
 
+      // Necessidade líquida deduzindo estoque, sempre arredondando para cima
       const netNeeded = Math.max(
         0,
-        Math.ceil(totalDemandWithMargin) - Math.max(0, currentStock)
+        Math.ceil(totalDemandWithMargin - Math.max(0, currentStock))
       );
 
       const suggestedBake = netNeeded;

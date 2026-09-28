@@ -19,6 +19,7 @@
 | `BUG-008` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Chave Pix de telefone rejeitada por ausência do padrão internacional E.164 (+55) | `libs/utils/src/lib/pix.ts`, `apps/mobile/src/pages/OrderBoard.tsx` | 2026-09-25 |
 | `BUG-009` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Erro ao carregar previsão de fornada no modal por endpoint incorreto | `apps/mobile/src/components/BakingSuggestionModal.tsx` | 2026-09-25 |
 | `BUG-010` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile | `apps/mobile/src/components/BakingSuggestionModal.tsx`, `BakingSuggestionModal.css` | 2026-09-25 |
+| `BUG-011` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Subestimação severa na sugestão de fornada e filtro incorreto por completedAt em vez de createdAt | `apps/api/src/modules/stock/baking-suggestion.service.ts` | 2026-09-28 |
 
 ---
 
@@ -435,6 +436,58 @@
 
 ---
 
+### [BUG-011] Subestimação severa na sugestão de fornada e filtro incorreto por completedAt em vez de createdAt
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `⏳ Pendente`
+- **Severidade:** `🔴 Alta`
+- **Data de Registro:** 2026-09-28
+- **Data de Implementação:** 2026-09-28
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/api/src/modules/stock/baking-suggestion.service.ts`, `apps/api/src/modules/stock/baking-suggestion.service.spec.ts`
 
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- O usuário observou que, mesmo vendendo em torno de 6 cookies por dia na prática, ao solicitar a previsão de fornada para uma semana inteira no modal de sugestão de fornada (`/stock`), o sistema sugeriu apenas 7 cookies no total. A sugestão líquida calculada é absurdamente inferior à demanda real, cobrindo apenas ~1 dia em vez de toda a semana planejada.
+- Além disso, a busca e agrupamento de pedidos concluídos na API filtrava estritamente por `completedAt: { gte: minHistoryDate }` e agrupava por `completedAt || createdAt`, ignorando pedidos concluídos com `completedAt` nulo e desconsiderando a data real em que a demanda foi gerada (`createdAt`).
+- **Passos para Reproduzir:**
+  1. No Haru Control, possuir histórico recente de pedidos (ex: 1 ou 2 semanas de vendas ativas com ~6 cookies/dia).
+  2. Acessar `/stock` e abrir o modal "Sugestão de Fornada".
+  3. Selecionar o horizonte de 1 semana (ex: 5 a 6 dias úteis).
+  4. Observar que a demanda prevista e o total sugerido a assar ficam em torno de 7 cookies para a semana inteira (em vez dos ~30-36 esperados).
+- **Comportamento Esperado:**
+  - O cálculo deve buscar pedidos pela data em que foram criados (`createdAt`), que reflete o dia real da demanda.
+  - A média ponderada móvel deve normalizar os pesos considerando estritamente o histórico de semanas disponíveis ou dias com operação, sem diluir arbitrariamente por 10 quando a loja só possui dados de 1 ou 2 semanas.
+  - Para um ritmo de 6 cookies/dia durante 5 dias úteis, a demanda prevista acumulada deve ficar próxima de 30 unidades (+10% de margem = 33), e a sugestão deve subtrair o estoque desse total acumulado.
+- **Logs / Erros de Console:** Nenhum erro de runtime reportado (erro de lógica estatística e de filtro de banco de dados).
 
+#### 2. Onde está o problema (Localização Técnica)
+1. **Filtro e Agrupamento por `completedAt` (`apps/api/src/modules/stock/baking-suggestion.service.ts`):**
+   - Na linha 87: `where: { status: OrderStatus.COMPLETED, completedAt: { gte: minHistoryDate } }`.
+   - Na linha 100: `const orderDate = order.completedAt || order.createdAt;`.
+   - Pedidos concluídos com `completed_at` nulo (pedidos anteriores à migration ou criados em lote/retroativos) eram excluídos pelo banco. Pedidos concluídos dias após a criação tinham sua demanda atribuída ao dia de encerramento em vez do dia da venda.
+2. **Denominador Fixo na Média Móvel Ponderada (`weightSum = 10`):**
+   - O algoritmo itera incondicionalmente $w \in \{1, 2, 3, 4\}$ com pesos $[4, 3, 2, 1]$, acumulando `weightSum = 10`.
+   - Se o histórico possui dados de apenas 1 semana atrás ($w=1$), a venda da semana anterior é multiplicada por 4 e dividida por 10! Isso reduz a demanda real da loja em **60%** (fator $0,4$). Em vez de prever 6/dia, prevê 2,4/dia.
+   - Ao somar 5 dias de $2,4$ cookies: demanda total = $12$ cookies (+10% = $13,2 \to 14$). Deduzindo o estoque atual (ex: 7 cookies), a sugestão desaba para exatamente **7 cookies para a semana toda**.
+3. **Ausência de Testes Unitários de Cálculo:**
+   - O único teste existente (`08-baking-suggestion.spec.ts`) era um teste E2E visual de interface (clique em botões e visibilidade de textos), sem nenhuma validação numérica do algoritmo de previsão.
 
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Na especificação inicial da Fase 2, assumiu-se que o banco de dados sempre teria um histórico contínuo e estável de pelo menos 4 semanas completas para todos os produtos e que `completedAt` seria a data de referência, sem prever lojas em fase de implantação/onboarding recente e sem normalizar o somatório de pesos pelas semanas com dados efetivamente disponíveis.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+1. **Filtro e Agrupamento por `createdAt` e Conversão de Timezone:**
+   - `BakingSuggestionService` agora consulta pedidos com `status: OrderStatus.COMPLETED` filtrando estritamente por `createdAt: { gte: minHistoryDate }`, resgatando pedidos com `completedAt` nulo ou concluídos posteriormente.
+   - Criada a função `formatUtcDateToBrazilDateString(date)` garantindo formatação no fuso horário brasileiro (`America/Sao_Paulo`, UTC-3), eliminando distorções de data causadas por horários noturnos no servidor UTC.
+2. **Normalização Dinâmica dos Pesos das Semanas:**
+   - Consulta da data do primeiro pedido registrado na loja (`earliestOrder`) e verificação da data de criação do produto (`product.createdAt`).
+   - Semanas anteriores ao início dos registros históricos da loja ou à criação do produto são ignoradas (`continue`), impedindo que o denominador `weightSum` seja inflacionado por semanas fantasmas com venda zero.
+   - Se a loja só possui 1 semana de histórico, o peso é normalizado por 4 ($24 / 4 = 6$), mantendo fielmente a média real de 6 cookies/dia (30 cookies em 5 dias, resultando em 26 a assar com 7 em estoque, corrigindo exatamente o sintoma reportado).
+   - Adicionado fallback estatístico para produtos recém-lançados com menos de 7 dias de existência, utilizando a média diária de vendas recentes.
+3. **Criação de Testes Unitários:**
+   - Criado `apps/api/src/modules/stock/baking-suggestion.service.spec.ts` com suíte de testes cobrindo: 1 semana de dados (cenário do BUG-011), pedidos com `completedAt` nulo, 4 semanas completas, estoque excedente, arredondamento para cima e validação matemática de ponta a ponta.
+4. **Arredondamento Estrito para Cima (`Math.ceil`):**
+   - A demanda total acumulada com margem de segurança (`totalDemand`) e a necessidade líquida a fornar (`suggestedBake`) agora utilizam estritamente `Math.ceil()`. Ambas são expressas como números inteiros arredondados para cima, eliminando frações decimais na equação transparente e na lista de fornada.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Sempre criar testes unitários exaustivos para serviços com cálculos estatísticos e matemáticos, cobrindo cenários de onboarding (0, 1 e 2 semanas de dados), lojas fechadas em determinados dias da semana e fuso horário.
+- Nunca usar denominador fixo em médias ponderadas de séries temporais sem validar a existência de amostragem no período analisado.
