@@ -214,3 +214,171 @@ export function convertQuantity(quantity: number, fromUnit: string, toUnit: stri
     `Incompatibilidade de unidades: Não é possível converter '${fromUnit}' (${dimNameFrom}) para '${toUnit}' (${dimNameTo}).`
   );
 }
+
+
+export interface UnitConvertibleProduct {
+  unit?: string | null;
+  recipeYield?: number | string | { toString(): string } | null;
+  recipeYieldUnit?: string | null;
+}
+
+/**
+ * Verifica se uma unidade de receita é compatível com um produto,
+ * considerando tanto a unidade principal (unit) quanto o rendimento/peso equivalente (recipeYieldUnit).
+ */
+export function areProductUnitsCompatible(
+  recipeUnit?: string | null,
+  product?: UnitConvertibleProduct | null
+): boolean {
+  if (!product) return false;
+  if (areUnitsCompatible(recipeUnit, product.unit)) {
+    return true;
+  }
+
+  const yieldVal = Number(product.recipeYield || 0);
+  if (yieldVal > 0 && product.recipeYieldUnit) {
+    if (areUnitsCompatible(recipeUnit, product.recipeYieldUnit)) {
+      return true;
+    }
+    const normRecipe = normalizeUnit(recipeUnit);
+    if (normRecipe === 'un' && areUnitsCompatible(product.unit, product.recipeYieldUnit)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Retorna a lista de unidades compatíveis para usar este produto como ingrediente ou dar entrada no estoque.
+ */
+export function getCompatibleUnitsForProduct(
+  product?: UnitConvertibleProduct | null
+): Array<{ value: string; label: string }> {
+  if (!product) {
+    return [{ value: 'un', label: 'un (unidade)' }];
+  }
+
+  const baseUnits = getCompatibleUnits(product.unit);
+  const yieldVal = Number(product.recipeYield || 0);
+
+  if (yieldVal > 0 && product.recipeYieldUnit) {
+    const normStock = normalizeUnit(product.unit);
+    const normYield = normalizeUnit(product.recipeYieldUnit);
+    const yieldUnits = getCompatibleUnits(normYield);
+
+    const seen = new Set<string>();
+    const result: Array<{ value: string; label: string }> = [];
+
+    // Se o produto está em 'un'/'pct'/'cx', mas tem peso/volume equivalente (ex: 1 massa = 1600g),
+    // oferecemos as unidades de peso/volume primeiro (g, kg) e a unidade original com o peso descritivo
+    const stockDim = getUnitDimension(normStock);
+    if (stockDim === 'count' || stockDim === 'custom') {
+      for (const u of yieldUnits) {
+        if (!seen.has(u.value)) {
+          seen.add(u.value);
+          result.push(u);
+        }
+      }
+      for (const u of baseUnits) {
+        if (!seen.has(u.value)) {
+          seen.add(u.value);
+          result.push({
+            value: u.value,
+            label: `${u.value} (1 ${u.value} = ${yieldVal}${normYield})`,
+          });
+        }
+      }
+      return result;
+    }
+
+    // Se o produto já está em massa/volume (ex: g ou kg) e tem rendimento de lote (ex: 1600g),
+    // oferecemos as unidades de massa/volume e também 'un' (batelada/receita)
+    for (const u of baseUnits) {
+      if (!seen.has(u.value)) {
+        seen.add(u.value);
+        result.push(u);
+      }
+    }
+    for (const u of yieldUnits) {
+      if (!seen.has(u.value)) {
+        seen.add(u.value);
+        result.push(u);
+      }
+    }
+    if (!seen.has('un')) {
+      result.push({
+        value: 'un',
+        label: `un (1 lote/receita = ${yieldVal}${normYield})`,
+      });
+    }
+    return result;
+  }
+
+  return baseUnits;
+}
+
+/**
+ * Converte uma quantidade expressa em `fromUnit` para a unidade de estoque (`product.unit`) do produto,
+ * utilizando `recipeYield` e `recipeYieldUnit` quando necessário (ex: 60g de uma massa de 1600g -> 0.0375 un).
+ */
+export function convertProductQuantity(
+  quantity: number,
+  fromUnit: string,
+  product: UnitConvertibleProduct
+): number {
+  const stockUnit = normalizeUnit(product.unit);
+  const normFrom = normalizeUnit(fromUnit || stockUnit);
+
+  if (areUnitsCompatible(normFrom, stockUnit)) {
+    return convertQuantity(quantity, normFrom, stockUnit);
+  }
+
+  const yieldVal = Number(product.recipeYield || 0);
+  if (yieldVal > 0 && product.recipeYieldUnit) {
+    const normYield = normalizeUnit(product.recipeYieldUnit);
+
+    // Ex: Produto em 'un' (1 massa = 1600g) e ingrediente usado em 'g' (60g) -> 60 / 1600 = 0.0375 un
+    if (areUnitsCompatible(normFrom, normYield)) {
+      const qtyInYieldUnit = convertQuantity(quantity, normFrom, normYield);
+      return Number((qtyInYieldUnit / yieldVal).toFixed(6));
+    }
+
+    // Ex: Produto em 'g' ou 'kg' com rendimento de 1600g, e usado como '1 un' (1 lote) -> 1600g
+    if (normFrom === 'un' && areUnitsCompatible(normYield, stockUnit)) {
+      return convertQuantity(quantity * yieldVal, normYield, stockUnit);
+    }
+  }
+
+  return convertQuantity(quantity, normFrom, stockUnit);
+}
+
+/**
+ * Retorna quantas unidades de estoque (`parentProduct.unit`) são geradas por 1 execução da receita do produto pai.
+ * - Se o produto pai está em 'un' (ex: 1 Massa = 1600g), 1 receita gera 1 'un' (fator = 1), pois a conversão de 1600g já ocorre ao consumir a massa em gramas.
+ * - Se o produto pai está em 'g' ou 'kg' e tem rendimento configurado (ex: 1600g), 1 receita gera 1600g (ou 1.6kg).
+ */
+export function getParentRecipeBatchFactor(parentProduct?: UnitConvertibleProduct | null): number {
+  if (!parentProduct) return 1;
+  const yieldVal = Number(parentProduct.recipeYield || 0);
+  if (yieldVal > 0 && parentProduct.recipeYieldUnit) {
+    const stockUnit = normalizeUnit(parentProduct.unit);
+    const yieldUnit = normalizeUnit(parentProduct.recipeYieldUnit);
+    if (areUnitsCompatible(yieldUnit, stockUnit)) {
+      const converted = convertQuantity(yieldVal, yieldUnit, stockUnit);
+      return converted > 0 ? converted : 1;
+    }
+  }
+  return 1;
+}
+
+/**
+ * Retorna um passo de incremento amigável para botões +/- de acordo com a unidade selecionada.
+ */
+export function getRecommendedStepForUnit(unit?: string | null): number {
+  const norm = normalizeUnit(unit);
+  if (norm === 'g' || norm === 'ml') return 10;
+  if (norm === 'mg') return 50;
+  if (norm === 'kg' || norm === 'L') return 0.1;
+  return 1;
+}

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { OrderStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
-import { convertQuantity } from "@haru-control/utils";
+import { convertProductQuantity, getParentRecipeBatchFactor } from "@haru-control/utils";
 import {
   BakingSuggestionDayBreakdown,
   BakingSuggestionItem,
@@ -260,12 +260,13 @@ export class BakingSuggestionService {
           let requiredInStockUnit = 0;
 
           try {
-            const singleConverted = convertQuantity(
+            const singleConverted = convertProductQuantity(
               Number(recipeItem.quantity),
               recipeUnit,
-              childProduct.unit
+              childProduct
             );
-            requiredInStockUnit = Number((singleConverted * suggestedBake).toFixed(4));
+            const batchFactor = getParentRecipeBatchFactor(product);
+            requiredInStockUnit = Number(((singleConverted / batchFactor) * suggestedBake).toFixed(4));
           } catch {
             requiredInStockUnit = Number(recipeItem.quantity) * suggestedBake;
           }

@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { convertQuantity } from '@haru-control/utils';
+import { convertProductQuantity, getParentRecipeBatchFactor } from '@haru-control/utils';
 
 @Injectable()
 export class ManufacturingService {
@@ -25,17 +25,19 @@ export class ManufacturingService {
       throw new BadRequestException('Este produto não possui uma receita (BOM) definida.');
     }
 
+    const batchFactor = getParentRecipeBatchFactor(product);
+
     // Calcula os ingredientes necessários convertendo da unidade da receita para a unidade do insumo no estoque
     const requiredIngredients = product.recipeItems.map((item) => {
       let requiredInStockUnit: number;
       const recipeUnit = item.unit || item.child.unit;
       try {
-        const singleConverted = convertQuantity(
+        const singleConverted = convertProductQuantity(
           Number(item.quantity),
           recipeUnit,
-          item.child.unit
+          item.child
         );
-        requiredInStockUnit = Number((singleConverted * data.quantity).toFixed(6));
+        requiredInStockUnit = Number(((singleConverted / batchFactor) * data.quantity).toFixed(6));
       } catch (err: any) {
         throw new BadRequestException(
           `Erro na receita de '${product.name}' com o ingrediente '${item.child.name}': ${err.message}`
@@ -47,7 +49,7 @@ export class ManufacturingService {
         productName: item.child.name,
         stockUnit: item.child.unit,
         recipeUnit: item.unit,
-        recipeQuantity: Number(item.quantity) * data.quantity,
+        recipeQuantity: (Number(item.quantity) / batchFactor) * data.quantity,
         requiredQuantity: requiredInStockUnit,
       };
     });
@@ -98,4 +100,3 @@ export class ManufacturingService {
     };
   }
 }
-

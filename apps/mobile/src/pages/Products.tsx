@@ -35,6 +35,8 @@ export default function Products() {
     isSellable: false,
     isPurchasable: false,
     description: "",
+    recipeYield: 0,
+    recipeYieldUnit: "g",
   });
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -85,10 +87,12 @@ export default function Products() {
         isSellable: product.isSellable || false,
         isPurchasable: product.isPurchasable || false,
         description: product.description || "",
+        recipeYield: product.recipeYield != null ? Number(product.recipeYield) : 0,
+        recipeYieldUnit: product.recipeYieldUnit || "g",
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false, description: "" });
+      setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false, description: "", recipeYield: 0, recipeYieldUnit: "g" });
     }
     setIsModalOpen(true);
   };
@@ -96,7 +100,7 @@ export default function Products() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
-    setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false, description: "" });
+    setFormData({ name: "", unit: "un", price: 0, categoryId: "", subcategoryId: "", isSellable: false, isPurchasable: false, description: "", recipeYield: 0, recipeYieldUnit: "g" });
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -138,6 +142,8 @@ export default function Products() {
         categoryId: formData.categoryId || undefined,
         subcategoryId: formData.subcategoryId || undefined,
         description: formData.description?.trim() || null,
+        recipeYield: formData.recipeYield > 0 ? Number(formData.recipeYield) : null,
+        recipeYieldUnit: formData.recipeYield > 0 ? formData.recipeYieldUnit : null,
       };
       if (editingProduct) {
         await api.patch(`/products/${editingProduct.id}`, dataToSend);
@@ -382,6 +388,11 @@ export default function Products() {
         <div className="product-badges" style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '0.8em' }}>
           {product.isSellable && <span style={{ background: '#e0f7fa', color: '#006064', padding: '2px 6px', borderRadius: '4px' }}>🛒 Venda</span>}
           {product.isPurchasable && <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>📦 Compra</span>}
+          {product.recipeYield != null && Number(product.recipeYield) > 0 && product.recipeYieldUnit && (
+            <span style={{ background: '#eef2ff', color: '#3730a3', padding: '2px 6px', borderRadius: '4px' }}>
+              ⚖️ 1 {product.unit || 'un'} = {Number(product.recipeYield)}{product.recipeYieldUnit}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -581,6 +592,32 @@ export default function Products() {
                   showButtons
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label>Peso / Volume por Unidade ou Rendimento da Receita (Opcional)</label>
+                <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 8px' }}>
+                  Ex: Se 1 massa ({formData.unit || 'un'}) pesa 1600g, coloque 1600 g para poder usar em gramas nas receitas.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                  <NumberInput
+                    step="any"
+                    buttonStep={100}
+                    min="0"
+                    value={formData.recipeYield}
+                    onChange={(e) => setFormData({ ...formData, recipeYield: parseFloat(e.target.value) || 0 })}
+                    showButtons
+                  />
+                  <select
+                    value={formData.recipeYieldUnit}
+                    onChange={(e) => setFormData({ ...formData, recipeYieldUnit: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="g">g (grama)</option>
+                    <option value="kg">kg (quilograma)</option>
+                    <option value="ml">ml (mililitro)</option>
+                    <option value="L">L (litro)</option>
+                  </select>
+                </div>
               </div>
               <div className="form-group">
                 <label>Descrição / Texto de Divulgação (Opcional)</label>

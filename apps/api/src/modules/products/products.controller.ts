@@ -25,6 +25,21 @@ export class AddRecipeItemDto {
   unit?: string;
 }
 
+export class UpdateRecipeItemDto {
+  @IsString()
+  @IsOptional()
+  childId?: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  quantity?: number;
+
+  @IsString()
+  @IsOptional()
+  unit?: string;
+}
+
 export class CreateProductDto {
   @IsString()
   name: string;
@@ -35,6 +50,15 @@ export class CreateProductDto {
   @IsNumber()
   @Type(() => Number)
   price: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  recipeYield?: number | null;
+
+  @IsString()
+  @IsOptional()
+  recipeYieldUnit?: string | null;
 
   @IsString()
   @IsOptional()
@@ -70,6 +94,15 @@ export class UpdateProductDto {
   @Type(() => Number)
   @IsOptional()
   price?: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  recipeYield?: number | null;
+
+  @IsString()
+  @IsOptional()
+  recipeYieldUnit?: string | null;
 
   @IsString()
   @IsOptional()
@@ -137,6 +170,15 @@ export class ProductsController {
   @Post(":id/recipe")
   addRecipeItem(@Param("id") id: string, @Body() addRecipeItemDto: AddRecipeItemDto) {
     return this.productsService.addRecipeItem(id, addRecipeItemDto);
+  }
+
+  @Patch(":id/recipe/:recipeItemId")
+  updateRecipeItem(
+    @Param("id") id: string,
+    @Param("recipeItemId") recipeItemId: string,
+    @Body() updateRecipeItemDto: UpdateRecipeItemDto
+  ) {
+    return this.productsService.updateRecipeItem(id, recipeItemId, updateRecipeItemDto);
   }
 
   @Delete(":id/recipe/:recipeItemId")

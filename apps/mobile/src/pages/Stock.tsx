@@ -1,4 +1,11 @@
 import { FloatingActionButton, NumberInput, Toast } from "@haru-control/ui";
+import {
+  getCompatibleUnitsForProduct,
+  convertProductQuantity,
+  normalizeUnit,
+  getUnitDimension,
+  getRecommendedStepForUnit,
+} from "@haru-control/utils";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -24,6 +31,7 @@ export default function Stock() {
   const [modalType, setModalType] = useState<"in" | "adjust">("in");
   const [selectedProductId, setSelectedProductId] = useState("");
   const [newQuantity, setNewQuantity] = useState(0);
+  const [entryUnit, setEntryUnit] = useState("un");
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [isBakingModalOpen, setIsBakingModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -172,6 +180,8 @@ export default function Stock() {
   ) => {
     setModalType(type);
     setSelectedProductId(productId || "");
+    const prod = products.find((p) => p.id === productId);
+    setEntryUnit(normalizeUnit(prod?.unit || "un"));
     if (type === "adjust") {
       setNewQuantity(currentStock ?? 0);
     } else {
@@ -188,6 +198,8 @@ export default function Stock() {
 
   const handleProductSelectChange = (productId: string) => {
     setSelectedProductId(productId);
+    const prod = products.find((p) => p.id === productId);
+    setEntryUnit(normalizeUnit(prod?.unit || "un"));
     if (modalType === "adjust") {
       const s = stock.find((item) => item.productId === productId);
       setNewQuantity(s ? s.currentStock : 0);
@@ -208,7 +220,10 @@ export default function Stock() {
 
       if (modalType === "in") {
         endpoint = "/stock/in";
-        payloadQuantity = newQuantity;
+        const prod = products.find((p) => p.id === selectedProductId);
+        payloadQuantity = prod
+          ? convertProductQuantity(newQuantity, entryUnit, prod)
+          : newQuantity;
       } else {
         endpoint = "/stock/adjust";
         const currentStock =
@@ -231,6 +246,18 @@ export default function Stock() {
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const currentStockForSelected = stock.find(s => s.productId === selectedProductId)?.currentStock ?? 0;
+  const compatibleEntryUnits = useMemo(
+    () => getCompatibleUnitsForProduct(selectedProduct),
+    [selectedProduct]
+  );
+  const convertedInStockUnit = useMemo(() => {
+    if (!selectedProduct || modalType !== "in") return Number(newQuantity || 0);
+    try {
+      return convertProductQuantity(Number(newQuantity || 0), entryUnit, selectedProduct);
+    } catch {
+      return Number(newQuantity || 0);
+    }
+  }, [selectedProduct, modalType, newQuantity, entryUnit]);
 
   const renderStockCard = ({ product, stockItem }: { product: Product; stockItem: StockItem }) => (
     <div
@@ -396,6 +423,63 @@ export default function Stock() {
                   showButtons
                   required
                 />
+                {modalType === "in" && compatibleEntryUnits.length > 1 && (
+                  <div style={{ marginTop: "8px" }}>
+                    <label style={{ fontSize: "12px", color: "#64748b", marginBottom: "4px", display: "block" }}>
+                      Unidade da entrada / pacote:
+                    </label>
+                    <select
+                      value={entryUnit}
+                      onChange={(e) => setEntryUnit(e.target.value)}
+                      className="form-select"
+                    >
+                      {compatibleEntryUnits.map((u) => (
+                        <option key={u.value} value={u.value}>
+                          {u.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {modalType === "in" && getUnitDimension(selectedProduct?.unit) === "mass" && (
+                  <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
+                    {[
+                      { label: "Pacote 500g", qty: 500, unit: "g" },
+                      { label: "Pacote 1kg", qty: 1, unit: "kg" },
+                      { label: "Pacote 2kg", qty: 2, unit: "kg" },
+                      { label: "Pacote 5kg", qty: 5, unit: "kg" },
+                    ].map((pkg) => (
+                      <button
+                        key={pkg.label}
+                        type="button"
+                        onClick={() => {
+                          setEntryUnit(pkg.unit);
+                          setNewQuantity(pkg.qty);
+                        }}
+                        style={{
+                          flex: 1,
+                          minWidth: "70px",
+                          padding: "6px 4px",
+                          background:
+                            entryUnit === pkg.unit && newQuantity === pkg.qty
+                              ? "#4f46e5"
+                              : "#eef2ff",
+                          border: "1px solid #c7d2fe",
+                          borderRadius: "6px",
+                          fontSize: "11.5px",
+                          fontWeight: 600,
+                          color:
+                            entryUnit === pkg.unit && newQuantity === pkg.qty
+                              ? "#ffffff"
+                              : "#3730a3",
+                          cursor: "pointer",
+                        }}
+                      >
+                        📦 {pkg.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {modalType === "in" && (
                   <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
                     {[1, 5, 10, 20].map((inc) => (
@@ -445,7 +529,7 @@ export default function Stock() {
                       color: "#15803d",
                     }}
                   >
-                    {(Number(currentStockForSelected) + Number(newQuantity || 0))} {selectedProduct.unit || "un"}
+                    {Number((Number(currentStockForSelected) + Number(convertedInStockUnit)).toFixed(4))} {selectedProduct.unit || "un"}
                   </span>
                 </div>
               )}

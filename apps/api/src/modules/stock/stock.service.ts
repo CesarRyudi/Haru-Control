@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { LedgerOperationType, WasteReason } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import { convertProductQuantity, getParentRecipeBatchFactor } from "@haru-control/utils";
 
 @Injectable()
 export class StockService {
@@ -125,9 +126,21 @@ export class StockService {
     if (product.recipeItems && product.recipeItems.length > 0) {
       let bomCost = 0;
       for (const item of product.recipeItems) {
-        const childPrice = Number(item.child?.price || 0);
-        const childQty = Number(item.quantity || 0);
-        bomCost += childPrice * childQty;
+
+
+        const child = item.child;
+        const childPrice = Number(child?.price || 0);
+        const rawQty = Number(item.quantity || 0);
+        let childQty = rawQty;
+        if (child) {
+          try {
+            childQty = convertProductQuantity(rawQty, item.unit || child.unit, child);
+          } catch {
+            childQty = rawQty;
+          }
+        }
+        const batchFactor = getParentRecipeBatchFactor(product);
+        bomCost += (childPrice * childQty) / batchFactor;
       }
       if (bomCost > 0) return Number(bomCost.toFixed(2));
     }

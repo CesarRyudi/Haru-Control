@@ -7,7 +7,7 @@
     "start:api": "nx serve api",
     "start:mobile": "nx serve mobile",
     "build": "nx run-many --target=build --projects=api,mobile",
-    "test": "nx run-many --target=test --all",
+    "test": "jest",
     "prisma:generate": "cd apps/api && npx prisma generate",
     "prisma:migrate": "cd apps/api && npx prisma migrate dev",
     "prisma:seed": "cd apps/api && npx ts-node prisma/seed.ts",

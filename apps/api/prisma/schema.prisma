@@ -11,7 +11,9 @@ model Product {
     id            String   @id @default(uuid())
     name          String
     unit          String   @default("Un")
-    price         Decimal  @db.Decimal(10, 2)
+    price           Decimal  @db.Decimal(10, 2)
+    recipeYield     Decimal? @map("recipe_yield") @db.Decimal(10, 4)
+    recipeYieldUnit String?  @map("recipe_yield_unit")
     categoryId    String?  @map("category_id")
     subcategoryId String?  @map("subcategory_id")
     isSellable    Boolean  @default(false) @map("is_sellable")

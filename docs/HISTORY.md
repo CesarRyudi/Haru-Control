@@ -723,3 +723,36 @@
 
 
 
+
+### [2026-10-22] Implementação de Edição de Receitas (BOM) e Suporte a Peso/Rendimento Equivalente (Massas de 1600g e Pacotes de Insumos)
+
+- **Contexto:** Necessidade operacional de:
+  1. Permitir editar ingredientes já cadastrados em uma receita (alterar quantidade, unidade ou insumo sem precisar excluir e recriar).
+  2. Resolver a limitação onde massas de cookies (que pesam em média `1600g` por batelada) só podiam ser adicionadas na receita dos cookies em quantidades inteiras de massas (`1 un`, `2 un`), impedindo informar que um cookie consome `60g` de massa; além de suportar compras de insumos (como farinha) em pacotes variados (`1kg`, `5kg`, `500g`).
+- **Implementações Realizadas:**
+  - **1. Banco de Dados & Prisma (`apps/api/prisma/schema.prisma`):**
+    - Adicionados os campos opcionais `recipeYield Decimal? @map("recipe_yield") @db.Decimal(10, 4)` e `recipeYieldUnit String? @map("recipe_yield_unit")` no modelo `Product`.
+    - Criada a migration `20261022214700_add_product_recipe_yield`.
+    - Sincronizados tipos compartilhados em `libs/types/src/lib/types.ts`.
+  - **2. Motor de Conversão de Unidades Baseado em Produto (`libs/utils/src/lib/unit-conversion.ts`):**
+    - Criadas as funções `areProductUnitsCompatible`, `getCompatibleUnitsForProduct`, `convertProductQuantity`, `getParentRecipeBatchFactor` e `getRecommendedStepForUnit`.
+    - Quando uma Massa possui peso/rendimento configurado (ex: `1600 g`), o sistema habilita automaticamente `g`, `kg` e `mg` quando ela é selecionada como ingrediente de um Cookie, convertendo `60 g` para `0,0375 un` (se a massa estiver em `un`) ou aplicando o fator de batelada `1600` (se a massa estiver em `g`/`kg`).
+    - Criada suíte de testes unitários em `libs/utils/src/lib/unit-conversion.spec.ts`.
+  - **3. Backend API NestJS (`apps/api/src/modules/`):**
+    - `ProductsController` & `ProductsService`: Adicionado DTO `UpdateRecipeItemDto` e endpoint `PATCH /products/:id/recipe/:recipeItemId` (`updateRecipeItem`) para edição de itens da receita, além de suporte a `recipeYield` e `recipeYieldUnit` no CRUD de produtos.
+    - `ManufacturingService`, `BakingSuggestionService` e `StockService.calculateProductCost`: Atualizados para utilizar `convertProductQuantity` e `getParentRecipeBatchFactor`, garantindo precisão contábil no consumo de estoque, previsão de insumos faltantes e custo de ficha técnica.
+  - **4. Frontend Mobile-First (`apps/mobile/src/pages/`):**
+    - **`ProductRecipe.tsx`:**
+      - Adicionado painel no topo **"⚖️ Peso / Rendimento da Receita"** permitindo definir o peso equivalente de 1 receita/unidade (ex: `1600 g`), com botão inteligente **"⚡ Usar soma dos ingredientes desta receita"** que calcula automaticamente o peso total em gramas dos insumos da massa.
+      - Cards de ingredientes da receita agora são clicáveis (com botão `✏️`), abrindo o modal **"Editar Ingrediente"** com quantidade, unidade e insumo preenchidos.
+      - Adicionados botões rápidos de gramatura (`30g`, `50g`, `60g`, `80g`, `100g`, `150g`, `200g`) e preview detalhado mostrando quantas porções/cookies 1 receita da massa rende (ex: *1 receita de 1600g rende ~26,7 porções de 60g*).
+    - **`Products.tsx`:**
+      - Adicionados campos de Peso/Rendimento Equivalente no modal de Produto e badge informativo `⚖️ 1 un = 1600g` nos cards.
+    - **`Stock.tsx`:**
+      - Modal de **Entrada de Estoque** atualizado com seletor de unidade compatível (`kg`, `g`, `L`, `ml`) e botões rápidos de pacotes (`📦 Pacote 500g`, `📦 Pacote 1kg`, `📦 Pacote 2kg`, `📦 Pacote 5kg`), convertendo automaticamente para a unidade de estoque do insumo.
+  - **5. Suíte de Testes Unitários & E2E (`jest.config.js`, `unit-conversion.spec.ts`, `products.service.spec.ts` e `10-recipes-yield.spec.ts`):**
+    - Configurado `jest.config.js` na raiz com `ts-jest` e mapeamento de aliases do monorepo (`@haru-control/*`).
+    - Criados testes unitários para conversão de unidades/rendimento (`unit-conversion.spec.ts`) e para os serviços de produtos, receitas, custo BOM e baixa proporcional na manufatura (`products.service.spec.ts`).
+    - Criado teste E2E Playwright (`e2e/specs/10-recipes-yield.spec.ts`) cobrindo a definição de peso de 1600g na Massa, adição de 60g na receita do Cookie e edição do ingrediente para 80g.
+- **Validação:** Build completo do monorepo (`npm run build`) e todas as 4 suítes de testes unitários Jest executadas com 100% de sucesso (20/20 testes aprovados).
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.

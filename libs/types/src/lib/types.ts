@@ -38,6 +38,8 @@ export interface Product {
   isSellable?: boolean;
   isPurchasable?: boolean;
   description?: string | null;
+  recipeYield?: number | null;
+  recipeYieldUnit?: string | null;
   category?: Category | null;
   subcategory?: Subcategory | null;
   createdAt: Date;
@@ -155,6 +157,8 @@ export interface CreateProductDto {
   isSellable?: boolean;
   isPurchasable?: boolean;
   description?: string;
+  recipeYield?: number | null;
+  recipeYieldUnit?: string | null;
 }
 
 export interface UpdateProductDto {
@@ -166,6 +170,8 @@ export interface UpdateProductDto {
   isSellable?: boolean;
   isPurchasable?: boolean;
   description?: string;
+  recipeYield?: number | null;
+  recipeYieldUnit?: string | null;
 }
 
 export interface CreateOrderItemDto {

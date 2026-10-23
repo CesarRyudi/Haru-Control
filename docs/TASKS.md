@@ -181,6 +181,20 @@
     - Nova ação `📢 Divulgar Cookies Disponíveis` integrada ao menu do botão flutuante (FAB).
   - **Suíte de Testes Automatizados E2E (`e2e/`):**
     - Criado teste `07-broadcast-menu.spec.ts` cobrindo abertura, preenchimento, preview e cópia via clipboard, com 100% de sucesso (12/12 testes passando).
+- `[x]` **Edição Completa de Receitas (BOM) & Suporte a Peso/Rendimento Equivalente (Massas e Pacotes):**
+  - **Modelagem & Banco de Dados (`schema.prisma`):**
+    - Adicionados os campos `recipeYield` (`Decimal(10,4)`) e `recipeYieldUnit` (`String`) no modelo `Product` com migration `20261022214700_add_product_recipe_yield`.
+  - **Conversão Inteligente de Unidades (`@haru-control/utils`):**
+    - Implementadas as funções `areProductUnitsCompatible`, `getCompatibleUnitsForProduct`, `convertProductQuantity`, `getParentRecipeBatchFactor` e `getRecommendedStepForUnit`.
+    - Suporte completo a massas cadastradas em `un` ou `g`/`kg` com peso equivalente (ex: `1 massa = 1600g`, permitindo lançar `60g` de massa por cookie = `0,0375 un` e calculando proporcionalmente custos, manufatura e sugestão de fornada).
+  - **Edição de Receitas (`ProductsController`, `ProductsService` e `ProductRecipe.tsx`):**
+    - Novo endpoint `PATCH /products/:id/recipe/:recipeItemId` para editar quantidade, unidade e insumo de itens existentes na ficha técnica.
+    - Cards clicáveis na tela de Receita (`ProductRecipe.tsx`) abrindo o modal em modo de edição, com chips rápidos de gramatura (`30g`, `50g`, `60g`, `80g`, `100g`...) e cálculo automático da soma dos pesos dos ingredientes da receita.
+  - **Entrada Flexível de Pacotes no Estoque (`Stock.tsx`):**
+    - Seletor de unidade na entrada de estoque (`g`, `kg`, `ml`, `L`) e atalhos rápidos de pacotes (`Pacote 500g`, `Pacote 1kg`, `Pacote 2kg`, `Pacote 5kg`) com conversão automática para a unidade do produto.
+  - **Suíte de Testes Unitários e E2E (`unit-conversion.spec.ts`, `products.service.spec.ts` e `10-recipes-yield.spec.ts`):**
+    - Configuração unificada do Jest com `ts-jest` em `jest.config.js` e aprovação de 100% nas 4 suítes unitárias (20/20 testes passando).
+    - Criado spec E2E Playwright `e2e/specs/10-recipes-yield.spec.ts` validando definição de 1600g na Massa, adição de 60g no Cookie e edição do item na receita para 80g.
 - `[ ]` **Módulo Seguro de Sincronização e Importação de Dados (Produção ➔ Dev):**
   - **Exportação Segura em Produção (`apps/api`):**
     - Endpoint fechado `GET /admin/database/export` protegido por chave secreta dedicada no header (`X-Database-Sync-Key`) com comparação em tempo constante (`crypto.timingSafeEqual`).
