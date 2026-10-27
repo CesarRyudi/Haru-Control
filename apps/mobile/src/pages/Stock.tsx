@@ -2,6 +2,7 @@ import { FloatingActionButton, NumberInput, Toast } from "@haru-control/ui";
 import {
   getCompatibleUnitsForProduct,
   convertProductQuantity,
+  convertQuantityBetweenUnits,
   normalizeUnit,
   getUnitDimension,
   getRecommendedStepForUnit,
@@ -181,11 +182,18 @@ export default function Stock() {
     setModalType(type);
     setSelectedProductId(productId || "");
     const prod = products.find((p) => p.id === productId);
-    setEntryUnit(normalizeUnit(prod?.unit || "un"));
     if (type === "adjust") {
+      setEntryUnit(normalizeUnit(prod?.unit || "un"));
       setNewQuantity(currentStock ?? 0);
     } else {
-      setNewQuantity(1);
+      const yieldVal = Number(prod?.recipeYield || 0);
+      if (yieldVal > 0 && prod?.recipeYieldUnit) {
+        setEntryUnit(normalizeUnit(prod.recipeYieldUnit));
+        setNewQuantity(yieldVal);
+      } else {
+        setEntryUnit(normalizeUnit(prod?.unit || "un"));
+        setNewQuantity(1);
+      }
     }
     setIsModalOpen(true);
   };
@@ -199,12 +207,43 @@ export default function Stock() {
   const handleProductSelectChange = (productId: string) => {
     setSelectedProductId(productId);
     const prod = products.find((p) => p.id === productId);
-    setEntryUnit(normalizeUnit(prod?.unit || "un"));
     if (modalType === "adjust") {
+      setEntryUnit(normalizeUnit(prod?.unit || "un"));
       const s = stock.find((item) => item.productId === productId);
       setNewQuantity(s ? s.currentStock : 0);
+    } else {
+      const yieldVal = Number(prod?.recipeYield || 0);
+      if (yieldVal > 0 && prod?.recipeYieldUnit) {
+        setEntryUnit(normalizeUnit(prod.recipeYieldUnit));
+        setNewQuantity(yieldVal);
+      } else {
+        setEntryUnit(normalizeUnit(prod?.unit || "un"));
+        setNewQuantity(1);
+      }
     }
   };
+
+  const handleEntryUnitChange = (newUnit: string) => {
+    if (newUnit === entryUnit || !selectedProduct) {
+      setEntryUnit(newUnit);
+      return;
+    }
+    try {
+      if (newQuantity > 0) {
+        const converted = convertQuantityBetweenUnits(
+          newQuantity,
+          entryUnit,
+          newUnit,
+          selectedProduct
+        );
+        setNewQuantity(Number(converted.toFixed(4)));
+      }
+    } catch (err) {
+      console.warn("Could not auto-convert quantity between units:", err);
+    }
+    setEntryUnit(newUnit);
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,10 +270,22 @@ export default function Stock() {
         payloadQuantity = newQuantity - currentStock;
       }
 
-      await api.post(endpoint, {
+      const res = await api.post(endpoint, {
         productId: selectedProductId,
         quantity: payloadQuantity,
       });
+
+      if (res.data?.warnings && res.data.warnings.length > 0) {
+        setToast({
+          message: `Estoque atualizado! ${res.data.warnings[0]}`,
+          type: "error",
+        });
+      } else {
+        setToast({
+          message: modalType === "in" ? "Entrada registrada no estoque!" : "Estoque ajustado com sucesso!",
+          type: "success",
+        });
+      }
 
       loadStock();
       handleCloseModal();
@@ -250,6 +301,12 @@ export default function Stock() {
     () => getCompatibleUnitsForProduct(selectedProduct),
     [selectedProduct]
   );
+  const selectedYieldVal = Number(selectedProduct?.recipeYield || 0);
+  const selectedYieldUnit = selectedProduct?.recipeYieldUnit
+    ? normalizeUnit(selectedProduct.recipeYieldUnit)
+    : null;
+  const hasSelectedYield = selectedYieldVal > 0 && Boolean(selectedYieldUnit);
+
   const convertedInStockUnit = useMemo(() => {
     if (!selectedProduct || modalType !== "in") return Number(newQuantity || 0);
     try {
@@ -273,8 +330,30 @@ export default function Stock() {
           <span className="product-unit">
             {" "}{product.unit || 'un'}
           </span>
+          {product.recipeYield && Number(product.recipeYield) > 0 && product.recipeYieldUnit && (
+            <span
+              style={{
+                display: "block",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#86198f",
+                marginTop: "2px",
+              }}
+            >
+              {normalizeUnit(product.unit) === "un" ? (
+                `(~${Number((stockItem.currentStock * Number(product.recipeYield)).toFixed(1))} ${product.recipeYieldUnit})`
+              ) : (
+                `(~${Number((stockItem.currentStock / Number(product.recipeYield)).toFixed(2))} receitas)`
+              )}
+            </span>
+          )}
         </p>
         <div className="product-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px', fontSize: '0.8em', justifyContent: 'center' }}>
+          {product.recipeYield != null && Number(product.recipeYield) > 0 && product.recipeYieldUnit && (
+            <span style={{ background: '#fdf4ff', color: '#86198f', border: '1px solid #f0abfc', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+              ⚖️ 1 {normalizeUnit(product.unit) === "un" ? "un" : "receita"} = {Number(product.recipeYield)}{product.recipeYieldUnit}
+            </span>
+          )}
           {stockItem.currentStock < 0 && (
             <span style={{ background: '#fee2e2', color: '#dc2626', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
               ⚠️ Negativo
@@ -408,15 +487,52 @@ export default function Stock() {
                 </div>
               )}
 
+              {modalType === "in" && hasSelectedYield && selectedYieldUnit && (
+                <div className="yield-preset-box">
+                  <div className="yield-preset-header">
+                    <span className="yield-preset-title">🥣 Rendimento da Receita:</span>
+                    <span className="yield-preset-badge">
+                      1 {normalizeUnit(selectedProduct?.unit) === "un" ? "un" : "receita"} = {selectedYieldVal} {selectedYieldUnit}
+                    </span>
+                  </div>
+                  <div className="yield-preset-buttons">
+                    {[
+                      { label: `1 Receita (${selectedYieldVal}${selectedYieldUnit})`, mult: 1 },
+                      { label: `2 Receitas (${selectedYieldVal * 2}${selectedYieldUnit})`, mult: 2 },
+                      { label: `½ Receita (${selectedYieldVal / 2}${selectedYieldUnit})`, mult: 0.5 },
+                    ].map((preset) => {
+                      const targetQty = selectedYieldVal * preset.mult;
+                      const isPresetActive =
+                        normalizeUnit(entryUnit) === selectedYieldUnit &&
+                        Math.abs(newQuantity - targetQty) < 0.0001;
+
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          className={`yield-preset-btn ${isPresetActive ? "active" : ""}`}
+                          onClick={() => {
+                            setEntryUnit(selectedYieldUnit);
+                            setNewQuantity(targetQty);
+                          }}
+                        >
+                          🥣 {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="form-group">
                 <label>
                   {modalType === "in"
-                    ? `Quantidade a adicionar (${selectedProduct?.unit || "un"})`
+                    ? `Quantidade a adicionar (${entryUnit})`
                     : `Novo estoque total (${selectedProduct?.unit || "un"})`}
                 </label>
                 <NumberInput
                   step="any"
-                  buttonStep={1}
+                  buttonStep={getRecommendedStepForUnit(entryUnit)}
                   min={modalType === "adjust" ? undefined : 0.0001}
                   value={newQuantity}
                   onChange={(e) => setNewQuantity(parseFloat(e.target.value) || 0)}
@@ -430,7 +546,7 @@ export default function Stock() {
                     </label>
                     <select
                       value={entryUnit}
-                      onChange={(e) => setEntryUnit(e.target.value)}
+                      onChange={(e) => handleEntryUnitChange(e.target.value)}
                       className="form-select"
                     >
                       {compatibleEntryUnits.map((u) => (
@@ -441,7 +557,7 @@ export default function Stock() {
                     </select>
                   </div>
                 )}
-                {modalType === "in" && getUnitDimension(selectedProduct?.unit) === "mass" && (
+                {modalType === "in" && !hasSelectedYield && getUnitDimension(selectedProduct?.unit) === "mass" && (
                   <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
                     {[
                       { label: "Pacote 500g", qty: 500, unit: "g" },
@@ -481,27 +597,77 @@ export default function Stock() {
                   </div>
                 )}
                 {modalType === "in" && (
-                  <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                    {[1, 5, 10, 20].map((inc) => (
-                      <button
-                        key={inc}
-                        type="button"
-                        onClick={() => setNewQuantity((prev) => (prev || 0) + inc)}
-                        style={{
-                          flex: 1,
-                          padding: "6px 0",
-                          background: "#f1f5f9",
-                          border: "1px solid #cbd5e1",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          color: "#334155",
-                          cursor: "pointer",
-                        }}
-                      >
-                        +{inc}
-                      </button>
-                    ))}
+                  <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
+                    {hasSelectedYield && normalizeUnit(entryUnit) === selectedYieldUnit ? (
+                      [
+                        { label: `+50${selectedYieldUnit}`, inc: 50 },
+                        { label: `+100${selectedYieldUnit}`, inc: 100 },
+                        { label: `+500${selectedYieldUnit}`, inc: 500 },
+                        { label: `+${selectedYieldVal}${selectedYieldUnit}`, inc: selectedYieldVal },
+                      ].map((btn) => (
+                        <button
+                          key={btn.label}
+                          type="button"
+                          onClick={() => setNewQuantity((prev) => Number(((prev || 0) + btn.inc).toFixed(4)))}
+                          style={{
+                            flex: 1,
+                            minWidth: "60px",
+                            padding: "6px 0",
+                            background: "#f1f5f9",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "#334155",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {btn.label}
+                        </button>
+                      ))
+                    ) : normalizeUnit(entryUnit) === "g" || normalizeUnit(entryUnit) === "ml" ? (
+                      [50, 100, 250, 500].map((inc) => (
+                        <button
+                          key={inc}
+                          type="button"
+                          onClick={() => setNewQuantity((prev) => Number(((prev || 0) + inc).toFixed(4)))}
+                          style={{
+                            flex: 1,
+                            padding: "6px 0",
+                            background: "#f1f5f9",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "#334155",
+                            cursor: "pointer",
+                          }}
+                        >
+                          +{inc}{entryUnit}
+                        </button>
+                      ))
+                    ) : (
+                      [1, 5, 10, 20].map((inc) => (
+                        <button
+                          key={inc}
+                          type="button"
+                          onClick={() => setNewQuantity((prev) => (prev || 0) + inc)}
+                          style={{
+                            flex: 1,
+                            padding: "6px 0",
+                            background: "#f1f5f9",
+                            border: "1px solid #cbd5e1",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            color: "#334155",
+                            cursor: "pointer",
+                          }}
+                        >
+                          +{inc}
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -522,17 +688,36 @@ export default function Stock() {
                   <span style={{ fontSize: "13px", color: "#166534" }}>
                     Novo saldo previsto:
                   </span>
-                  <span
-                    style={{
-                      fontWeight: "700",
-                      fontSize: "15px",
-                      color: "#15803d",
-                    }}
-                  >
-                    {Number((Number(currentStockForSelected) + Number(convertedInStockUnit)).toFixed(4))} {selectedProduct.unit || "un"}
-                  </span>
+                  <div style={{ textAlign: "right" }}>
+                    <span
+                      style={{
+                        fontWeight: "700",
+                        fontSize: "15px",
+                        color: "#15803d",
+                      }}
+                    >
+                      {Number((Number(currentStockForSelected) + Number(convertedInStockUnit)).toFixed(4))} {selectedProduct.unit || "un"}
+                    </span>
+                    {hasSelectedYield && (
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          color: "#166534",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {normalizeUnit(selectedProduct.unit) === "un" ? (
+                          `(~${Number(((Number(currentStockForSelected) + Number(convertedInStockUnit)) * selectedYieldVal).toFixed(1))} ${selectedYieldUnit})`
+                        ) : (
+                          `(~${Number(((Number(currentStockForSelected) + Number(convertedInStockUnit)) / selectedYieldVal).toFixed(2))} un)`
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
+
 
               <div
                 className="modal-actions"

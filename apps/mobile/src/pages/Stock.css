@@ -338,3 +338,70 @@
   align-items: center;
   gap: 6px;
 }
+
+/* Yield / Batch Presets Box */
+.yield-preset-box {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #fdf4ff;
+  border: 1px solid #f0abfc;
+  border-radius: 8px;
+}
+
+.yield-preset-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.yield-preset-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #86198f;
+}
+
+.yield-preset-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #fae8ff;
+  color: #701a75;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #f5d0fe;
+}
+
+.yield-preset-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.yield-preset-btn {
+  flex: 1;
+  min-width: 100px;
+  padding: 7px 8px;
+  background: #ffffff;
+  border: 1px solid #e879f9;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #86198f;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.yield-preset-btn:hover {
+  background: #fae8ff;
+  border-color: #d946ef;
+}
+
+.yield-preset-btn.active {
+  background: #a21caf;
+  border-color: #86198f;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(162, 28, 175, 0.3);
+}

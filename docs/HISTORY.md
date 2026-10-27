@@ -756,3 +756,75 @@
     - Criado teste E2E Playwright (`e2e/specs/10-recipes-yield.spec.ts`) cobrindo a definição de peso de 1600g na Massa, adição de 60g na receita do Cookie e edição do ingrediente para 80g.
 - **Validação:** Build completo do monorepo (`npm run build`) e todas as 4 suítes de testes unitários Jest executadas com 100% de sucesso (20/20 testes aprovados).
 - **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-10-27] Entrada Simples de Massa no Estoque com Rendimento Equivalente Dinâmico
+
+- **Contexto:** Solicitação do usuário para simplificar a entrada de estoque de massas que possuem peso/rendimento de receita cadastrado (ex: 1600g), permitindo lançar a produção de uma ou mais receitas em 1 toque diretamente em gramas (ou unidades), sem valores fixos ou hardcoded.
+- **Implementações Realizadas:**
+  - **1. Dinamicidade Total via Metadados do Produto (`product.recipeYield` e `product.recipeYieldUnit`):**
+    - Nenhum valor é fixo ou hardcoded. Cada produto possui seu próprio rendimento cadastrado no banco PostgreSQL (`recipe_yield Decimal(10,4)` e `recipe_yield_unit String`).
+    - Se a massa for cadastrada com estoque em `g` e rendimento de `1600 g`, as movimentações no Ledger são gravadas estritamente em gramas reais (`1600.0000`, `3200.0000`, `-60.0000`), sem frações decimais contábeis.
+  - **2. Motor de Conversão de Unidades (`libs/utils/src/lib/unit-conversion.ts`):**
+    - Implementada a função `convertQuantityBetweenUnits(quantity, fromUnit, toUnit, product)` permitindo conversões diretas e bidirecionais entre quaisquer duas unidades suportadas pelo produto (ex: `1600 g` ↔ `1 un`, `3200 g` ↔ `2 un`, `1.6 kg` ↔ `1600 g`).
+    - Expandida a suíte de testes unitários Jest em `unit-conversion.spec.ts`.
+  - **3. Modal de Entrada de Estoque (`apps/mobile/src/pages/Stock.tsx`):**
+    - **Abertura Inteligente:** Quando o produto selecionado possui rendimento cadastrado (ex: `1600 g`), o modal já abre pré-preenchido com a quantidade do rendimento e a unidade correspondente, com o atalho `🥣 1 Receita (X g)` ativo.
+    - **Painel de Atalhos Rápidos da Receita (`.yield-preset-box`):** Adicionados botões de 1 toque: `🥣 1 Receita`, `🥣 2 Receitas` e `🥣 ½ Receita`, adaptando-se dinamicamente ao peso do produto cadastrado.
+    - **Auto-conversão no Dropdown:** Ao alternar a unidade no select (`g` ↔ `un` ↔ `kg`), o valor preenchido se converte automaticamente preservando a equivalência sem exigir redigitação.
+    - **Correção de Label e Step:** O label do campo agora reflete a unidade ativa (`Quantidade a adicionar (${entryUnit})`) e os botões `+/-` usam o step calibrado da unidade (`getRecommendedStepForUnit`).
+    - **Incrementos Contextuais:** Disponibilizados botões de incremento calibrados para a unidade em uso.
+  - **4. Calibração Semântica dos Badges e Rótulos (`Stock.tsx`, `Products.tsx` & `ProductRecipe.tsx`):**
+    - Rótulos ajustados para diferenciar produtos em unidades inteiras (`1 un = X g`) de produtos cuja unidade base de estoque já é gramas (`1 receita = X g`), evitando a ambiguidade `1 g = 1600g`.
+    - No card de estoque da massa quando em gramas, exibe a estimativa convertida em receitas (ex: `(~2 receitas)`).
+  - **5. Suíte de Testes Automatizados:**
+    - Testes unitários Jest atualizados com 100% de sucesso (21/21 testes passando).
+    - Teste Playwright E2E em `e2e/specs/10-recipes-yield.spec.ts` validando a entrada com presets de rendimento e saldo atualizado no estoque.
+- **Validação:** Compilação completa do monorepo (`mobile`, `api`, `utils`, `types`) aprovada com 100% de sucesso.
+- **Documentação Atualizada:** `docs/TASKS.md` e `docs/HISTORY.md`.
+
+### [2026-10-27] Mapeamento de Tarefa: Unificação da Seleção de Receitas/Ingredientes com a Tela do Carrinho
+
+- **Contexto:** Solicitação do usuário para alinhar e modernizar a experiência de montagem e seleção de receitas/ingredientes no Haru Control, reaproveitando a mesma tela/mecanismo de catálogo com carrinho (`OrderForm`) já utilizado nos pedidos e no estoque (descarte).
+- **Mapeamento & Planejamento:**
+  - Registrada nova tarefa na **Fase 2** de `docs/TASKS.md`: **Unificação da Seleção de Receitas / Ingredientes com a Tela do Carrinho (`OrderForm`)**.
+  - **Objetivo:** Substituir a seleção unitária via modal com `<select>` em `ProductRecipe.tsx` pelo padrão visual de catálogo com categorias, subcategorias, cards de insumos, seleção com botões `+`/`-` e gaveta deslizante inferior (Drawer de Carrinho `🛒`), possibilitando montar ou editar a ficha técnica (BOM) com múltiplos ingredientes em lote com 1 toque.
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-10-27] Triagem de BUG-012 e Mapeamento de Busca Frontend no Catálogo
+
+- **1. Triagem do BUG-012 (Consumo de Estoque/Insumos Não Operante):**
+  - **Contexto:** Usuário reportou que o consumo dos estoques não está funcionando.
+  - **Triagem Técnica:** Invocada a skill `report-bug` com prioridade máxima. Investigação identificou que com a remoção da rota `/manufacturing` na Fase 2, as entradas de estoque (`/stock/in` e `/stock/in/batch` na sugestão de fornada e modal de item) registram exclusivamente `STOCK_IN` para o produto acabado. Elas não acionam a lógica de `MANUFACTURING_CONSUMPTION` para deduzir proporcionalmente os insumos/massas da receita (BOM), violando a ADR-03 e mantendo os saldos de matérias-primas estáticos.
+  - **Registro:** Criado `BUG-012` em `docs/BUGS.md` com severidade `🔴 Alta` e espelhado no topo de `docs/TASKS.md`.
+- **2. Mapeamento de Feature (Busca Textual Frontend no Catálogo):**
+  - **Contexto:** Demanda do usuário para adicionar campo de pesquisa pelo nome dos itens no catálogo visual do `OrderForm` (utilizado em pedidos, histórico, descartes e na futura seleção de receitas).
+  - **Estratégia:** Implementação client-side pura (filtragem reativa em tempo real com `filter`), sem requisições adicionais à API ou paginação, ocultando automaticamente grupos/categorias vazios.
+  - **Registro:** Adicionado item ao checklist da Fase 2 em `docs/TASKS.md`.
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+### [2026-10-27] Resolução do BUG-012: Consumo Automático de Receitas (BOM) nas Entradas de Estoque e Fornadas
+
+- **Contexto:** Correção da falha onde entradas de produtos com receita (cookies, massas) no estoque (`/stock/in` e `/stock/in/batch`) não consumiam os ingredientes e matérias-primas no Ledger, mantendo o saldo dos insumos inalterado.
+- **Implementações Realizadas:**
+  - **1. Motor de Consumo de Receita no `StockService` (`apps/api/src/modules/stock/stock.service.ts`):**
+    - Métodos `addStock` e `addStockBatch` atualizados para carregar a Ficha Técnica (`recipeItems`) dos produtos via Prisma.
+    - Se o produto possui receita:
+      - Calcula a necessidade exata de cada insumo convertendo unidades via `convertProductQuantity` e aplicando o `batchFactor` (`getParentRecipeBatchFactor`).
+      - Em transação atômica (`prisma.$transaction`), gera lançamentos negativos de `MANUFACTURING_CONSUMPTION` para cada insumo e grava a entrada do produto como `MANUFACTURING_PRODUCTION`.
+      - Detecta estoque insuficiente do ingrediente e anexa alertas na lista de `warnings` sem travar a operação (conformidade com ADR-01 e ADR-03).
+    - Se o produto não possui receita: gera `STOCK_IN` simples (compra de matéria-prima ou embalagem).
+  - **2. Controller e DTOs (`apps/api/src/modules/stock/stock.controller.ts`):**
+    - Adicionado suporte a `notes?: string` no `StockInDto`.
+    - Endpoints `POST /stock/in` e `POST /stock/in/batch` retornam `{ success: true, warnings }`.
+  - **3. Feedback no Frontend (`Stock.tsx` & `BakingSuggestionModal.tsx`):**
+    - Ao salvar a entrada rápida no estoque ou confirmar a fornada sugerida, o frontend consome os warnings e exibe Toast de aviso caso algum insumo esteja insuficiente/negativo.
+  - **4. Suíte de Testes Automatizados Unitários (`products.service.spec.ts`):**
+    - Cobertura de 3 novos testes unitários: produto sem receita (`STOCK_IN`), produto com receita consumindo massa e gotas proporcionalmente (`MANUFACTURING_CONSUMPTION` + `MANUFACTURING_PRODUCTION`), e fornada em lote com múltiplos produtos mistos (`addStockBatch`).
+- **Validação:**
+  - 100% de aprovação nos testes unitários Jest (`npm test`, 24/24 testes passando).
+  - Typecheck estrito do TypeScript aprovado em `api` e `mobile` com zero erros.
+- **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+
+
+

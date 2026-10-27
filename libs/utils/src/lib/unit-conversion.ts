@@ -382,3 +382,64 @@ export function getRecommendedStepForUnit(unit?: string | null): number {
   if (norm === 'kg' || norm === 'L') return 0.1;
   return 1;
 }
+
+/**
+ * Converte uma quantidade entre quaisquer duas unidades compatíveis para um determinado produto.
+ * Suporta conversões entre contagem (ex: 'un') e massa/volume baseadas no rendimento da receita (ex: 1 un <-> 1600 g),
+ * bem como conversões diretas de escala (ex: kg <-> g, L <-> ml).
+ */
+export function convertQuantityBetweenUnits(
+  quantity: number,
+  fromUnit: string,
+  toUnit: string,
+  product: UnitConvertibleProduct
+): number {
+  const normFrom = normalizeUnit(fromUnit);
+  const normTo = normalizeUnit(toUnit);
+
+  if (normFrom === normTo) {
+    return quantity;
+  }
+
+  // Se ambas as unidades forem diretamente compatíveis (ex: kg -> g ou L -> ml)
+  if (areUnitsCompatible(normFrom, normTo)) {
+    return convertQuantity(quantity, normFrom, normTo);
+  }
+
+  // Primeiro converte para a unidade base de estoque do produto
+  const qtyInStockUnit = convertProductQuantity(quantity, normFrom, product);
+  const stockUnit = normalizeUnit(product.unit);
+
+  if (normTo === stockUnit) {
+    return Number(qtyInStockUnit.toFixed(6));
+  }
+
+  // Se a unidade de destino for diretamente compatível com a unidade de estoque
+  if (areUnitsCompatible(stockUnit, normTo)) {
+    return convertQuantity(qtyInStockUnit, stockUnit, normTo);
+  }
+
+  // Se o produto possui rendimento de receita (ex: 1 un = 1600g)
+  const yieldVal = Number(product.recipeYield || 0);
+  if (yieldVal > 0 && product.recipeYieldUnit) {
+    const normYield = normalizeUnit(product.recipeYieldUnit);
+
+    // Se a unidade de estoque for contagem ('un') e o destino for compatível com o rendimento (ex: 'g' ou 'kg')
+    const stockDim = getUnitDimension(stockUnit);
+    if ((stockDim === 'count' || stockDim === 'custom') && areUnitsCompatible(normYield, normTo)) {
+      const inYieldUnit = qtyInStockUnit * yieldVal;
+      return convertQuantity(inYieldUnit, normYield, normTo);
+    }
+
+    // Se a unidade de estoque for massa/volume (ex: 'g') e o destino for 'un' (lote/receita)
+    if (normTo === 'un' && areUnitsCompatible(stockUnit, normYield)) {
+      const inYieldUnit = convertQuantity(qtyInStockUnit, stockUnit, normYield);
+      return Number((inYieldUnit / yieldVal).toFixed(6));
+    }
+  }
+
+  throw new Error(
+    `Incompatibilidade de unidades: Não é possível converter '${fromUnit}' para '${toUnit}' para o produto especificado.`
+  );
+}
+

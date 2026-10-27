@@ -3,6 +3,7 @@
 ## 🐛 Bugs Prioritários (BUGS.md)
 > **NOTA DE PRIORIDADE MÁXIMA:** Bugs listados nesta seção têm **prioridade absoluta de trabalho** sobre qualquer nova feature, refatoração ou ajuste normal do projeto. Sempre que um bug for reportado, registre-o primeiro em `docs/BUGS.md` com ID único (ex: `BUG-001`) e adicione-o no topo desta lista via skill `report-bug`.
 
+- `[ ]` **[BUG-012]** Falha no consumo de insumos/estoque (baixa de receitas) nas rotinas de entrada de estoque e produção — *[🟡 Implementado: addStock e addStockBatch agora consultam a receita (BOM), deduzem insumos via MANUFACTURING_CONSUMPTION com conversão de unidades e geram MANUFACTURING_PRODUCTION — ⏳ Aguardando Validação Prática]*
 - `[ ]` **[BUG-011]** Subestimação severa na sugestão de fornada e filtro por completedAt em vez de createdAt — *[🟡 Implementado: filtro corrigido para createdAt no fuso BR e normalização dinâmica de pesos das semanas — ⏳ Aguardando Validação Prática]*
 - `[x]` **[BUG-008]** Chave Pix de telefone rejeitada por ausência de prefixo internacional E.164 (+55) — *[✅ Resolvido e validado na prática pelo usuário no aplicativo bancário: código Pix Copia e Cola reconhecido com sucesso com chave internacional +55]*
 - `[x]` **[BUG-010]** Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile — *[✅ Resolvido e validado na prática em Dev: flex min-height 0, remoção de overflow visible e liberação de gestos touch]*
@@ -195,6 +196,14 @@
   - **Suíte de Testes Unitários e E2E (`unit-conversion.spec.ts`, `products.service.spec.ts` e `10-recipes-yield.spec.ts`):**
     - Configuração unificada do Jest com `ts-jest` em `jest.config.js` e aprovação de 100% nas 4 suítes unitárias (20/20 testes passando).
     - Criado spec E2E Playwright `e2e/specs/10-recipes-yield.spec.ts` validando definição de 1600g na Massa, adição de 60g no Cookie e edição do item na receita para 80g.
+  - **Entrada Simples de Massa no Estoque com Rendimento Equivalente (`Stock.tsx` & `unit-conversion.ts`):**
+    - Dinamicidade 100% orientada aos metadados do produto (`product.recipeYield` e `product.recipeYieldUnit`), sem valores fixos ou hardcoded.
+    - Abertura inteligente do modal de entrada pré-preenchendo a unidade do rendimento (`g`) e a quantidade da receita para produtos com rendimento cadastrado.
+    - Painel de atalhos rápidos de fornada (`🥣 1 Receita (X g)`, `🥣 2 Receitas (2X g)`, `🥣 ½ Receita (X/2 g)`).
+    - Conversão automática bidirecional entre unidades compatíveis (`convertQuantityBetweenUnits`) ao trocar de unidade no select sem perder o valor.
+    - Correção do label do campo (`Quantidade a adicionar (${entryUnit})`) e step calibrado por unidade.
+    - Calibração semântica dos badges e rótulos (`Stock.tsx`, `Products.tsx`, `ProductRecipe.tsx`): exibição dinâmica de `1 receita = X g` quando a unidade de estoque do produto é gramas/massa (`g`), e `1 un = X g` quando a unidade for inteira (`un`).
+    - Exibição de peso e receitas estimadas no card de estoque da massa (ex: `~2 receitas`).
 - `[ ]` **Módulo Seguro de Sincronização e Importação de Dados (Produção ➔ Dev):**
   - **Exportação Segura em Produção (`apps/api`):**
     - Endpoint fechado `GET /admin/database/export` protegido por chave secreta dedicada no header (`X-Database-Sync-Key`) com comparação em tempo constante (`crypto.timingSafeEqual`).
@@ -205,6 +214,21 @@
     - Limpeza prévia atômica com `TRUNCATE ... CASCADE` e recarga ordenada de todos os registros via transação Prisma, tratando compatibilidade de migrations entre ambientes.
   - **Automação & Script de Carga:**
     - Script no monorepo (`npm run db:pull-prod`) para sincronizar a base de dev com a produção sob demanda ou semanalmente com 1 comando.
+- `[ ]` **Unificação da Seleção de Receitas / Ingredientes com a Tela do Carrinho (`OrderForm`):**
+  - **Contexto & Objetivo:** Mudar a forma de seleção de itens e ingredientes de receitas para utilizar a mesma interface visual de catálogo em grade com carrinho (`OrderForm`), já padronizada e utilizada nos pedidos normais, históricos e no módulo de descarte de estoque (`?mode=waste`).
+  - **Fluxo Visual Mobile-First:**
+    - Permitir selecionar ingredientes/itens da receita navegando pela árvore de categorias e subcategorias visuais com cards intuitivos de produtos e insumos.
+    - Controles de quantidade e unidade diretamente na grade ou no drawer, com gaveta inferior deslizante (Drawer de Carrinho `🛒`) para revisar todos os insumos selecionados de uma só vez.
+    - Eliminar a necessidade de adicionar ingredientes um a um via modais isolados e múltiplos dropdowns `<select>` sequenciais em `ProductRecipe.tsx`.
+    - Botão de salvamento em lote para persistir a ficha técnica (BOM) do produto de forma rápida e atômica.
+  - **Integração Técnica:**
+    - Avaliar a extensão do `OrderForm` com um novo modo de operação (ex: `mode=recipe` recebendo `productId` alvo) ou componentização reutilizável do grid de produtos + carrinho (`CartDrawer`) para montagem ágil de receitas.
+- `[ ]` **Campo de Busca Textual (Search) Frontend no Catálogo de Produtos (`OrderForm`):**
+  - **Contexto & Objetivo:** Permitir pesquisar rapidamente produtos e insumos pelo nome diretamente na grade do catálogo visual utilizada nos pedidos, históricos, descartes e na futura seleção de receitas.
+  - **Execução Leve no Frontend (Client-Side):**
+    - A filtragem deve ocorrer instantaneamente no próprio frontend à medida que o operador digita, aproveitando que a quantidade de itens no catálogo é gerenciável e sem necessidade de paginação ou chamadas à API.
+    - Filtrar itens por nome (`normalize` / case-insensitive) e ocultar automaticamente categorias e subcategorias que ficarem sem produtos correspondentes após o filtro.
+    - Botão rápido para limpar o campo de busca com 1 toque (`✕`).
 
 ---
 

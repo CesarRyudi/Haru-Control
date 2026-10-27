@@ -20,6 +20,7 @@
 | `BUG-009` | `[x]` Resolvido | `✅ Validado` | `🟡 Média` | Erro ao carregar previsão de fornada no modal por endpoint incorreto | `apps/mobile/src/components/BakingSuggestionModal.tsx` | 2026-09-25 |
 | `BUG-010` | `[x]` Resolvido | `✅ Validado` | `🟢 Baixa` | Vazamento de scroll da página ao mover modal de sugestão de fornada no mobile | `apps/mobile/src/components/BakingSuggestionModal.tsx`, `BakingSuggestionModal.css` | 2026-09-25 |
 | `BUG-011` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Subestimação severa na sugestão de fornada e filtro incorreto por completedAt em vez de createdAt | `apps/api/src/modules/stock/baking-suggestion.service.ts` | 2026-09-28 |
+| `BUG-012` | `[x]` Implementado | `⏳ Pendente` | `🔴 Alta` | Falha no consumo de insumos/estoque (baixa de receitas) nas rotinas de entrada de estoque e produção | `apps/api/src/modules/stock/stock.service.ts`, `apps/mobile/src/pages/Stock.tsx` | 2026-10-27 |
 
 ---
 
@@ -491,3 +492,53 @@
 #### 5. Lições Aprendidas & Prevenção Futura
 - Sempre criar testes unitários exaustivos para serviços com cálculos estatísticos e matemáticos, cobrindo cenários de onboarding (0, 1 e 2 semanas de dados), lojas fechadas em determinados dias da semana e fuso horário.
 - Nunca usar denominador fixo em médias ponderadas de séries temporais sem validar a existência de amostragem no período analisado.
+
+### [BUG-012] Falha no consumo de insumos/estoque (baixa de receitas) nas rotinas de entrada de estoque e produção
+- **Status:** `[x]` Implementado
+- **Validação Prática:** `[ ]` Pendente de Validação
+- **Severidade:** `🔴 Alta`
+- **Data de Registro:** 2026-10-27
+- **Data de Implementação:** 2026-10-27
+- **Data de Validação:** N/A
+- **Componentes / Arquivos Afetados:** `apps/api/src/modules/stock/stock.service.ts`, `apps/api/src/modules/manufacturing/manufacturing.service.ts`, `apps/api/src/modules/orders/orders.service.ts`, `apps/mobile/src/pages/Stock.tsx`, `apps/mobile/src/components/BakingSuggestionModal.tsx`
+
+#### 1. O que acontece (Sintomas & Comportamento Observado)
+- Ao registrar a produção/entrada de produtos que possuem receita (Ficha Técnica / BOM) como cookies ou massas (seja via "Entrada de Estoque" no card de `Stock.tsx`, via sugestão de fornada em `BakingSuggestionModal.tsx`, ou na conclusão de pedidos), o estoque dos insumos e matérias-primas (farinha, manteiga, chocolate, massas) **não é consumido/baixado**. O saldo dos ingredientes permanece estático no Ledger contábil.
+- **Passos para Reproduzir:**
+  1. Cadastrar um produto com receita (ex: Cookie Tradicional consumindo 60g de Massa Tradicional e 20g de Gotas de Chocolate).
+  2. Acessar o Estoque (`/stock`) e registrar uma entrada de 10 unidades de Cookie Tradicional (ou confirmar uma fornada sugerida).
+  3. Consultar o saldo dos insumos (Massa Tradicional e Gotas de Chocolate) no Estoque.
+  4. Observar que os saldos dos insumos não tiveram nenhuma redução.
+- **Comportamento Esperado:** Conforme estipulado na **ADR-03 (Ficha Técnica de Produtos & Baixa Automática de Insumos)**, ao produzir/dar entrada em $N$ unidades de um produto com receita, o sistema deve registrar a produção do item final e criar lançamentos negativos de `MANUFACTURING_CONSUMPTION` para cada insumo consumido proporcionalmente (com conversão de unidades e fator de rendimento).
+- **Logs / Erros de Console:** Nenhum erro de runtime é disparado, pois as rotinas apenas inserem `STOCK_IN` simples sem invocar o motor de manufatura/consumo.
+
+#### 2. Onde está o problema (Localização Técnica)
+1. **Desacoplamento entre Entrada de Estoque e Manufatura (`StockService` vs `ManufacturingService`):**
+   - Na Fase 2, a página dedicada `/manufacturing` foi desativada com a premissa de que a rotina de produção seria absorvida pela entrada de produtos acabados no estoque.
+   - No entanto, os métodos `addStock` e `addStockBatch` em `apps/api/src/modules/stock/stock.service.ts` foram mantidos com inserção simples de `LedgerOperationType.STOCK_IN` exclusivamente para o produto pai.
+   - Em nenhum momento o serviço verifica se o produto possui `recipeItems` cadastrados para acionar o cálculo proporcional de conversão de unidades (`convertProductQuantity`, `getParentRecipeBatchFactor`) e gravar os lançamentos `MANUFACTURING_CONSUMPTION` no Ledger.
+2. **Entrada de Lote da Fornada (`/stock/in/batch`):**
+   - `BakingSuggestionModal.tsx` envia os itens da fornada para `POST /stock/in/batch`.
+   - `StockService.addStockBatch` insere apenas `STOCK_IN` para os cookies assados, ignorando a baixa das massas e insumos.
+
+#### 3. Como foi introduzido (Causa Raiz & Contexto Histórico)
+- Quando a rota `/manufacturing` foi simplificada e removida da barra de navegação inferior na Fase 2, o backend não foi adaptado para integrar atomicamente a lógica de `ManufacturingService.produce` dentro dos fluxos de entrada de estoque (`/stock/in` e `/stock/in/batch`) para produtos com receita.
+
+#### 4. Como foi resolvido (Solução Aplicada)
+1. **Integração do Motor de BOM/Manufatura no `StockService` (`apps/api/src/modules/stock/stock.service.ts`):**
+   - Atualizados os métodos `addStock` e `addStockBatch` para consultar `recipeItems` de cada produto sendo adicionado.
+   - Quando o produto possui receita (ex: Cookie ou Massa), o backend calcula automaticamente a quantidade proporcional necessária de cada insumo convertendo unidades via `convertProductQuantity` e `getParentRecipeBatchFactor`.
+   - Em transação atômica (`prisma.$transaction`), gera lançamentos negativos de `MANUFACTURING_CONSUMPTION` para cada insumo e registra a entrada do produto como `MANUFACTURING_PRODUCTION`, preservando a rastreabilidade contábil (ADR-01 e ADR-03).
+   - Se o produto não possui receita (insumo puro / compra de fornecedor), gera `STOCK_IN` normalmente.
+2. **Suporte a Notas e Retorno de Warnings (`StockController` & DTOs):**
+   - `StockInDto` agora aceita campo `notes` opcional.
+   - `POST /stock/in` e `POST /stock/in/batch` retornam `{ success: true, warnings }` para alertar caso algum insumo fique com saldo negativo no estoque.
+3. **Feedback Visual no Frontend (`Stock.tsx` & `BakingSuggestionModal.tsx`):**
+   - `Stock.tsx` e `BakingSuggestionModal.tsx` agora capturam o retorno e exibem Toast com aviso caso algum ingrediente esteja com estoque baixo/negativo.
+4. **Suíte de Testes Automatizados Unitários (`apps/api/src/modules/products/products.service.spec.ts`):**
+   - Criados testes unitários para `StockService.addStock` (produto simples vs produto com receita consumindo insumos) e `StockService.addStockBatch` (lote com múltiplos cookies e insumos), validados com 100% de sucesso.
+
+#### 5. Lições Aprendidas & Prevenção Futura
+- Ao simplificar ou transferir fluxos de negócio na UI (ex: remover tela de produção e transferir para o estoque), auditar ponta a ponta os endpoints de backend chamados para garantir que os efeitos colaterais de domínio (baixas de receitas / Ledger contábil) permaneçam operantes.
+- Criar testes de integração e E2E que verifiquem explicitamente se a entrada de um produto com receita reduz o saldo dos seus ingredientes no estoque.
+

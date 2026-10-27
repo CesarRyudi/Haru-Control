@@ -1,5 +1,5 @@
 import { FloatingActionButton, NumberInput } from "@haru-control/ui";
-import { formatCurrency } from "@haru-control/utils";
+import { formatCurrency, normalizeUnit } from "@haru-control/utils";
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -390,7 +390,7 @@ export default function Products() {
           {product.isPurchasable && <span style={{ background: '#f3e5f5', color: '#4a148c', padding: '2px 6px', borderRadius: '4px' }}>📦 Compra</span>}
           {product.recipeYield != null && Number(product.recipeYield) > 0 && product.recipeYieldUnit && (
             <span style={{ background: '#eef2ff', color: '#3730a3', padding: '2px 6px', borderRadius: '4px' }}>
-              ⚖️ 1 {product.unit || 'un'} = {Number(product.recipeYield)}{product.recipeYieldUnit}
+              ⚖️ 1 {normalizeUnit(product.unit) === "un" ? "un" : "receita"} = {Number(product.recipeYield)}{product.recipeYieldUnit}
             </span>
           )}
         </div>

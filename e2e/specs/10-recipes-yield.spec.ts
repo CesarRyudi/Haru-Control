@@ -105,9 +105,88 @@ test.describe("Edição de Receitas e Peso/Rendimento Equivalente (Massa 1600g -
     await expect(recipeItemCard).toContainText("80 g");
     await expect(recipeItemCard).toContainText("0.05 un no estoque");
 
-    // 11. Limpeza: remove o ingrediente da receita e exclui os produtos de teste
+    // 11. Limpeza: remove o ingrediente da receita
     page.once("dialog", (d) => d.accept());
     await recipeItemCard.locator('button[title="Remover ingrediente"]').click();
     await expect(recipeItemCard).not.toBeVisible({ timeout: 5000 });
   });
+
+  test("deve dar entrada de 1600 gramas no estoque de forma simples com presets de rendimento", async ({
+    orderBoard,
+    page,
+  }) => {
+    await orderBoard.goto();
+
+    const timestamp = Date.now();
+    const massaName = `Massa Estoque E2E ${timestamp}`;
+
+    // 1. Cria a Massa em Produtos com Rendimento de 1600g
+    const navProducts = page.locator("button.bottom-nav-item", { hasText: "Produtos" });
+    await navProducts.click();
+    await expect(page.locator(".products-page")).toBeVisible({ timeout: 10000 });
+
+    const fabButton = page.locator("button.fab-button");
+    await fabButton.click();
+    await page.locator(".fab-menu-item", { hasText: "Novo Produto" }).click();
+
+    const newProductModal = page.locator(".modal", { hasText: "Novo Produto" });
+    await expect(newProductModal).toBeVisible();
+    await newProductModal.locator('input[type="text"]').first().fill(massaName);
+    await newProductModal.locator('input[type="number"]').last().fill("1600");
+    await newProductModal.locator("button.btn-primary", { hasText: "Salvar" }).click();
+    await expect(newProductModal).not.toBeVisible({ timeout: 5000 });
+
+    // 2. Navega para Estoque
+    const navStock = page.locator("button.bottom-nav-item", { hasText: "Estoque" });
+    await navStock.click();
+    await expect(page.locator(".stock-page")).toBeVisible({ timeout: 10000 });
+
+    // 3. Localiza o card da Massa no estoque e valida o badge
+    const stockCard = page.locator(".product-card", { hasText: massaName });
+    await expect(stockCard).toBeVisible({ timeout: 5000 });
+    await expect(stockCard).toContainText("1600g");
+
+    // 4. Clica no card para abrir o modal de Entrada de Estoque
+    await stockCard.click();
+    const stockModal = page.locator(".modal", { hasText: "Entrada de Estoque" });
+    await expect(stockModal).toBeVisible();
+
+    // 5. Valida que o modal abriu com 1600g preenchido e preset de 1 Receita ativo
+    const yieldBox = stockModal.locator(".yield-preset-box");
+    await expect(yieldBox).toBeVisible();
+    await expect(yieldBox).toContainText("1600 g");
+
+    const btn1Receita = yieldBox.locator("button", { hasText: "1 Receita (1600g)" });
+    await expect(btn1Receita).toBeVisible();
+    await expect(btn1Receita).toHaveClass(/active/);
+
+    // Valida o label do campo indicando gramas
+    await expect(stockModal).toContainText("Quantidade a adicionar (g)");
+    const qtyInput = stockModal.locator(".number-input-container input");
+    await expect(qtyInput).toHaveValue("1600");
+
+    // Valida atalho de 2 receitas
+    const btn2Receitas = yieldBox.locator("button", { hasText: "2 Receitas (3200g)" });
+    await btn2Receitas.click();
+    await expect(qtyInput).toHaveValue("3200");
+    await expect(btn2Receitas).toHaveClass(/active/);
+
+    // Retorna para 1 receita (1600g)
+    await btn1Receita.click();
+    await expect(qtyInput).toHaveValue("1600");
+
+    // Valida o preview do novo saldo (+1 un (~1600 g))
+    await expect(stockModal).toContainText("Novo saldo previsto:");
+    await expect(stockModal).toContainText("1 un");
+    await expect(stockModal).toContainText("(~1600 g)");
+
+    // 6. Confirma a entrada de 1600g
+    await stockModal.locator("button.btn-primary", { hasText: "Confirmar Entrada" }).click();
+    await expect(stockModal).not.toBeVisible({ timeout: 5000 });
+
+    // 7. Valida que o card no estoque foi atualizado para 1 un (~1600 g)
+    await expect(stockCard).toContainText("1 un");
+    await expect(stockCard).toContainText("(~1600 g)");
+  });
 });
+

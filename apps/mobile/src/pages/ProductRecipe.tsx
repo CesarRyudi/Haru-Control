@@ -549,7 +549,7 @@ export default function ProductRecipe() {
                         {groupItems.map((p) => {
                           const yieldLabel =
                             p.recipeYield && Number(p.recipeYield) > 0 && p.recipeYieldUnit
-                              ? ` • 1 ${p.unit || "un"} = ${Number(p.recipeYield)}${p.recipeYieldUnit}`
+                              ? ` • 1 ${normalizeUnit(p.unit) === "un" ? "un" : "receita"} = ${Number(p.recipeYield)}${p.recipeYieldUnit}`
                               : "";
                           return (
                             <option key={p.id} value={p.id}>
