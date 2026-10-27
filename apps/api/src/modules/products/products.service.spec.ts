@@ -220,4 +220,167 @@ describe("ProductsService, StockService & ManufacturingService — Receitas e Pe
       type: "MANUFACTURING_PRODUCTION",
     });
   });
+
+  it("StockService.addStock: deve registrar STOCK_IN simples quando o produto não possui receita", async () => {
+    mockPrisma.product.findUnique.mockResolvedValue({
+      id: "farinha-1",
+      name: "Farinha de Trigo",
+      unit: "kg",
+      recipeItems: [],
+    });
+
+    const createdEntries: any[] = [];
+    mockPrisma.ledgerEntry.create.mockImplementation(({ data }: any) => {
+      createdEntries.push(data);
+      return Promise.resolve(data);
+    });
+
+    const res = await stockService.addStock("farinha-1", 5, "Compra fornecedor");
+
+    expect(res.success).toBe(true);
+    expect(createdEntries).toHaveLength(1);
+    expect(createdEntries[0]).toEqual({
+      productId: "farinha-1",
+      quantity: 5,
+      type: "STOCK_IN",
+      notes: "Compra fornecedor",
+    });
+  });
+
+  it("StockService.addStock: deve consumir automaticamente insumos da receita (MANUFACTURING_CONSUMPTION) e produzir o cookie (MANUFACTURING_PRODUCTION)", async () => {
+    mockPrisma.product.findUnique.mockResolvedValue({
+      id: "cookie-1",
+      name: "Cookie Clássico",
+      unit: "un",
+      recipeYield: null,
+      recipeYieldUnit: null,
+      recipeItems: [
+        {
+          childId: "massa-1",
+          quantity: 60,
+          unit: "g",
+          child: {
+            id: "massa-1",
+            name: "Massa Tradicional",
+            unit: "un",
+            recipeYield: 1600,
+            recipeYieldUnit: "g",
+          },
+        },
+        {
+          childId: "gotas-1",
+          quantity: 20,
+          unit: "g",
+          child: {
+            id: "gotas-1",
+            name: "Gotas de Chocolate",
+            unit: "kg",
+          },
+        },
+      ],
+    });
+
+    mockPrisma.ledgerEntry.aggregate.mockResolvedValue({
+      _sum: { quantity: 10 },
+    });
+
+    const createdEntries: any[] = [];
+    mockPrisma.ledgerEntry.create.mockImplementation(({ data }: any) => {
+      createdEntries.push(data);
+      return Promise.resolve(data);
+    });
+
+    const res = await stockService.addStock("cookie-1", 10, "Fornada da manhã");
+
+    expect(res.success).toBe(true);
+    expect(createdEntries).toHaveLength(3);
+
+    // Consumo da Massa: 10 * (60 / 1600) = 0.375 un
+    expect(createdEntries[0].productId).toBe("massa-1");
+    expect(createdEntries[0].quantity).toBe(-0.375);
+    expect(createdEntries[0].type).toBe("MANUFACTURING_CONSUMPTION");
+
+    // Consumo das Gotas: 10 * (20g / 1000) = 0.2 kg
+    expect(createdEntries[1].productId).toBe("gotas-1");
+    expect(createdEntries[1].quantity).toBe(-0.2);
+    expect(createdEntries[1].type).toBe("MANUFACTURING_CONSUMPTION");
+
+    // Produção do Cookie: +10 un
+    expect(createdEntries[2].productId).toBe("cookie-1");
+    expect(createdEntries[2].quantity).toBe(10);
+    expect(createdEntries[2].type).toBe("MANUFACTURING_PRODUCTION");
+  });
+
+  it("StockService.addStockBatch: deve processar múltiplos itens no lote consumindo receitas e insumos simples", async () => {
+    mockPrisma.product.findMany.mockResolvedValue([
+      {
+        id: "cookie-1",
+        name: "Cookie Clássico",
+        unit: "un",
+        recipeItems: [
+          {
+            childId: "massa-1",
+            quantity: 60,
+            unit: "g",
+            child: {
+              id: "massa-1",
+              name: "Massa Tradicional",
+              unit: "un",
+              recipeYield: 1600,
+              recipeYieldUnit: "g",
+            },
+          },
+        ],
+      },
+      {
+        id: "refri-1",
+        name: "Refrigerante Lata",
+        unit: "un",
+        recipeItems: [],
+      },
+    ]);
+
+    mockPrisma.ledgerEntry.aggregate.mockResolvedValue({
+      _sum: { quantity: 5 },
+    });
+
+    const createdEntries: any[] = [];
+    mockPrisma.ledgerEntry.create.mockImplementation(({ data }: any) => {
+      createdEntries.push(data);
+      return Promise.resolve(data);
+    });
+
+    const res = await stockService.addStockBatch(
+      [
+        { productId: "cookie-1", quantity: 20 },
+        { productId: "refri-1", quantity: 12 },
+      ],
+      "Fornada e reposição"
+    );
+
+    expect(res.success).toBe(true);
+    expect(createdEntries).toHaveLength(3);
+
+    // Consumo da Massa do Cookie: 20 * (60 / 1600) = 0.75 un
+    expect(createdEntries[0]).toMatchObject({
+      productId: "massa-1",
+      quantity: -0.75,
+      type: "MANUFACTURING_CONSUMPTION",
+    });
+
+    // Produção do Cookie: +20 un
+    expect(createdEntries[1]).toMatchObject({
+      productId: "cookie-1",
+      quantity: 20,
+      type: "MANUFACTURING_PRODUCTION",
+    });
+
+    // Entrada simples do Refrigerante (sem receita): +12 un
+    expect(createdEntries[2]).toMatchObject({
+      productId: "refri-1",
+      quantity: 12,
+      type: "STOCK_IN",
+    });
+  });
 });
+

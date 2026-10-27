@@ -357,12 +357,19 @@ export default function BakingSuggestionModal({
         return;
       }
 
-      await api.post("/stock/in/batch", {
+      const res = await api.post("/stock/in/batch", {
         items: itemsToSubmit,
         notes: `Fornada sugerida (${data?.startDate} a ${data?.targetDate})`,
       });
 
-      onToast?.("Fornada registrada e estoque atualizado com sucesso!", "success");
+      if (res.data?.warnings && res.data.warnings.length > 0) {
+        onToast?.(
+          `Fornada registrada! ${res.data.warnings[0]}`,
+          "error"
+        );
+      } else {
+        onToast?.("Fornada registrada e estoque atualizado com sucesso!", "success");
+      }
       setIsBakeModalOpen(false);
       onStockUpdated();
       loadSuggestions();

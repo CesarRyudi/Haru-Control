@@ -12,6 +12,10 @@ export class StockInDto {
   @IsNumber()
   @Type(() => Number)
   quantity: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class StockInBatchItemDto {
@@ -91,14 +95,12 @@ export class StockController {
 
   @Post("in")
   async stockIn(@Body() dto: StockInDto) {
-    await this.stockService.addStock(dto.productId, dto.quantity);
-    return { success: true };
+    return this.stockService.addStock(dto.productId, dto.quantity, dto.notes);
   }
 
   @Post("in/batch")
   async stockInBatch(@Body() dto: StockInBatchDto) {
-    await this.stockService.addStockBatch(dto.items, dto.notes);
-    return { success: true };
+    return this.stockService.addStockBatch(dto.items, dto.notes);
   }
 
   @Get("baking-suggestion")

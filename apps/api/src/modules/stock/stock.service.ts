@@ -7,21 +7,121 @@ import { convertProductQuantity, getParentRecipeBatchFactor } from "@haru-contro
 export class StockService {
   constructor(private prisma: PrismaService) {}
 
-  async addStock(productId: string, quantity: number): Promise<void> {
-    console.log("Adding stock:", { productId, quantity });
-    await this.prisma.ledgerEntry.create({
-      data: {
-        productId: productId,
-        quantity: Number(quantity),
-        type: LedgerOperationType.STOCK_IN,
+  async addStock(
+    productId: string,
+    quantity: number,
+    notes?: string
+  ): Promise<{ success: boolean; warnings?: string[] }> {
+    const numQty = Number(quantity);
+    if (isNaN(numQty) || numQty <= 0) {
+      throw new BadRequestException("A quantidade deve ser maior que zero");
+    }
+
+    console.log("Adding stock:", { productId, quantity: numQty, notes });
+
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        recipeItems: {
+          include: { child: true },
+        },
       },
     });
+
+    if (!product) {
+      throw new NotFoundException("Produto não encontrado");
+    }
+
+    const warnings: string[] = [];
+
+    // Se o produto possui receita cadastrada (Ficha Técnica / BOM)
+    if (product.recipeItems && product.recipeItems.length > 0) {
+      const batchFactor = getParentRecipeBatchFactor(product);
+
+      const requiredIngredients = product.recipeItems.map((item) => {
+        let requiredInStockUnit: number;
+        const recipeUnit = item.unit || item.child.unit;
+        try {
+          const singleConverted = convertProductQuantity(
+            Number(item.quantity),
+            recipeUnit,
+            item.child
+          );
+          requiredInStockUnit = Number(((singleConverted / batchFactor) * numQty).toFixed(6));
+        } catch (err: any) {
+          throw new BadRequestException(
+            `Erro na receita de '${product.name}' com o ingrediente '${item.child.name}': ${err.message}`
+          );
+        }
+
+        return {
+          productId: item.childId,
+          productName: item.child.name,
+          stockUnit: item.child.unit,
+          recipeUnit: item.unit,
+          requiredQuantity: requiredInStockUnit,
+        };
+      });
+
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Consome os ingredientes da receita (MANUFACTURING_CONSUMPTION)
+        for (const ing of requiredIngredients) {
+          const currentStock = await tx.ledgerEntry.aggregate({
+            where: { productId: ing.productId },
+            _sum: { quantity: true },
+          });
+
+          const stockAvailable = Number(currentStock._sum.quantity || 0);
+          if (stockAvailable < ing.requiredQuantity) {
+            warnings.push(
+              `Estoque insuficiente para o insumo "${ing.productName}". Disponível: ${stockAvailable} ${ing.stockUnit}, Necessário: ${ing.requiredQuantity} ${ing.stockUnit}`
+            );
+          }
+
+          await tx.ledgerEntry.create({
+            data: {
+              productId: ing.productId,
+              quantity: -ing.requiredQuantity,
+              type: LedgerOperationType.MANUFACTURING_CONSUMPTION,
+              notes: notes?.trim()
+                ? `Consumo para ${numQty} ${product.unit || "un"} de ${product.name}: ${notes.trim()}`
+                : `Consumo para produção de ${numQty} ${product.unit || "un"} de ${product.name}`,
+            },
+          });
+        }
+
+        // 2. Registra a produção do item final (MANUFACTURING_PRODUCTION)
+        await tx.ledgerEntry.create({
+          data: {
+            productId: product.id,
+            quantity: numQty,
+            type: LedgerOperationType.MANUFACTURING_PRODUCTION,
+            notes: notes?.trim() || `Produção de ${numQty} ${product.unit || "un"}`,
+          },
+        });
+      });
+    } else {
+      // Produto sem receita (insumo / compra direta de fornecedor)
+      await this.prisma.ledgerEntry.create({
+        data: {
+          productId: product.id,
+          quantity: numQty,
+          type: LedgerOperationType.STOCK_IN,
+          notes: notes?.trim() || null,
+        },
+      });
+    }
+
+    return {
+      success: true,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
   }
 
   async addStockBatch(
     items: { productId: string; quantity: number }[],
     notes?: string
-  ): Promise<void> {
+  ): Promise<{ success: boolean; warnings?: string[] }> {
     if (!items || items.length === 0) {
       throw new BadRequestException("Nenhum item informado para entrada de estoque");
     }
@@ -33,18 +133,93 @@ export class StockService {
 
     console.log("Adding stock batch:", { count: validItems.length, notes });
 
-    await this.prisma.$transaction(
-      validItems.map((item) =>
-        this.prisma.ledgerEntry.create({
-          data: {
-            productId: item.productId,
-            quantity: Number(item.quantity),
-            type: LedgerOperationType.STOCK_IN,
-            notes: notes?.trim() || null,
-          },
-        })
-      )
-    );
+    const productIds = validItems.map((item) => item.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: {
+        recipeItems: {
+          include: { child: true },
+        },
+      },
+    });
+
+    const productsMap = new Map(products.map((p) => [p.id, p]));
+    const warnings: string[] = [];
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of validItems) {
+        const product = productsMap.get(item.productId);
+        if (!product) continue;
+        const numQty = Number(item.quantity);
+
+        if (product.recipeItems && product.recipeItems.length > 0) {
+          const batchFactor = getParentRecipeBatchFactor(product);
+
+          for (const recipeItem of product.recipeItems) {
+            const recipeUnit = recipeItem.unit || recipeItem.child.unit;
+            let requiredInStockUnit: number;
+            try {
+              const singleConverted = convertProductQuantity(
+                Number(recipeItem.quantity),
+                recipeUnit,
+                recipeItem.child
+              );
+              requiredInStockUnit = Number(((singleConverted / batchFactor) * numQty).toFixed(6));
+            } catch (err: any) {
+              throw new BadRequestException(
+                `Erro na receita de '${product.name}' com o ingrediente '${recipeItem.child.name}': ${err.message}`
+              );
+            }
+
+            const currentStock = await tx.ledgerEntry.aggregate({
+              where: { productId: recipeItem.childId },
+              _sum: { quantity: true },
+            });
+
+            const stockAvailable = Number(currentStock._sum.quantity || 0);
+            if (stockAvailable < requiredInStockUnit) {
+              warnings.push(
+                `Estoque insuficiente para o insumo "${recipeItem.child.name}". Disponível: ${stockAvailable} ${recipeItem.child.unit}, Necessário: ${requiredInStockUnit} ${recipeItem.child.unit}`
+              );
+            }
+
+            await tx.ledgerEntry.create({
+              data: {
+                productId: recipeItem.childId,
+                quantity: -requiredInStockUnit,
+                type: LedgerOperationType.MANUFACTURING_CONSUMPTION,
+                notes: notes?.trim()
+                  ? `Consumo para ${numQty} ${product.unit || "un"} de ${product.name}: ${notes.trim()}`
+                  : `Consumo para produção de ${numQty} ${product.unit || "un"} de ${product.name}`,
+              },
+            });
+          }
+
+          await tx.ledgerEntry.create({
+            data: {
+              productId: product.id,
+              quantity: numQty,
+              type: LedgerOperationType.MANUFACTURING_PRODUCTION,
+              notes: notes?.trim() || `Produção de ${numQty} ${product.unit || "un"}`,
+            },
+          });
+        } else {
+          await tx.ledgerEntry.create({
+            data: {
+              productId: product.id,
+              quantity: numQty,
+              type: LedgerOperationType.STOCK_IN,
+              notes: notes?.trim() || null,
+            },
+          });
+        }
+      }
+    });
+
+    return {
+      success: true,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
   }
 
   async adjustStock(productId: string, quantity: number): Promise<void> {
