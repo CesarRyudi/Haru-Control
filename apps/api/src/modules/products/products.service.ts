@@ -8,7 +8,6 @@ export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: Prisma.ProductUncheckedCreateInput) {
-    console.log("Creating product with data:", data);
     const yieldNum = data.recipeYield != null && Number(data.recipeYield) > 0 ? Number(data.recipeYield) : null;
     const yieldUnit = yieldNum && data.recipeYieldUnit ? normalizeUnit(String(data.recipeYieldUnit)) : null;
 

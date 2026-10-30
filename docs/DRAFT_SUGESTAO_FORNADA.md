@@ -62,7 +62,7 @@ $$N_{\text{líquida}}(p) = \max\left(0, \lceil D_{\text{total}}(p) \rceil - \tex
 ## 📱 4. Arquitetura de Interface & Experiência de Uso (UX)
 
 ### 4.1. Localização no App
-* **Local:** Card inteligente retrátil ou aba no topo da tela de Estoque ([Stock.tsx](file:///c:/Users/cesar/Projetos/Haru-Control/apps/mobile/src/pages/Stock.tsx)).
+* **Local:** Card inteligente retrátil ou aba no topo da tela de Estoque (`apps/mobile/src/pages/Stock.tsx`).
 * **Título do Painel:** `🍪 Sugestão de Fornada & Planejamento`
 
 ### 4.2. Seletor de Período / Horizonte

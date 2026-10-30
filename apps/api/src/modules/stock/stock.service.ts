@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { LedgerOperationType, WasteReason } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { convertProductQuantity, getParentRecipeBatchFactor } from "@haru-control/utils";
 
 @Injectable()
 export class StockService {
+  private readonly logger = new Logger(StockService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async addStock(
@@ -17,7 +19,7 @@ export class StockService {
       throw new BadRequestException("A quantidade deve ser maior que zero");
     }
 
-    console.log("Adding stock:", { productId, quantity: numQty, notes });
+    this.logger.debug(`Adding stock: productId=${productId}, quantity=${numQty}, notes=${notes}`);
 
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -131,7 +133,7 @@ export class StockService {
       throw new BadRequestException("Todos os itens devem ter quantidade maior que zero");
     }
 
-    console.log("Adding stock batch:", { count: validItems.length, notes });
+    this.logger.debug(`Adding stock batch: count=${validItems.length}, notes=${notes}`);
 
     const productIds = validItems.map((item) => item.productId);
     const products = await this.prisma.product.findMany({
@@ -223,7 +225,7 @@ export class StockService {
   }
 
   async adjustStock(productId: string, quantity: number): Promise<void> {
-    console.log("Adjusting stock:", { productId, quantity });
+    this.logger.debug(`Adjusting stock: productId=${productId}, quantity=${quantity}`);
     await this.prisma.ledgerEntry.create({
       data: {
         productId: productId,
@@ -252,7 +254,7 @@ export class StockService {
       throw new NotFoundException("Produto não encontrado");
     }
 
-    console.log("Recording waste:", { productId, quantity: numQty, reason, notes });
+    this.logger.debug(`Recording waste: productId=${productId}, quantity=${numQty}, reason=${reason}, notes=${notes}`);
 
     await this.prisma.ledgerEntry.create({
       data: {
@@ -279,7 +281,7 @@ export class StockService {
       throw new BadRequestException("Todos os itens devem ter quantidade maior que zero");
     }
 
-    console.log("Recording waste batch:", { count: validItems.length, reason, notes });
+    this.logger.debug(`Recording waste batch: count=${validItems.length}, reason=${reason}, notes=${notes}`);
 
     await this.prisma.$transaction(
       validItems.map((item) =>

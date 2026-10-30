@@ -2,7 +2,7 @@
 
 ## 1. Objetivo
 
-Este documento descreve toda a lógica, arquitetura, entidades, fluxo de dados e comportamento do sistema de pedidos. Ele será usado pelo GitHub Copilot para guiar o desenvolvimento.
+Este documento descreve toda a lógica, arquitetura, entidades, fluxo de dados e comportamento do sistema de pedidos. Este documento descreve as diretrizes funcionais e regras de negócio do sistema de pedidos.
 
 ---
 
@@ -153,7 +153,7 @@ Modelo SQL relacional simples.
 
 ---
 
-## 8. Fluxo Resumido (para Copilot)
+## 8. Fluxo Resumido do Sistema
 
 1. Usuário acessa via PIN.
 2. Visualiza board com etapas.

@@ -8,10 +8,9 @@ export class AuthService {
   constructor(private configService: ConfigService) {}
 
   verifyPin(pin: string): boolean {
+    this.logger.debug("Tentativa de validação de PIN recebida");
     const validPin = this.configService.get<string>("PIN_CODE");
-    this.logger.log(`PIN recebido: "${pin}", PIN válido: "${validPin}"`);
     const isValid = pin === validPin;
-    this.logger.log(`Resultado: ${isValid}`);
     return isValid;
   }
 }

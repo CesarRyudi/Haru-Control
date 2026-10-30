@@ -131,7 +131,6 @@ export class ProductsController {
 
   @Post()
   create(@Body() createProductDto: CreateProductDto) {
-    console.log("Received product data:", createProductDto);
     return this.productsService.create(createProductDto);
   }
 

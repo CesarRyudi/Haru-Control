@@ -7,7 +7,6 @@ import Products from "../pages/Products";
 import Stock from "../pages/Stock";
 import Customers from "../pages/Customers";
 import ProductRecipe from "../pages/ProductRecipe";
-import Manufacturing from "../pages/Manufacturing";
 import Help from "../pages/Help";
 import Insights from "../pages/Insights";
 import OrderHistory from "../pages/OrderHistory";

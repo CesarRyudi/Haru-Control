@@ -15,6 +15,8 @@ import {
   CartesianGrid,
 } from "recharts";
 import api from "../services/api";
+import { InsightsMetrics } from "@haru-control/types";
+import { formatCurrency } from "@haru-control/utils";
 import "./Insights.css";
 
 type PeriodPreset =
@@ -36,13 +38,6 @@ const CATEGORY_COLORS = [
   "#84cc16",
 ];
 
-const formatCurrency = (val: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(val || 0);
-};
-
 const formatNumber = (val: number) => {
   return new Intl.NumberFormat("pt-BR").format(val || 0);
 };
@@ -63,7 +58,7 @@ export default function Insights() {
   const [customEnd, setCustomEnd] = useState<string>("");
 
   // Dados das Métricas
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<InsightsMetrics | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -186,8 +181,8 @@ export default function Insights() {
   const maxProductVal = useMemo(() => {
     if (!topProducts.length) return 1;
     return productRankingMode === "quantity"
-      ? Math.max(...topProducts.map((p: any) => p.quantity), 1)
-      : Math.max(...topProducts.map((p: any) => p.revenue), 1);
+      ? Math.max(...topProducts.map((p) => p.quantity), 1)
+      : Math.max(...topProducts.map((p) => p.revenue), 1);
   }, [topProducts, productRankingMode]);
 
   return (

@@ -28,7 +28,6 @@ async function bootstrap() {
   await app.listen(port, "0.0.0.0");
 
   console.log(`🚀 API running on http://localhost:${port}`);
-  console.log(`📱 Mobile access: http://192.168.15.100:${port}`);
 }
 
 bootstrap();

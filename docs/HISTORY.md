@@ -825,6 +825,37 @@
   - Typecheck estrito do TypeScript aprovado em `api` e `mobile` com zero erros.
 - **Documentação Atualizada:** [docs/BUGS.md](docs/BUGS.md), [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
 
+### [2026-10-29] Higienização de Repositório, Segurança e Elevação para Padrão Internacional (SaaS EUA)
 
-
-
+- **Contexto:** Execução do plano de higienização arquitetural e qualidade de código para elevar o repositório ao padrão internacional de engenharia sênior (SaaS nos EUA), eliminando red flags, logs poluentes e código morto, além de fortalecer tipagem e documentação técnica.
+- **Implementações Realizadas:**
+  - **1. Higienização de Rastros Locais, Segurança e Dados Sensíveis:**
+    - `apps/api/src/main.ts`: Removido log com IP doméstico fixo (`192.168.15.100`).
+    - `apps/api/src/modules/auth/auth.service.ts`: Substituído log de PIN em texto claro por `this.logger.debug("Tentativa de validação de PIN recebida")`.
+    - `.env.example`: Anonimizada chave Pix para placeholder E.164 fictício (`+5511999999999`).
+    - `SETUP.md`: Eliminados caminhos absolutos locais do Windows (`c:\Users\...`) e padronizados comandos de terminal em sintaxe multiplataforma (`bash`, `cp`).
+    - `docs/DRAFT_SUGESTAO_FORNADA.md`: Higienizado link com URI absoluta do Windows.
+  - **2. Remoção de Código Morto, Mocks e Artefatos de IA:**
+    - Excluída página órfã `apps/mobile/src/pages/Manufacturing.tsx` e removido seu import não utilizado em `App.tsx`.
+    - Excluído arquivo raiz abandonado `TODO.md`.
+    - Excluído mock dummy `libs/ui/src/lib/ui.tsx` (`export const Button = () => null;`) e removida sua re-exportação em `libs/ui/src/index.ts`.
+    - Movido `especificacao_sistema_pedidos.md` para `docs/SPECIFICATIONS.md` e higienizadas menções a IA ("GitHub Copilot") em prol de redação técnica de especificação funcional.
+  - **3. Limpeza de Logs Dispersos (`console.log`):**
+    - `apps/api/src/modules/products/products.controller.ts`: Removido log de criação de produto.
+    - `apps/api/src/modules/products/products.service.ts`: Removido log de criação de produto.
+    - `apps/api/src/modules/stock/stock.service.ts`: Instanciado `Logger` oficial do NestJS e convertidos logs brutos (`Adding stock`, `Adding stock batch`, `Adjusting stock`, `Recording waste`, `Recording waste batch`) para `this.logger.debug(...)`.
+    - `apps/mobile/src/pages/OrderBoard.tsx`: Removidos logs de depuração de carregamento de pedidos em `loadOrders`.
+  - **4. Tipagem TypeScript Estrita e Eliminação de `any`:**
+    - Criados DTOs `CreateCategoryDto` e `UpdateCategoryDto` com decorators `class-validator` e `class-transformer` em `apps/api/src/modules/categories/dto/`.
+    - Tipados controllers e services de categorias eliminando o uso de `any`.
+    - Tipado endpoint `POST /orders/batch` com `CreateBatchOrderDto | CreateOrderDto[]`.
+    - `libs/types`: Tipado `Order.items` estritamente como `OrderItem[]`, adicionada relação com `product?: Product | null` em `OrderItem`, e criada interface `InsightsMetrics` mapeando a resposta analítica consolidada.
+    - `apps/mobile/src/pages/Insights.tsx`: Tipado estado `metrics` com `InsightsMetrics | null` eliminando `useState<any>`, e importada a função canônica `formatCurrency` de `@haru-control/utils` em substituição à implementação duplicada local.
+  - **5. README Internacional (Padrão Sênior SaaS):**
+    - Reescrito integralmente o `README.md` raiz em inglês técnico (US English).
+    - Destaques arquiteturais detalhados: Accounting Ledger imutável (`LedgerEntry`), Motor de BOM com conversão de unidades multidimensionais, Gestos mobile e Kanban operacional com Pushover ACK, Testes E2E com Playwright POM no `Pixel 7`, e Arquitetura Monorepo Nx.
+    - Instruções de setup limpas e links para os ADRs em `docs/ARCHITECTURE_DECISIONS.md`.
+- **Validação & Testes:**
+  - `npm test`: 4 suítes e 24 testes unitários aprovados com 100% de sucesso e zero poluição de `console.log` no terminal.
+  - `npm run build`: Monorepo Nx (`types`, `utils`, `api`, `mobile`) compilado com 100% de sucesso e zero erros de compilação TypeScript.
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).

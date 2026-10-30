@@ -3,29 +3,32 @@
 ## Passo a Passo para Iniciar
 
 ### 1. Instalar Dependências
-```powershell
-cd "c:\Users\Cesar\Desktop\Projetos\Haru Control"
+```bash
 npm install
 ```
 
-### 2. Iniciar o Banco de Dados PostgreSQL
-```powershell
+### 2. Configurar Variáveis de Ambiente
+```bash
+cp .env.example apps/api/.env
+```
+
+### 3. Iniciar o Banco de Dados PostgreSQL
+```bash
 npm run docker:up
 ```
 
-### 3. Gerar Prisma Client
-```powershell
+### 4. Gerar Prisma Client
+```bash
 npm run prisma:generate
 ```
 
-### 4. Executar Migrations
-```powershell
+### 5. Executar Migrations
+```bash
 npm run prisma:migrate
 ```
-- Quando solicitado o nome da migration, digite: `init`
 
-### 5. Iniciar as Aplicações
-```powershell
+### 6. Iniciar as Aplicações
+```bash
 npm start
 ```
 
@@ -36,18 +39,18 @@ Isso iniciará:
 ## Comandos Úteis
 
 ### Visualizar Banco de Dados
-```powershell
+```bash
 npm run prisma:studio
 ```
 Abre interface gráfica em http://localhost:5555
 
 ### Parar o PostgreSQL
-```powershell
+```bash
 npm run docker:down
 ```
 
 ### Build de Produção
-```powershell
+```bash
 npm run build
 ```
 

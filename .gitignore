@@ -51,3 +51,9 @@ playwright-report/
 blob-report/
 playwright/.cache/
 e2e/.auth/
+
+# AI Agent Workflows & Prompt Context
+.agents/
+.gemini/
+HARU_CONTROL_INDEX.md
+

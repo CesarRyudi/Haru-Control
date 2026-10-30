@@ -8,7 +8,7 @@ import {
   Query,
 } from "@nestjs/common";
 import { OrderStatus } from "@prisma/client";
-import { CreateOrderDto } from "./dto/create-order.dto";
+import { CreateBatchOrderDto, CreateOrderDto } from "./dto/create-order.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
 import { OrdersService } from "./orders.service";
 
@@ -22,7 +22,7 @@ export class OrdersController {
   }
 
   @Post("batch")
-  createBatch(@Body() body: any) {
+  createBatch(@Body() body: CreateBatchOrderDto | CreateOrderDto[]) {
     const orders = Array.isArray(body) ? body : (body.orders || []);
     return this.ordersService.createBatch(orders);
   }

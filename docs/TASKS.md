@@ -204,6 +204,15 @@
     - Correção do label do campo (`Quantidade a adicionar (${entryUnit})`) e step calibrado por unidade.
     - Calibração semântica dos badges e rótulos (`Stock.tsx`, `Products.tsx`, `ProductRecipe.tsx`): exibição dinâmica de `1 receita = X g` quando a unidade de estoque do produto é gramas/massa (`g`), e `1 un = X g` quando a unidade for inteira (`un`).
     - Exibição de peso e receitas estimadas no card de estoque da massa (ex: `~2 receitas`).
+- `[x]` **Higienização de Repositório, Segurança e Elevação para Padrão Internacional SaaS:**
+  - Remoção de IP local hardcoded e vazamentos de PIN nos logs de autenticação.
+  - Anonimização da chave Pix no `.env.example` (+5511999999999).
+  - Remoção de caminhos absolutos do Windows e padronização de comandos cross-platform em `SETUP.md`.
+  - Exclusão de código morto (`Manufacturing.tsx`, mock `ui.tsx`, anotações `TODO.md`) e higienização de artefatos de IA em `docs/SPECIFICATIONS.md`.
+  - Eliminação de `console.log` dispersos no backend e frontend em prol de `Logger.debug`.
+  - Reforço estrito de tipagem TypeScript com novos DTOs (`CreateCategoryDto`, `UpdateCategoryDto`, `CreateBatchOrderDto`) e eliminação de `any` em categorias, pedidos, `Order.items` e `Insights.tsx`.
+  - Reescrita do `README.md` em inglês técnico de nível sênior internacional para SaaS dos EUA.
+  - Validação de 100% dos testes unitários sem poluição de log e build do monorepo Nx com zero erros.
 - `[ ]` **Módulo Seguro de Sincronização e Importação de Dados (Produção ➔ Dev):**
   - **Exportação Segura em Produção (`apps/api`):**
     - Endpoint fechado `GET /admin/database/export` protegido por chave secreta dedicada no header (`X-Database-Sync-Key`) com comparação em tempo constante (`crypto.timingSafeEqual`).

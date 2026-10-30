@@ -101,8 +101,6 @@ export default function OrderBoard() {
   };
 
   const loadOrders = async (preserveScroll = false) => {
-    console.log("Loading orders...");
-
     // Salvar posição de scroll se necessário
     if (preserveScroll && boardColumnsRef.current) {
       scrollPositionRef.current = boardColumnsRef.current.scrollLeft;
@@ -120,13 +118,11 @@ export default function OrderBoard() {
           excludeStatus: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
         },
       });
-      console.log("All orders response:", allOrdersRes.data);
 
       // Buscar pedidos concluídos da data selecionada
       const completedRes = await api.get("/orders/completed", {
         params: { date: completedDate },
       });
-      console.log("Completed orders response:", completedRes.data);
 
       // Prevenir duplicatas caso o backend retorne o mesmo pedido
       const ordersMap = new Map();
@@ -135,7 +131,6 @@ export default function OrderBoard() {
       });
 
       const allOrders = Array.from(ordersMap.values());
-      console.log("Combined orders:", allOrders);
       setOrders(allOrders);
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);

@@ -69,7 +69,7 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   customer?: Customer | null;
-  items?: any[];
+  items?: OrderItem[];
 }
 
 export interface OrderItem {
@@ -78,6 +78,7 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   unitPrice: number;
+  product?: Product | null;
 }
 
 export interface Sale {
@@ -240,6 +241,75 @@ export interface WasteMetrics {
   estimatedLossCost: number;
   byReason: WasteMetricsItem[];
   topWastedProducts: TopWastedProduct[];
+}
+
+export interface InsightsMetrics {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  summary: {
+    totalRevenue: number;
+    productsRevenue: number;
+    deliveryRevenue: number;
+    totalOrders: number;
+    averageTicket: number;
+    totalCookiesSold: number;
+  };
+  monthlyProjection: MonthlyProjection;
+  wasteMetrics: WasteMetrics;
+  revenueComposition: {
+    productsRevenue: number;
+    deliveryRevenue: number;
+    totalRevenue: number;
+    productsPercent: number;
+    deliveryPercent: number;
+  };
+  dailyEvolution: {
+    date: string;
+    formattedDate: string;
+    revenue: number;
+    ordersCount: number;
+  }[];
+  topProductsByQuantity: {
+    productId: string;
+    productName: string;
+    quantity: number;
+    revenue: number;
+  }[];
+  topProductsByRevenue: {
+    productId: string;
+    productName: string;
+    quantity: number;
+    revenue: number;
+  }[];
+  salesByCategory: {
+    name: string;
+    revenue: number;
+    quantity: number;
+    percentage: number;
+  }[];
+  peakHours: {
+    hour: string;
+    hourNumber: number;
+    ordersCount: number;
+    revenue: number;
+  }[];
+  dayOfWeekMovement: {
+    dayIndex: number;
+    dayName: string;
+    shortName: string;
+    ordersCount: number;
+    revenue: number;
+  }[];
+  topCustomers: {
+    customerId: string;
+    name: string;
+    phone?: string;
+    ordersCount: number;
+    totalSpent: number;
+    averageSpent: number;
+  }[];
 }
 
 // Response types
