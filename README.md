@@ -1,15 +1,15 @@
 # Haru Control
 
-> **Enterprise-grade Single-Page ERP & Operational POS tailored for an artisanal food boutique.**  
-> Engineered for high-speed kitchen operations, strict manufacturing control (BOM), and auditable immutable stock accounting.
+> **High-speed Mobile POS & Operational Kitchen Display tailored for an artisanal food boutique.**  
+> Engineered for fast-paced kitchen operations, multi-dimensional Bill of Materials (BOM), and auditable immutable stock accounting.
 
 ---
 
 ## 🌟 Executive Overview
 
-**Haru Control** is a mission-critical, mobile-first Point of Sale (POS) and Enterprise Resource Planning (ERP) platform developed specifically for high-throughput artisanal cookie boutiques. 
+**Haru Control** is a high-speed, mobile-first Point of Sale (POS) and Kitchen Display System (KDS) developed specifically for high-throughput artisanal cookie boutiques. 
 
-Unlike traditional retail POS systems that manage inventory via simplistic scalar counters susceptible to race conditions and drift, Haru Control enforces strict financial-grade inventory integrity through an **Immutable Accounting Ledger**, automated **Bill of Materials (BOM)** unit conversions, predictive baking demand algorithms, and rapid touch-gesture operational workflows.
+Unlike traditional retail POS systems that manage inventory via simplistic scalar counters susceptible to drift, Haru Control enforces strict inventory integrity through an **Immutable Accounting Ledger**, automated **Bill of Materials (BOM)** unit conversions, predictive baking demand algorithms, and rapid touch-gesture operational workflows. Designed for kiosk kitchen tablets, it features a fast local PIN & biometric screen lock for rapid operator handover.
 
 ---
 
@@ -17,7 +17,7 @@ Unlike traditional retail POS systems that manage inventory via simplistic scala
 
 ### 1. Financial-Grade Inventory Ledger (`LedgerEntry`)
 - **Immutable Audit Trail:** Inventory levels are never directly mutated in place. All changes—stock-ins, order reservations, order cancellations, sales completions, manufacturing ingredient deductions, and operational waste—are recorded as immutable entries in an event ledger.
-- **Race Condition Prevention:** Atomic database transactions (`prisma.$transaction`) ensure zero drift between customer orders and raw ingredient balances.
+- **Transaction-Safe Operations:** Atomic database transactions (`prisma.$transaction`) ensure zero drift across batch manufacturing entries, multi-item waste deductions, and recipe ingredient balances.
 - **Multi-Reason Waste Auditing:** Formal operational waste tracking (`EXPIRED`, `DAMAGE`, `BAKING_FAILURE`, `TASTING`, `OTHER`) tied directly to monthly financial cost loss metrics.
 - *Detailed Architecture Decision:* See [ADR-01: Estoque em Ledger Contábil](docs/ARCHITECTURE_DECISIONS.md#adr-01-estoque-em-ledger-contábil-auditabilidade-e-rastreabilidade-total).
 
@@ -31,13 +31,13 @@ Unlike traditional retail POS systems that manage inventory via simplistic scala
 - **Touch-Optimized Ergonomics:** 100% responsive interface designed for single-hand mobile operations during fast-paced kitchen rushes.
 - **Horizontal Swipe Navigation:** Native touch gestures allow kitchen staff to glide seamlessly between Kanban columns (`Draft`, `In Preparation`, `Completed`) without blocking vertical scroll.
 - **Interactive Cart Drawer:** Bottom-sheet checkout drawer with live delivery fee adjustments, waste mode toggling, and atomic batch submission.
-- **Local EMVCo Pix Engine:** Client-side mathematical generation of Brazilian Central Bank (BACEN) standard dynamic QR codes and Copy & Paste strings with exact order totals, CRC16-CCITT checksums, and zero third-party latency.
+- **Local EMVCo Pix Engine:** Client-side mathematical generation of Brazilian Central Bank (BACEN) standard Pix Copy & Paste strings (CRC16-CCITT) and 100% offline local vector QR Code rendering via `qrcode.react` with zero third-party network dependencies or latency.
 - **Emergency Push Alerts (Pushover):** High-priority push notifications with sound overrides and two-way in-app acknowledgement (ACK) to silence alerts once noticed by kitchen staff.
 
 ### 4. Comprehensive End-to-End Test Suite (Playwright)
 - **Real Device Emulation:** Automated tests run against real mobile viewports (`Pixel 7`, 412x915, native touch emulation).
 - **Page Object Model (POM):** Decoupled, maintainable test architecture (`LoginPage`, `OrderBoardPage`, `OrderFormPage`, `OrderHistoryPage`).
-- **Authentication Session Caching:** Instant PIN bypass in milliseconds via reusable storage states (`user.json`).
+- **Kiosk Access & Test Session Caching:** Instant PIN/biometric screen unlock for tablet kitchen staff with reusable storage states (`user.json`) in E2E tests.
 
 ### 5. Modular Nx Monorepo Architecture
 - **Strict Boundary Separation:** Clean domain segregation between backend services, frontend presentation, and shared contract packages.

@@ -74,7 +74,7 @@ export function normalizePixKey(key: string): string {
   const digits = trimmed.replace(/\D/g, "");
 
   // Se já tem 12 ou 13 dígitos começando com 55 (DDI do Brasil sem +)
-  // Ex: 5511976952264 (13 dígitos) ou 551134567890 (12 dígitos)
+  // Ex: 5511999999999 (13 dígitos) ou 551134567890 (12 dígitos)
   if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
     return `+${digits}`;
   }

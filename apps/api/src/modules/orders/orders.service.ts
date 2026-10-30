@@ -3,12 +3,23 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StockService } from "../stock/stock.service";
 import { PushoverService } from "../notifications/pushover.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
+
+type OrderWithRelations = Prisma.OrderGetPayload<{
+  include: {
+    items: {
+      include: {
+        product: true;
+      };
+    };
+    customer: true;
+  };
+}>;
 
 @Injectable()
 export class OrdersService {
@@ -18,7 +29,7 @@ export class OrdersService {
     private pushoverService: PushoverService
   ) {}
 
-  private formatOrder(order: any, warnings?: string[]) {
+  private formatOrder(order: OrderWithRelations, warnings?: string[]) {
     return {
       id: order.id,
       customerId: order.customerId,
@@ -32,7 +43,7 @@ export class OrdersService {
       notify: order.notify ?? true,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      items: (order.items || []).map((item: any) => ({
+      items: (order.items || []).map((item) => ({
         id: item.id,
         orderId: item.orderId,
         productId: item.productId,
@@ -205,7 +216,7 @@ export class OrdersService {
     customerId?: string,
     search?: string,
   ) {
-    const where: any = {};
+    const where: Prisma.OrderWhereInput = {};
 
     if (status) {
       where.status = status;
@@ -237,7 +248,7 @@ export class OrdersService {
         };
       }
     } else if (startDate || endDate) {
-      const dateFilter: any = {};
+      const dateFilter: Prisma.DateTimeFilter = {};
       if (startDate) {
         const [sy, sm, sd] = startDate.split("-").map(Number);
         dateFilter.gte = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
@@ -333,7 +344,7 @@ export class OrdersService {
       // Se o pedido não estava cancelado, liberar estoque dos itens antigos
       if (order.status !== OrderStatus.CANCELLED) {
         await Promise.all(
-          existingItems.map((item: any) =>
+          existingItems.map((item) =>
             this.stockService.releaseStock(
               item.productId,
               item.quantity,
@@ -419,7 +430,7 @@ export class OrdersService {
       }
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.OrderUncheckedUpdateInput = {};
     if (updateOrderDto.customerId !== undefined) {
       updateData.customerId = updateOrderDto.customerId;
     }
@@ -454,12 +465,12 @@ export class OrdersService {
         // Se itens não foram recriados acima, liberar reserva e registrar venda
         if (!updateOrderDto.items) {
           await Promise.all(
-            order.items.map((item: any) =>
+            order.items.map((item) =>
               this.stockService.releaseStock(item.productId, item.quantity, order.id)
             )
           );
           await Promise.all(
-            order.items.map((item: any) =>
+            order.items.map((item) =>
               this.stockService.recordSale(item.productId, item.quantity, order.id)
             )
           );
@@ -469,14 +480,19 @@ export class OrdersService {
           updateData.completedAt = new Date();
         }
 
+        const effectiveCompletedAt =
+          (updateData.completedAt as Date | null) ||
+          order.completedAt ||
+          new Date();
+
         await this.prisma.sale.upsert({
           where: { orderId: id },
           create: {
             orderId: id,
-            createdAt: updateData.completedAt || order.createdAt || new Date(),
+            createdAt: effectiveCompletedAt,
           },
           update: {
-            createdAt: updateData.completedAt || order.createdAt || new Date(),
+            createdAt: effectiveCompletedAt,
           },
         });
 
@@ -493,7 +509,7 @@ export class OrdersService {
         order.status === OrderStatus.COMPLETED ||
         newStatus === OrderStatus.COMPLETED ||
         Boolean(order.createdAt && new Date(order.createdAt).getTime() < Date.now() - 10 * 60 * 1000) ||
-        Boolean(updateData.createdAt && new Date(updateData.createdAt).getTime() < Date.now() - 10 * 60 * 1000);
+        Boolean(updateData.createdAt && new Date(updateData.createdAt as Date | string).getTime() < Date.now() - 10 * 60 * 1000);
 
       if (isHistorical) {
         updateData.notify = false;
@@ -524,9 +540,9 @@ export class OrdersService {
               ? updateData.deliveryFee
               : order.deliveryFee,
           address:
-            updateData.address !== undefined
+            typeof updateData.address === "string"
               ? updateData.address
-              : order.address,
+              : order.address || undefined,
         });
 
         if (receipt) {
@@ -595,14 +611,14 @@ export class OrdersService {
 
     // Liberar estoque reservado
     await Promise.all(
-      order.items.map((item: any) =>
+      order.items.map((item) =>
         this.stockService.releaseStock(item.productId, item.quantity, order.id)
       )
     );
 
     // Registrar venda
     await Promise.all(
-      order.items.map((item: any) =>
+      order.items.map((item) =>
         this.stockService.recordSale(item.productId, item.quantity, order.id)
       )
     );
@@ -656,7 +672,7 @@ export class OrdersService {
 
     // Liberar estoque reservado
     await Promise.all(
-      order.items.map((item: any) =>
+      order.items.map((item) =>
         this.stockService.releaseStock(item.productId, item.quantity, order.id)
       )
     );

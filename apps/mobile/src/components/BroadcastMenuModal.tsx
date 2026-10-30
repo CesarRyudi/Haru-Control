@@ -19,7 +19,9 @@ export function getDefaultGreeting(): string {
   return "Boa noite";
 }
 
-const DEFAULT_FOOTER = `*Entregamos na porta* 🚪 \n\nAceitamos encomendas!\n\nhttps://wa.me/c/5511976952264`;
+const CATALOG_URL =
+  import.meta.env.VITE_CATALOG_URL || "https://wa.me/c/5511999999999";
+const DEFAULT_FOOTER = `*Entregamos na porta* 🚪 \n\nAceitamos encomendas!\n\n${CATALOG_URL}`;
 
 export function generateBroadcastText(
   greeting: string,

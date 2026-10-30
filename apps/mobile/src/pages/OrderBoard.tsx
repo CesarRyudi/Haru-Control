@@ -1,4 +1,4 @@
-import { Order, OrderStatus } from "@haru-control/types";
+import { Order, OrderItem, OrderStatus } from "@haru-control/types";
 import { FloatingActionButton, Toast } from "@haru-control/ui";
 import {
   formatCurrency,
@@ -7,6 +7,7 @@ import {
   generatePixPayload,
   formatOrderConfirmationMessage,
 } from "@haru-control/utils";
+import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
@@ -523,7 +524,7 @@ export default function OrderBoard() {
 
 
 interface OrderCardProps {
-  order: any;
+  order: Order;
   onStatusChange?: (id: string, status: OrderStatus) => void;
   onAcknowledge?: (id: string) => void;
   onEdit?: () => void;
@@ -608,11 +609,11 @@ function OrderCard({
     }
   };
 
-  const deliveryFee = parseFloat(order.deliveryFee || 0);
-  const orderTotal = parseFloat(order.totalPrice || 0);
+  const deliveryFee = Number(order.deliveryFee || 0);
+  const orderTotal = Number(order.totalPrice || 0);
   const finalTotal = orderTotal + deliveryFee;
 
-  const pixKey = import.meta.env.VITE_PIX_KEY || "+5511976952264";
+  const pixKey = import.meta.env.VITE_PIX_KEY || "+5511999999999";
   const pixName = import.meta.env.VITE_PIX_NAME || "Haru Cookies";
   const pixCity = import.meta.env.VITE_PIX_CITY || "Sao Paulo";
 
@@ -634,14 +635,14 @@ function OrderCard({
     }
 
     const orderText = formatOrderConfirmationMessage({
-      items: order.items.map((item: any) => ({
+      items: order.items.map((item: OrderItem) => ({
         quantity: item.quantity,
         productName: item.product?.name || "Produto",
         unitPrice: item.unitPrice,
       })),
       orderTotal,
       deliveryFee,
-      address: order.address,
+      address: order.address || undefined,
     });
 
     // Tentar usar a API moderna do clipboard
@@ -733,7 +734,7 @@ function OrderCard({
     }
   };
 
-  const formatAckTime = (date: any) => {
+  const formatAckTime = (date: Date | string | null | undefined) => {
     if (!date) return "";
     try {
       const d = new Date(date);
@@ -744,7 +745,7 @@ function OrderCard({
   };
 
   const totalWithDelivery =
-    parseFloat(order.totalPrice) + parseFloat(order.deliveryFee || 0);
+    Number(order.totalPrice) + Number(order.deliveryFee || 0);
 
   return (
     <>
@@ -819,9 +820,9 @@ function OrderCard({
         {order.items && (
           <div className="order-items-container">
             <div className="order-items">
-              {order.items.slice(0, 6).map((item: any) => (
+              {order.items.slice(0, 6).map((item: OrderItem) => (
                 <div key={item.id} className="order-item">
-                  {item.quantity}x {item.product.name}
+                  {item.quantity}x {item.product?.name || "Item"}
                 </div>
               ))}
               {order.items.length > 6 && (
@@ -895,12 +896,12 @@ function OrderCard({
               </button>
             </div>
             <div className="order-modal-items">
-              {order.items?.map((item: any) => (
+              {order.items?.map((item: OrderItem) => (
                 <div key={item.id} className="order-modal-item">
                   <span className="item-qty">{item.quantity}x</span>
-                  <span className="item-name">{item.product.name}</span>
+                  <span className="item-name">{item.product?.name || "Item"}</span>
                   <span className="item-price">
-                    {formatCurrency(item.unitPrice * item.quantity)}
+                    {formatCurrency(Number(item.unitPrice) * Number(item.quantity))}
                   </span>
                 </div>
               ))}
@@ -953,9 +954,10 @@ function OrderCard({
                       <code>{pixCode}</code>
                     </div>
                     <div className="pix-qr-container">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(pixCode)}`}
-                        alt="QR Code Pix"
+                      <QRCodeSVG
+                        value={pixCode}
+                        size={140}
+                        level="M"
                         className="pix-qr-image"
                       />
                       <span className="pix-qr-caption">

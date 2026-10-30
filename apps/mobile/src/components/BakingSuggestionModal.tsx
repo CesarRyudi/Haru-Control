@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import api from "../services/api";
-import {
-  BakingSuggestionResponse,
-  BakingSuggestionItem,
-} from "@haru-control/types";
+import { BakingSuggestionResponse } from "@haru-control/types";
 import "./BakingSuggestionModal.css";
 
 export interface BakingSuggestionModalProps {
@@ -50,7 +47,7 @@ const getDynamicOptions = (startType: "today" | "tomorrow") => {
   }
 
   // Gera sempre 5 dias úteis de vendas à frente (1 semana no máximo, sem domingo)
-  let iterDate = new Date(baseStart);
+  const iterDate = new Date(baseStart);
   let salesDaysCount = 0;
 
   while (salesDaysCount < 5) {

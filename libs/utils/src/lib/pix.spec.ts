@@ -4,7 +4,7 @@ import { formatOrderConfirmationMessage } from "./utils";
 describe("Pix BR Code Generator", () => {
   it("deve gerar payload de Pix estático normalizando chave de telefone para padrão internacional E.164 (+55)", () => {
     const payload = generatePixPayload({
-      key: "11976952264",
+      key: "11987654321",
       name: "Haru Cookies",
       city: "Sao Paulo",
       amount: 78.0,
@@ -21,7 +21,7 @@ describe("Pix BR Code Generator", () => {
     expect(payload).toContain("0014br.gov.bcb.pix");
 
     // 4. Deve conter a chave Pix formatada com +55 (14 caracteres)
-    expect(payload).toContain("0114+5511976952264");
+    expect(payload).toContain("0114+5511987654321");
 
     // 5. Deve conter o valor exato formatado com 2 casas
     expect(payload).toContain("540578.00");
@@ -39,15 +39,15 @@ describe("Pix BR Code Generator", () => {
 
   it("deve normalizar telefones em diversos formatos para o padrão E.164 (+55)", () => {
     // 11 dígitos sem +55
-    expect(normalizePixKey("11976952264")).toBe("+5511976952264");
+    expect(normalizePixKey("11987654321")).toBe("+5511987654321");
     // Formatado com parênteses e traço
-    expect(normalizePixKey("(11) 97695-2264")).toBe("+5511976952264");
+    expect(normalizePixKey("(11) 98765-4321")).toBe("+5511987654321");
     // Com 55 mas sem +
-    expect(normalizePixKey("5511976952264")).toBe("+5511976952264");
+    expect(normalizePixKey("5511987654321")).toBe("+5511987654321");
     // Com + mas com espaços
-    expect(normalizePixKey("+55 11 97695-2264")).toBe("+5511976952264");
+    expect(normalizePixKey("+55 11 98765-4321")).toBe("+5511987654321");
     // Já no formato correto
-    expect(normalizePixKey("+5511976952264")).toBe("+5511976952264");
+    expect(normalizePixKey("+5511987654321")).toBe("+5511987654321");
   });
 
   it("deve preservar e-mails, chaves aleatórias EVP, CPFs válidos e CNPJs", () => {
@@ -60,7 +60,7 @@ describe("Pix BR Code Generator", () => {
   });
 
   it("deve calcular o CRC16-CCITT corretamente", () => {
-    const data = "00020126360014br.gov.bcb.pix0114+5511976952264520400005303986540523.005802BR5912HARU COOKIES6009SAO PAULO62070503***6304";
+    const data = "00020126360014br.gov.bcb.pix0114+5511987654321520400005303986540523.005802BR5912HARU COOKIES6009SAO PAULO62070503***6304";
     const crc = calculateCRC16(data);
     expect(crc).toHaveLength(4);
     expect(/^[0-9A-F]{4}$/.test(crc)).toBe(true);

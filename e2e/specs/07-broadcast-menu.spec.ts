@@ -54,7 +54,7 @@ test.describe("Divulgação de Cookies Disponíveis (WhatsApp Broadcast)", () =>
     await expect(previewText).toBeVisible();
     await expect(previewText).toContainText("🌟🌟 *Boa Tardee* 🌟🌟");
     await expect(previewText).toContainText("*Nesse friozinho, nada melhor que um cookie🌧️🥰*");
-    await expect(previewText).toContainText("https://wa.me/c/5511976952264");
+    await expect(previewText).toContainText("https://wa.me/c/5511999999999");
 
     // 11. Clica no botão de copiar mensagem
     const copyButton = modal.locator(".broadcast-btn-copy");

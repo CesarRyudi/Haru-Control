@@ -859,3 +859,39 @@
   - `npm test`: 4 suítes e 24 testes unitários aprovados com 100% de sucesso e zero poluição de `console.log` no terminal.
   - `npm run build`: Monorepo Nx (`types`, `utils`, `api`, `mobile`) compilado com 100% de sucesso e zero erros de compilação TypeScript.
 - **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+
+---
+
+### [2026-10-30] Quick Wins de Engenharia e Padrão Internacional de Contratação (SaaS US)
+
+- **Contexto:** Execução do pacote cirúrgico de Quick Wins resultante da auditoria técnica simulada para avaliação de contratação sênior internacional (SaaS nos EUA). Foco em eliminar vazamentos de dados pessoais, alinhar promessas técnicas do README com a implementação real, erradicar dependências externas desnecessárias, tipar contratos com TypeScript estrito e configurar a esteira de linting.
+- **Implementações Realizadas:**
+  - **1. Sanitização Completa de PII (Personally Identifiable Information) e Chave Pix:**
+    - `BroadcastMenuModal.tsx`: Substituído link estático com telefone comercial por `VITE_CATALOG_URL` com fallback genérico (`https://wa.me/c/5511999999999`).
+    - `OrderBoard.tsx`: Atualizado fallback de `pixKey` para `+5511999999999`.
+    - `pix.ts`: Sanitizado comentário com número de telefone celular de exemplo.
+    - `pix.spec.ts`: Atualizados testes unitários de geração de payload, normalização e cálculo de CRC16 utilizando número de teste neutro (`11987654321`).
+    - `07-broadcast-menu.spec.ts`: Atualizada asserção do teste E2E Playwright para refletir o link genérico do catálogo.
+    - `.env.example`: Adicionada e documentada a variável `VITE_CATALOG_URL`.
+  - **2. Geração 100% Local de QR Code Pix (Eliminação de `api.qrserver.com`):**
+    - Instalado pacote `qrcode.react` (4.2.0).
+    - `OrderBoard.tsx`: Substituída a tag `<img src="https://api.qrserver.com/..." />` pelo componente vetorial local `<QRCodeSVG value={pixCode} size={140} level="M" className="pix-qr-image" />`.
+    - Elimina vazamento de dados transacionais para serviços de terceiros e garante geração offline com zero latência de rede.
+  - **3. Tipagem Estrita TypeScript e Eliminação de `any`:**
+    - `OrderBoard.tsx`: Tipada interface `OrderCardProps` com `order: Order` canônico; tipados itens nas iterações do cartão e do modal com `OrderItem`; tipado parâmetro de `formatAckTime` com `Date | string | null | undefined`.
+    - `orders.service.ts`: Criado tipo `OrderWithRelations = Prisma.OrderGetPayload<...>` e tipada a assinatura de `formatOrder(order: OrderWithRelations)`; tipada cláusula `where` com `Prisma.OrderWhereInput`, `dateFilter` com `Prisma.DateTimeFilter` e `updateData` com `Prisma.OrderUncheckedUpdateInput`, eliminando declarações com `any`.
+  - **4. Alinhamento de Posicionamento no `README.md`:**
+    - Atualizados headline e visão executiva para destacar com precisão técnica um **High-speed Mobile POS & Kitchen Display System (KDS)** com Ledger Contábil e BOM multi-dimensional.
+    - Esclarecida a camada de proteção de quiosque de cozinha (PIN / biometria local no tablet).
+    - Refletida a geração vetorial local do QR Code Pix via `qrcode.react`.
+  - **5. Configuração Funcional de ESLint:**
+    - Criado `.eslintrc.json` raiz integrando `@typescript-eslint` e `prettier` com regras limpas de análise estática.
+    - Adicionado script `"lint": "eslint \"{apps,libs,e2e}/**/*.{ts,tsx}\""` no `package.json`.
+    - Corrigidas pendências de linting (`prefer-const` em `baking-suggestion.service.ts` e `BakingSuggestionModal.tsx`, e remoção de imports e variáveis não utilizadas em `Customers.tsx`).
+- **Validação & Testes:**
+  - `npm test`: 4 suítes e 24 testes unitários Jest aprovados com 100% de sucesso.
+  - `npx tsc --noEmit`: Zero erros de compilação em `apps/api` e `apps/mobile`.
+  - `npm run lint`: Aprovado com zero erros na esteira de linting.
+  - `npm run build`: Monorepo Nx compilado com sucesso para produção em ambos os targets (`api` e `mobile`).
+- **Documentação Atualizada:** [docs/TASKS.md](docs/TASKS.md) e [docs/HISTORY.md](docs/HISTORY.md).
+

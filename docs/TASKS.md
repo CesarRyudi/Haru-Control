@@ -213,6 +213,12 @@
   - Reforço estrito de tipagem TypeScript com novos DTOs (`CreateCategoryDto`, `UpdateCategoryDto`, `CreateBatchOrderDto`) e eliminação de `any` em categorias, pedidos, `Order.items` e `Insights.tsx`.
   - Reescrita do `README.md` em inglês técnico de nível sênior internacional para SaaS dos EUA.
   - Validação de 100% dos testes unitários sem poluição de log e build do monorepo Nx com zero erros.
+- `[x]` **Quick Wins de Engenharia e Padrão Internacional de Contratação (SaaS US):**
+  - Sanitização de dados pessoais e chaves Pix hardcoded em código e testes (`BroadcastMenuModal.tsx`, `OrderBoard.tsx`, `pix.spec.ts`, `07-broadcast-menu.spec.ts` e `.env.example`).
+  - Geração 100% local e offline do QR Code Pix via `qrcode.react` (`QRCodeSVG`), eliminando chamada externa insegura para `api.qrserver.com`.
+  - Erradicação de `any` em `OrderBoard.tsx` (`OrderCardProps`, iterações de `OrderItem`, `formatAckTime`) e no backend em `orders.service.ts` (`formatOrder` com Prisma payload type, `where: Prisma.OrderWhereInput`, `dateFilter: Prisma.DateTimeFilter`, `updateData: Prisma.OrderUncheckedUpdateInput`).
+  - Alinhamento de tom do `README.md` para destacar Mobile POS & KDS com Ledger Contábil e BOM com precisão técnica e honestidade sobre a proteção de quiosque.
+  - Configuração da esteira de linting com `.eslintrc.json` e script `"lint"` no `package.json`, corrigindo pendências e alcançando zero erros de lint.
 - `[ ]` **Módulo Seguro de Sincronização e Importação de Dados (Produção ➔ Dev):**
   - **Exportação Segura em Produção (`apps/api`):**
     - Endpoint fechado `GET /admin/database/export` protegido por chave secreta dedicada no header (`X-Database-Sync-Key`) com comparação em tempo constante (`crypto.timingSafeEqual`).

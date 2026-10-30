@@ -45,7 +45,7 @@ export class BakingSuggestionService {
     const effectiveStartStr = startDateStr || todayStr;
     const effectiveTargetStr = targetDateStr || effectiveStartStr;
 
-    let startDate = this.parseLocalDate(effectiveStartStr);
+    const startDate = this.parseLocalDate(effectiveStartStr);
     let targetDate = this.parseLocalDate(effectiveTargetStr);
 
     if (targetDate < startDate) {

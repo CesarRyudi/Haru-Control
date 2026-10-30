@@ -1,13 +1,11 @@
 import { Customer } from "@haru-control/types";
 import { FloatingActionButton } from "@haru-control/ui";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import CustomerFormModal from "../components/CustomerFormModal";
 import "./Customers.css";
 
 export default function Customers() {
-  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
